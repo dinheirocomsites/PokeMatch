@@ -45,13 +45,26 @@ Legenda: [x] feito · [~] em andamento · [ ] a fazer
 - [x] Plano de troca explícito, começando por cartas **mortas no matchup** (Gravity Mountain)
 - [x] Seletores que não sabemos ler não viram mais "qualquer Pokémon" (Carracosta, Heatran, Rabsca)
 
+## Fase 5.6 — Contexto, corrida de prêmios e caminhos (feedback do Felipe)
+- [x] **Quem realmente ataca**: custo do ataque × energias da lista (Chien-Pao precisa {W}{W}, a lista tem 1 Água → não conta)
+- [x] **Campo "qual é a sua dor?"** em PT: detecta a dor (prêmios, morrer rápido, disrupção, setup, dano, ACE SPEC) e as cartas citadas
+- [x] **Nomes em português** no sync (3.050 cartas) → "Folhas Férreas" = Iron Leaves ex
+- [x] **Simulador de corrida de prêmios** turno a turno: oponente escolhe quem entrega menos prêmios, Boss limitado, alvo só no banco real, dano dependente do estado (60× prêmios, ferido, envenenado, Munkidori)
+- [x] Muralhas entram na simulação (Farigiraf ex: Ogerpon/Iron Leaves não causam dano)
+- [x] **Plano de jogo**: "só com Mega Sharpedo" (derrota 4×6) × "melhor ordem com a sua lista" (vitória 6×4)
+- [x] Cartas que **reduzem prêmios** (Legacy Energy, Mega Gengar ex, Munkidori ex, Lillie's Pearl) testadas no simulador
+- [x] **Caminhos agrupados**: 🏁 Prêmios · 🛡️ Muralha · ⭐ ACE SPEC · 💥 Dano · 🚫 Disrupção — os da sua dor sobem
+- [x] Corrigidos falsos positivos: "dano de 40 ou menos" (Roggenrola), "só se nocautear" (Golisopod/Marshadow)
+- [ ] Caminho "contra-disrupção" (quando o oponente te atrapalha: Iono, item lock…) — precisa de um deck de teste com disrupção
+- [ ] Usar IA (LLM) para ler a dor com mais nuance e escrever o plano de jogo em linguagem natural
+
 ## Fase 6 — Interface web
 - [x] Página com duas caixas (sua lista × deck oponente), salva no navegador
 - [x] Top 8 techs com imagem real, nota, impacto/encaixe e cortes
 - [x] Visual UAAAU 🔥: carta holográfica que inclina com o mouse, anéis de nota animados, confete, Pokébola de loading
 
 ## Fase 7 — Validação
-- [x] Caso de teste real: Mega Sharpedo ex × Basic Box → **#1 Farigiraf ex** com o pacote Girafarig TWM + Energia Psíquica e todos os combos (12 testes ✅)
+- [x] Caso de teste real: Mega Sharpedo ex × Basic Box → **#1 Farigiraf ex** com o pacote Girafarig TWM + Energia Psíquica e todos os combos (17 testes ✅)
 - [ ] Testar com mais 3 matchups do meta
 - [ ] Publicar (GitHub + hospedagem grátis)
 

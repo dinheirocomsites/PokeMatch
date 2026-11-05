@@ -5,6 +5,8 @@ import { profileDeck } from './profile.js';
 import { parseDeck } from './parser.js';
 import { evaluateFit, deadInMatchup } from './fit.js';
 import { buildOptions } from './synergy.js';
+import { simulateRace, planText, parseDenial } from './prizes.js';
+import { readContext, clusterOf, CLUSTERS } from './context.js';
 
 const pct = (x) => `${Math.round(x * 100)}%`;
 const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
@@ -31,10 +33,10 @@ function coverage(sel, opp, ctx) {
   const covered = [];
   const uncovered = [];
   for (const e of opp.threat) {
-    if (maxDamage(e.card) === 0) continue;
+    if (maxDamage(e.card) === 0 || e.feas < 0.3) continue;
     if (matches(sel, e.card, ctx)) { hit += e.threat; covered.push(e.card.name); } else uncovered.push(e.card.name);
   }
-  const attackThreat = opp.threat.filter((e) => maxDamage(e.card) > 0).reduce((s, e) => s + e.threat, 0) || 1;
+  const attackThreat = opp.threat.filter((e) => maxDamage(e.card) > 0 && e.feas >= 0.3).reduce((s, e) => s + e.threat, 0) || 1;
   return { cov: hit / attackThreat, covered, uncovered };
 }
 
@@ -45,7 +47,7 @@ function canPayCost(cost, me) {
 // Valor de uma etiqueta contra o deck oponente → { value, why }
 function tagValue(t, opp, me, ctx) {
   const c = opp.counts;
-  const condFactor = (t.cond ?? []).reduce((f, x) => f * (x === 'coin' ? 0.35 : x.startsWith('prizes') ? 0.6 : x === 'afterKO' ? 0.7 : x === 'active' ? 0.85 : 1), 1);
+  const condFactor = (t.cond ?? []).reduce((f, x) => f * (x === 'coin' ? 0.35 : x.startsWith('prizes') ? 0.6 : x === 'afterKO' ? 0.7 : x === 'ifKO' ? 0.45 : x === 'active' ? 0.85 : 1), 1);
   const nextTurn = t.source === 'attack' ? 0.65 : 1; // efeito de ataque dura 1 turno e exige atacar
   switch (t.kind) {
     case 'WALL_SELF':
@@ -193,7 +195,7 @@ function suggestCuts(me, opp, slotsNeeded) {
   return { plan, alternatives: out.filter((o) => !plan.some((p) => p.name === o.name)).slice(0, 3) };
 }
 
-export function analyze(myText, oppText, db, { limit = 8 } = {}) {
+export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
   const myParsed = parseDeck(myText, db);
   const oppParsed = parseDeck(oppText, db);
   const me = profileDeck(myParsed);
@@ -246,6 +248,76 @@ export function analyze(myText, oppText, db, { limit = 8 } = {}) {
     }
     candidates.push(best);
   }
+  // ---------- Corrida de prêmios: simula e testa techs ----------
+  const outcome = (b) => (b.win ? 100 - b.turns * 5 + (6 - b.oppTaken) * 4 : b.myTaken * 5 - 50);
+  const describe = (b) => `${b.win ? 'vitória' : 'derrota'} ${b.win ? `${b.myTaken}×${b.oppTaken}` : `${b.myTaken}×${b.oppTaken}`}`;
+  const naive = me.mainAttacker ? simulateRace(me, opp, { only: [me.mainAttacker.name] }) : null;
+  const baseRace = simulateRace(me, opp);
+  const baseScore = outcome(baseRace.best);
+  const naiveScore = naive ? outcome(naive.best) : baseScore;
+  // Testa a tech na melhor ordem E no jeito "normal" (só o atacante principal + a tech)
+  const raceWith = (opts) => {
+    const r = simulateRace(me, opp, opts);
+    let delta = outcome(r.best) - baseScore;
+    let rn = null;
+    if (naive && !opts.extraAttackers?.length) {
+      const only = [me.mainAttacker.name];
+      rn = simulateRace(me, opp, { ...opts, only });
+      delta = Math.max(delta, (outcome(rn.best) - naiveScore) * 0.6);
+    }
+    return { r, rn, delta };
+  };
+  const raceReason = (r, delta, how, rn) => {
+    const parts = [];
+    if (rn && naive && outcome(rn.best) > naiveScore) parts.push(`jogando só com ${me.mainAttacker.name}: ${describe(naive.best)} → ${describe(rn.best)}`);
+    if (outcome(r.best) > baseScore) parts.push(`na melhor ordem: ${describe(baseRace.best)} → ${describe(r.best)}`);
+    return { kind: 'PRIZE_RACE', value: clamp(delta * 0.8, 0, 45), why: `Simulação da corrida de prêmios ${how} — ${parts.join('; ') || 'melhora a margem'}.` };
+  };
+  // (a) cartas que reduzem prêmios
+  for (const card of db.unique) {
+    if (me.names.has(card.name) || !/fewer prize/i.test(card.text)) continue;
+    const spec = parseDenial(card, me);
+    if (!spec || spec.blocked) continue;
+    const opts = card.category === 'Pokemon' ? buildOptions(card, me, opp, db) : [null];
+    for (const opt of opts.slice(-1)) {
+      const { r, rn, delta } = raceWith({ denial: spec, extraAttackers: spec.self ? [{ card, count: 1 }] : [], energyTypes: opt?.energyTypes });
+      if (delta <= 0) continue;
+      const how = spec.attachTo ? `com ${card.name} no ${spec.attachTo}` : `com ${card.name} em jogo`;
+      const reasons = [raceReason(r, delta, how, rn), { kind: 'PRIZE_DENIAL', value: 10, why: `"${card.name}": o oponente pega 1 prêmio a menos${spec.vsEx ? ' quando um Pokémon ex dele nocauteia' : ''}${spec.types ? ` um Pokémon ${spec.types.join('/')} seu` : spec.attachTo ? ` ao nocautear o ${spec.attachTo}` : ''}${spec.uses === 1 ? ' (1 vez por jogo)' : ''}.` }];
+      const prev = candidates.find((c) => c?.card.name === card.name);
+      const impact = clamp(reasons.reduce((s2, x, i) => s2 + x.value * (i ? 0.4 : 1), 0) + (prev ? prev.impact * 0.4 : 0), 0, 100);
+      const fit = evaluateFit(card, [], reasons, me, opp, db, opt);
+      const cand = { card, impact: Math.round(impact), fit: Math.round(fit.factor * 100), parts: fit.parts, score: Math.round(impact * fit.factor), reasons: [...reasons, ...(prev?.reasons ?? [])], notes: fit.notes, slots: fit.slots, pkg: opt, race: { plan: planText((rn && outcome(rn.best) - naiveScore > outcome(r.best) - baseScore ? rn : r).best), result: describe(r.best), naiveResult: rn && describe(rn.best) } };
+      if (prev) Object.assign(prev, cand); else candidates.push(cand);
+    }
+  }
+  // (b) atacantes novos (principalmente de 1 prêmio) — testa os melhores candidatos com dano
+  const withDmg = candidates.filter((c) => c?.pkg?.damage?.kos?.length).sort((a, b) => b.score - a.score).slice(0, 14);
+  for (const c of withDmg) {
+    if (c.reasons.some((x) => x.kind === 'PRIZE_RACE')) continue; // já simulada como redutora de prêmios
+    const { r, rn, delta } = raceWith({ extraAttackers: [{ card: c.card, count: 1 }], energyTypes: c.pkg.energyTypes });
+    const uses = (x) => x?.best.steps.some((st) => st.attacker === c.card.name);
+    if (delta <= 0 || !(uses(r) || uses(rn))) continue;
+    c.reasons.push(raceReason(r, delta, `usando ${c.card.name}`, rn));
+    c.reasons.sort((a, b) => b.value - a.value);
+    c.impact = Math.round(clamp(c.reasons.reduce((s2, x, i) => s2 + x.value * (i ? 0.4 : 1), 0), 0, 100));
+    c.score = Math.round(c.impact * (c.fit / 100));
+    c.race = { plan: planText(r.best), result: describe(r.best) };
+  }
+
+  // ---------- Contexto do jogador ----------
+  const ctxRead = readContext(context, me, opp, db);
+  for (const c of candidates) {
+    if (!c) continue;
+    c.cluster = clusterOf(c);
+    c.baseScore = c.score;
+    let w = ctxRead.weights[c.cluster] ?? 1;
+    if (c.card.aceSpec && ctxRead.weights.acespec) w *= 1.3;
+    if (ctxRead.mentions.opp.some((n) => c.reasons.some((r) => r.why.includes(n)))) w *= 1.12;
+    c.score = Math.round(c.score * w);
+    c.boosted = w > 1;
+  }
+
   // Uma entrada por nome (a melhor versão)
   const seenName = new Set();
   for (let i = candidates.length - 1; i >= 0; i--) if (!candidates[i]) candidates.splice(i, 1);
@@ -269,7 +341,20 @@ export function analyze(myText, oppText, db, { limit = 8 } = {}) {
   }
   const locked = [...ctx.lockedByMe].map(([oppCard, by]) => ({ oppCard, by }));
 
+  const clusters = Object.entries(CLUSTERS).map(([key, c]) => {
+    const items = candidates.filter((x) => (key === 'acespec' ? x.card.aceSpec : x.cluster === key)).slice(0, 4);
+    return { key, ...c, weight: ctxRead.weights[key] ?? 1, items: items.map((x) => ({ name: x.card.name, score: x.score, image: x.card.image, id: x.card.id })) };
+  }).filter((c) => c.items.length).sort((a, b) => b.weight - a.weight || b.items[0].score - a.items[0].score);
+  const race = {
+    naive: naive && { result: describe(naive.best), plan: planText(naive.best), win: naive.best.win, attacker: me.mainAttacker.name },
+    best: { result: describe(baseRace.best), plan: planText(baseRace.best), win: baseRace.best.win },
+    assumptions: `Você ataca primeiro em cada troca; o oponente responde com quem nocauteia seu atacante entregando menos prêmios; ${baseRace.gusts} Boss's Orders disponíveis; só alcança com Boss Pokémon que ficam no banco (habilidade de banco ou que já atacaram).`,
+  };
+
   return {
+    context: ctxRead,
+    clusters,
+    race,
     me: summarize(me, myParsed),
     opp: summarize(opp, oppParsed),
     insights: insightsFor(opp, me, ctx),
@@ -300,6 +385,7 @@ function insightsFor(opp, me, ctx) {
   if (c.specialEnergy >= 4) out.push(`${c.specialEnergy} Energias Especiais.`);
   const w = Object.entries(opp.weakness).sort((a, b) => b[1] - a[1])[0];
   if (w && w[1] >= 0.3) out.push(`${Math.round(w[1] * 100)}% do poder de ataque é fraco a ${typePt(w[0])}.`);
+  for (const e of opp.threat) if (e.feas === 0 && (e.card.attacks ?? []).some((a) => attackDamage(a))) out.push(`${e.card.name} praticamente não ataca: precisa de ${e.feasMissing.map((m) => `${m.need}× ${typePt(m.type)}`).join(' + ')} e a lista tem ${e.feasMissing.map((m) => `${m.have} Energia(s) ${typePt(m.type)}`).join(', ')}.`);
   if (ctx.lockedByMe.size) out.push(`Seu deck já desliga a habilidade de: ${[...ctx.lockedByMe.keys()].join(', ')}.`);
   return out;
 }

@@ -7,6 +7,22 @@ export function threatOf(card) {
   return d ? Math.max(0.2, d / 100) : 0.1;
 }
 
+// O deck consegue pagar o ataque? Compara o custo com as energias da lista.
+// 0 = impossível, ~0.35 = só com a única cópia, 1 = tranquilo.
+export function attackFeasibility(attack, deck) {
+  const need = {};
+  for (const t of attack.cost ?? []) if (t !== 'Colorless') need[t] = (need[t] ?? 0) + 1;
+  let f = 1;
+  const missing = [];
+  for (const [t, n] of Object.entries(need)) {
+    const avail = (deck.energyByType[t] ?? 0) + deck.anyEnergy;
+    if (avail < n) { missing.push({ type: t, need: n, have: avail }); f = 0; continue; }
+    const ratio = avail / n;
+    f = Math.min(f, Math.min(1, 0.35 + 0.25 * (ratio - 1) + (deck.energySearch ? 0.15 : 0)));
+  }
+  return { f, missing };
+}
+
 export function profileDeck(parsed) {
   const entries = parsed.cards.filter((e) => e.card);
   const pokemon = entries.filter((e) => e.card.category === 'Pokemon');
@@ -14,7 +30,21 @@ export function profileDeck(parsed) {
   const energy = entries.filter((e) => e.card.category === 'Energy');
   const sum = (arr, f = () => 1) => arr.reduce((s, e) => s + e.count * f(e.card), 0);
 
-  const threat = pokemon.map((e) => ({ ...e, threat: e.count * threatOf(e.card) }));
+  // Energias por tipo (para saber quem consegue atacar de verdade)
+  const energyByType = {};
+  let anyEnergy = 0;
+  for (const e of energy) {
+    if (e.card.isBasicEnergy) { const t = e.card.name.replace(' Energy', ''); energyByType[t] = (energyByType[t] ?? 0) + e.count; }
+    else if (/provides every type of energy/i.test(e.card.text)) anyEnergy += e.count;
+    else for (const t of e.card.types ?? []) energyByType[t] = (energyByType[t] ?? 0) + e.count;
+  }
+  const energySearch = entries.some((e) => /search your deck for [^.]*basic energy/i.test(e.card.text));
+  const eDeck = { energyByType, anyEnergy, energySearch };
+  const threat = pokemon.map((e) => {
+    const atks = (e.card.attacks ?? []).filter((a) => maxDamage({ attacks: [a] }) > 0);
+    const feas = atks.length ? atks.map((a) => ({ a, ...attackFeasibility(a, eDeck) })).sort((x, y) => y.f - x.f)[0] : { f: 1, missing: [] };
+    return { ...e, feas: feas.f, feasMissing: feas.missing, threat: e.count * threatOf(e.card) * (atks.length ? Math.max(feas.f, 0) : 1) };
+  });
   const totalThreat = threat.reduce((s, e) => s + e.threat, 0) || 1;
 
   const weakness = {};
@@ -66,6 +96,9 @@ export function profileDeck(parsed) {
     totalThreat,
     weakness,
     energyTypes,
+    energyByType,
+    anyEnergy,
+    energySearch,
     mainAttacker,
     search,
     aceSpec: entries.find((e) => e.card.aceSpec)?.card ?? null,

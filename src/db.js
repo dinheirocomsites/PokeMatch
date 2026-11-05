@@ -60,6 +60,12 @@ export function loadDb(path = join(ROOT, 'data', 'cards.json')) {
     if (!byName.has(k)) byName.set(k, []);
     byName.get(k).push(c);
   }
+  // Nome em português por nome em inglês (qualquer impressão que tenha)
+  const ptNames = new Map(); // nome-pt normalizado -> nome-en
+  for (const [k, prints] of byName) {
+    const pt = prints.find((p) => p.namePt)?.namePt;
+    if (pt) { prints.forEach((p) => (p.namePt = pt)); ptNames.set(normName(pt), prints[0].name); }
+  }
   // ACE SPEC vale pelo nome: se qualquer impressão é ACE SPEC, todas são.
   for (const prints of byName.values()) {
     if (prints.some((p) => p.aceSpec)) prints.forEach((p) => (p.aceSpec = true));
@@ -80,6 +86,6 @@ export function loadDb(path = join(ROOT, 'data', 'cards.json')) {
     versionsByName.set(k, versions);
     unique.push(...versions);
   }
-  cache = { syncedAt: raw.syncedAt, marks: raw.marks, sets: raw.sets, cards, unique, versionsByName, byId, bySetNum, byName };
+  cache = { syncedAt: raw.syncedAt, marks: raw.marks, sets: raw.sets, cards, unique, versionsByName, byId, bySetNum, byName, ptNames };
   return cache;
 }

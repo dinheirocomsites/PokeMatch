@@ -102,6 +102,35 @@
   .swap { margin-top: 12px; font-size: 13px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
   .swap .in { display: inline-block; background: #3ddc9714; border: 1px solid #3ddc9755; color: #b6f5d8; border-radius: 8px; padding: 3px 8px; }
   .swap .arrow { color: var(--accent); font-weight: 900; margin: 0 4px; }
+  .ctxbox { margin-top: 18px; }
+  .ctxbox textarea { min-height: 80px; flex: none; font-family: inherit; font-size: 14px; }
+  .opt { font-size: 11px; font-weight: 600; color: var(--muted); border: 1px solid var(--line); border-radius: 99px; padding: 2px 8px; margin-left: 6px; }
+  .understood { background: linear-gradient(135deg, #3d7dca22, #a855f722); border: 1px solid #3d7dca66; border-radius: 16px; padding: 14px 18px; margin-top: 20px; font-size: 15px; }
+  .understood b { color: var(--accent); }
+  .clusters { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+  .cl { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 14px; position: relative; }
+  .cl.hot { border-color: #ffcb0599; box-shadow: 0 0 30px -10px #ffcb0588; }
+  .cl.hot::after { content: 'sua dor'; position: absolute; top: -10px; right: 12px; background: var(--accent); color: #1a1300; font-size: 11px; font-weight: 800; border-radius: 99px; padding: 2px 8px; }
+  .cl h3 { margin: 0 0 4px; font-size: 16px; }
+  .cl p { margin: 0 0 10px; color: var(--muted); font-size: 12.5px; }
+  .cl .it { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-top: 1px dashed var(--line); cursor: pointer; font-size: 14px; }
+  .cl .it img { width: 34px; border-radius: 3px; }
+  .cl .it .sc { margin-left: auto; font-weight: 800; color: var(--good); }
+  .race { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .plan { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; }
+  .plan h3 { margin: 0 0 10px; font-size: 15px; display: flex; justify-content: space-between; gap: 8px; }
+  .res { font-size: 12px; font-weight: 800; padding: 3px 10px; border-radius: 99px; white-space: nowrap; }
+  .res.win { background: #3ddc9722; color: var(--good); } .res.loss { background: #ff5d7322; color: var(--bad); }
+  .tl { position: relative; padding-left: 18px; border-left: 2px solid var(--line); margin-left: 6px; }
+  .tl .t { margin: 0 0 10px; font-size: 13px; line-height: 1.4; }
+  .tl .t::before { content: attr(data-n); position: absolute; left: -13px; width: 22px; height: 22px; border-radius: 50%; background: var(--panel2); border: 2px solid var(--accent2); font-size: 11px; font-weight: 800; display: grid; place-items: center; margin-top: -2px; }
+  .tl .me { color: #dfe6ff; } .tl .op { color: var(--muted); }
+  .assump { color: var(--muted); font-size: 12px; margin-top: 8px; }
+  .badge { display: inline-block; font-size: 12px; background: var(--panel2); border: 1px solid var(--line); border-radius: 99px; padding: 3px 10px; margin-left: 8px; vertical-align: middle; }
+  .badge.up { border-color: #ffcb0599; color: var(--accent); }
+  details.cplan { margin-top: 10px; background: #0e1122; border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; }
+  details.cplan summary { cursor: pointer; font-size: 13px; font-weight: 700; color: var(--accent); }
+  @media (max-width: 820px) { .race { grid-template-columns: 1fr; } }
   .already .row { display: flex; gap: 12px; align-items: flex-start; padding: 8px 0; border-bottom: 1px dashed var(--line); font-size: 14px; }
   .already img { width: 60px; border-radius: 6px; }
   .disclaimer { color: var(--muted); font-size: 12px; text-align: center; margin-top: 40px; }
@@ -131,6 +160,11 @@
       <div class="status" id="oppStatus"></div>
     </div>
   </section>
+  <div class="deck ctxbox">
+    <h2>💬 Qual é a sua dor nesse matchup? <span class="opt">opcional</span></h2>
+    <p>Conte em português o que acontece nas partidas — a análise prioriza os caminhos que resolvem o SEU problema.</p>
+    <textarea id="ctx" rows="3" spellcheck="false" placeholder="Ex.: meu problema é a corrida de prêmios: morro em um hit para Ogerpon ou Folhas Férreas e entrego 3 prêmios, e quando eu mato pego só 2…"></textarea>
+  </div>
   <div class="actions">
     <button class="go" id="go">⚡ Encontrar tech cards</button>
     <button class="ghost" id="example">Carregar exemplo: Mega Sharpedo ex × Basic Box</button>
@@ -142,12 +176,21 @@
     <h2 class="section-title">🔍 Raio-X do oponente</h2>
     <div class="profile" id="profile"></div>
 
+    <div id="understood"></div>
+
+    <h2 class="section-title">🧭 Caminhos para virar o matchup <small>agrupados pelo tipo de solução</small></h2>
+    <div class="clusters" id="clusters"></div>
+
+    <h2 class="section-title">🏁 Corrida de prêmios <small>simulação turno a turno com a sua lista atual</small></h2>
+    <div class="race" id="race"></div>
+    <p class="assump" id="assump"></p>
+
     <div id="alreadyWrap">
       <h2 class="section-title">✅ Você já tem <small>counters que já estão na sua lista</small></h2>
       <div class="box already" id="already"></div>
     </div>
 
-    <h2 class="section-title">🃏 Tech cards sugeridas <small>nota = impacto no matchup × recursos × peso × sinergia × risco</small></h2>
+    <h2 class="section-title">🃏 Tech cards sugeridas <small>nota = impacto × recursos × peso × sinergia × risco (× peso da sua dor)</small></h2>
     <div class="grid" id="suggestions"></div>
     <p class="disclaimer" id="disclaimer"></p>
   </section>
@@ -157,21 +200,22 @@ const $ = (s) => document.querySelector(s);
 const STAGE = { Basic: 'Básico', Stage1: 'Estágio 1', Stage2: 'Estágio 2' };
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const KEY = 'techfinder:v1';
-try { const saved = JSON.parse(localStorage.getItem(KEY) || '{}'); $('#mine').value = saved.mine || ''; $('#opp').value = saved.opp || ''; } catch {}
+try { const saved = JSON.parse(localStorage.getItem(KEY) || '{}'); $('#mine').value = saved.mine || ''; $('#opp').value = saved.opp || ''; $('#ctx').value = saved.context || ''; } catch {}
 
 $('#example').onclick = async () => {
   const [a, b] = await Promise.all(['sharpedo.txt', 'basic-box.txt'].map((f) => fetch('/examples/' + f).then((r) => r.text())));
   $('#mine').value = a; $('#opp').value = b;
+  $('#ctx').value = 'Meu problema é a corrida de prêmios: morro em um hit para Ogerpon ou Folhas Férreas e entrego 3 prêmios de uma vez, enquanto quando eu mato pego só 2. Assim a conta não fecha.';
 };
 
 $('#go').onclick = async () => {
-  const mine = $('#mine').value, opp = $('#opp').value;
-  localStorage.setItem(KEY, JSON.stringify({ mine, opp }));
+  const mine = $('#mine').value, opp = $('#opp').value, context = $('#ctx').value;
+  localStorage.setItem(KEY, JSON.stringify({ mine, opp, context }));
   $('#go').disabled = true; $('#results').style.display = 'none';
   $('#loader').style.display = 'block'; $('#loadingText').style.display = 'block';
   const started = Date.now();
   try {
-    const res = await fetch('/api/analyze', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ mine, opp }) });
+    const res = await fetch('/api/analyze', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ mine, opp, context }) });
     const data = await res.json();
     await new Promise((r) => setTimeout(r, Math.max(0, 900 - (Date.now() - started)))); // suspense 😎
     if (!res.ok) throw new Error(data.error);
@@ -203,20 +247,32 @@ function render(d) {
       ${[[c.basic, 'Básicos'], [c.ex, 'ex'], [c.mega, 'Mega'], [c.withAbility, 'c/ Habilidade'], [c.item, 'Itens'], [c.supporter, 'Supporters'], [c.tool, 'Ferramentas'], [c.stadium, 'Estádios'], [c.specialEnergy, 'En. Especial']].filter(([n]) => n).map(([n, l]) => `<span class="chip"><b>${n}</b> ${l}</span>`).join('')}
       </div></div>`;
 
+  $('#understood').innerHTML = d.context && !d.context.empty ? `<div class="understood">🧠 <b>Entendi:</b> ${d.context.summary.map(esc).join(' ')}</div>` : '';
+  $('#clusters').innerHTML = d.clusters.map((c) => `<div class="cl ${c.weight > 1 ? 'hot' : ''}"><h3>${c.icon} ${esc(c.title)}</h3><p>${esc(c.desc)}</p>${c.items.map((it) => `<div class="it" data-go="${esc(it.name)}">${it.image ? `<img src="${it.image}/low.webp" alt="" loading="lazy">` : ''}<span>${esc(it.name)}</span><span class="sc">${it.score}</span></div>`).join('')}</div>`).join('');
+  const tl = (plan) => `<div class="tl">${plan.map((t) => `<div class="t" data-n="${t.turn}"><div class="me">${esc(t.mine)}</div><div class="op">${esc(t.theirs)}</div></div>`).join('')}</div>`;
+  const res = (p) => `<span class="res ${p.win ? 'win' : 'loss'}">${esc(p.result)}</span>`;
+  $('#race').innerHTML = d.race.naive ? `
+    <div class="plan"><h3>Jogando só com ${esc(d.race.naive.attacker)} ${res(d.race.naive)}</h3>${tl(d.race.naive.plan)}</div>
+    <div class="plan"><h3>Melhor ordem com a sua lista ${res(d.race.best)}</h3>${tl(d.race.best.plan)}</div>` : '';
+  $('#assump').textContent = d.race.assumptions ? `Premissas: ${d.race.assumptions}` : '';
+  document.querySelectorAll('[data-go]').forEach((el) => (el.onclick = () => document.querySelector(`[data-card="${CSS.escape(el.dataset.go)}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })));
+
   $('#alreadyWrap').style.display = d.already.length ? '' : 'none';
   $('#already').innerHTML = d.already.map((a) => `<div class="row">${a.card.image ? `<img src="${a.card.image}" alt="" loading="lazy">` : ''}<div><b>${a.count}x ${esc(a.card.name)}</b><br>${a.reasons.map(esc).join('<br>')}</div></div>`).join('');
 
   const ENERGY_SYM = { 'Psychic Energy': 'P', 'Water Energy': 'W', 'Fire Energy': 'R', 'Grass Energy': 'G', 'Lightning Energy': 'L', 'Fighting Energy': 'F', 'Darkness Energy': 'D', 'Metal Energy': 'M' };
+  const CLUSTER_ICON = { premios: '🏁', protecao: '🛡️', disrupcao: '🚫', dano: '💥' };
+  const CLUSTER_NAME = { premios: 'Corrida de prêmios', protecao: 'Muralha', disrupcao: 'Disrupção', dano: 'Dano' };
   const CRIT = { recursos: '🔋 Recursos', peso: '⚖️ Peso', sinergia: '🔗 Sinergia', risco: '🎯 Risco' };
   const pkgHtml = (s) => !s.pkg || s.pkg.adds.length < 2 ? '' : `<div class="pkg"><span class="label">Pacote:</span>${s.pkg.adds.map((a, j) => `${j ? '<span class="plus">+</span>' : ''}<div class="item">${ENERGY_SYM[a.card?.name] ? `<div class="en">{${ENERGY_SYM[a.card.name]}}</div>` : a.card?.image ? `<img src="${a.card.image.replace('/high.webp', '/low.webp')}" alt="" loading="lazy">` : ''}<span>${a.qty}x ${esc(a.card?.name)}${a.card?.setCode && !ENERGY_SYM[a.card.name] ? ` <br>${esc(a.card.setCode)} ${parseInt(a.card.localId, 10)}` : ''}<br><i>${esc(a.role)}</i></span></div>`).join('')}</div>`;
   const dmgHtml = (s) => { const d = s.pkg?.damage; if (!d || !d.kos.length) return ''; return `<div class="dmg"><div class="eq">${d.base}${d.boost ? ` + ${d.boost}` : ''}${d.passive ? ` + ${d.passive}` : ''} = <b>${d.total}</b> de dano</div><div>"${esc(d.attack)}"${d.boost ? ' + combo' : ''}${d.passive ? ' + dano passivo' : ''} → nocauteia em 1 ataque: ${d.kos.map(esc).join(', ')}</div></div>`; };
   const swapHtml = (s) => !s.swap ? '' : `<div class="swap"><b style="color:var(--warn)">Troca sugerida:</b> ${s.swap.out.map((x) => `<span class="cut" title="${esc(x.why)}">−${x.qty} ${esc(x.name)}</span>`).join('')}<span class="arrow">→</span>${s.swap.in.map((x) => `<span class="in">${esc(x)}</span>`).join('')}</div>${s.swap.out.length ? `<div style="font-size:12px;color:var(--muted);margin-top:4px">${s.swap.out.map((x) => `${esc(x.name)}: ${esc(x.why)}`).join(' · ')}</div>` : ''}`;
   $('#suggestions').innerHTML = d.suggestions.map((s, i) => `
-    <article class="sug ${i < 3 ? 'top' : ''}">
+    <article class="sug ${i < 3 ? 'top' : ''}" data-card="${esc(s.card.name)}">
       <div class="rank">#${i + 1}</div>
       <div class="cardwrap"><div class="holo">${s.card.image ? `<img src="${s.card.image}" alt="${esc(s.card.name)}" loading="lazy" onerror="this.remove()">` : ''}<div class="fallback" style="z-index:-1">${esc(s.card.name)}</div></div></div>
       <div>
-        <h3>${esc(s.card.name)}</h3>
+        <h3>${esc(s.card.name)}${s.cluster ? `<span class="badge ${s.boosted ? 'up' : ''}">${CLUSTER_ICON[s.cluster] || ''} ${esc(CLUSTER_NAME[s.cluster] || '')}${s.boosted ? ' · ↑ sua dor' : ''}</span>` : ''}</h3>
         <div class="meta">${esc(s.card.setCode || '')} ${esc(s.card.localId || '')} · ${esc(s.card.category === 'Pokemon' ? `${STAGE[s.card.stage] || s.card.stage} · ${s.card.hp} HP` : s.card.trainerType || s.card.category)} · ${s.slots} slot${s.slots > 1 ? 's' : ''}</div>
         <div class="scores">
           <div><div class="ring" data-v="${s.score}"><b>${s.score}</b></div><div class="ring-label">Nota</div></div>
@@ -226,6 +282,7 @@ function render(d) {
         ${dmgHtml(s)}
         ${pkgHtml(s)}
         <div class="tabs">${Object.entries(CRIT).map(([k, label]) => s.notes[k]?.length ? `<div class="crit"><h4>${label}<span>${s.parts[k]}</span></h4>${s.notes[k].map((n) => `<div>${esc(n)}</div>`).join('')}</div>` : '').join('')}</div>
+        ${s.race ? `<details class="cplan"><summary>🏁 Plano de jogo com ${esc(s.card.name)} (${esc(s.race.result)})</summary>${tl(s.race.plan)}</details>` : ''}
         ${swapHtml(s)}
       </div>
     </article>`).join('') || '<div class="box">Nenhuma tech forte encontrada para esse matchup.</div>';

@@ -20,7 +20,7 @@ export function canPayCost(cost, me) {
 }
 
 // Quantas vezes um "for each" costuma contar, no contexto do deck que ataca
-function multiplier(effect, deck, defenderBench = 5) {
+export function multiplier(effect, deck, defenderBench = 5) {
   const maxInPlay = deck.bigBench ? 9 : 6;
   if (/for each of your basic pok[eé]mon in play/i.test(effect)) return Math.min(maxInPlay, deck.counts.basic);
   if (/for each benched pok[eé]mon \(both|for each benched pok[eé]mon .both/i.test(effect)) return maxInPlay - 1 + defenderBench;
@@ -28,6 +28,7 @@ function multiplier(effect, deck, defenderBench = 5) {
   if (/for each of your pok[eé]mon in play/i.test(effect)) return maxInPlay;
   if (/for each of your opponent.s benched/i.test(effect)) return defenderBench;
   if (/for each prize card/i.test(effect)) return 4;
+  if (/for each energy attached to both active/i.test(effect)) return 5; // ~3 dele + ~2 do seu Ativo
   if (/for each energy|for each .*energy attached/i.test(effect)) return 4;
   if (/flip a coin until you get tails/i.test(effect)) return 1; // valor esperado ~1
   if (/for each heads/i.test(effect)) return 1.5;
@@ -54,6 +55,7 @@ function worstHit(target, attackers, opp) {
   const boosts = opp.tagsByCard.flatMap(({ tags }) => tags.filter((t) => t.kind === 'EXTRA_DMG' && !t.onlyFor && matches(t.sel, target)).map((t) => t.amount));
   const boost = Math.max(0, ...boosts);
   for (const e of attackers) {
+    if (e.feas !== undefined && e.feas < 0.3) continue; // não consegue energizar esse ataque
     for (const a of e.card.attacks ?? []) {
       let dmg = potentialDamage(a, opp);
       if (!dmg) continue;
@@ -195,7 +197,7 @@ export function evaluateFit(card, used, reasons, meBase, opp, db, opt = null) {
   if (card.category === 'Pokemon') {
     if (isWall) {
       const wall = used.find((t) => t.kind === 'WALL_SELF');
-      const through = opp.threat.filter((e) => (e.card.attacks ?? []).length && !matches(wall.sel, e.card));
+      const through = opp.threat.filter((e) => (e.card.attacks ?? []).length && e.feas >= 0.3 && !matches(wall.sel, e.card));
       const w = worstHit(card, through, opp);
       if (!through.length) add('risco', 1, '✓ Nenhum atacante do oponente passa pela muralha.');
       else if (w.dmg >= card.hp) add('risco', 0.4, `✗ ${w.by} passa pela muralha e causa até ~${fmt(w.dmg)}${w.note} com "${w.attack}" — nocauteia ${card.name} (${card.hp} HP) de uma vez.`);

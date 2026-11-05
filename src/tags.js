@@ -39,6 +39,8 @@ export function parseSelector(ph) {
   if (/that ha(ve|s)|with any|that (is|are) /i.test(p) && !s.hasAbility && !s.specialEnergy && !s.noRuleBox && !/rule box/i.test(p)) s.unknown = true;
   const dmg = p.match(/damage is (\d+) or more/i);
   if (dmg) s.minDamage = +dmg[1];
+  const dmgLe = p.match(/damage is (\d+) or less/i);
+  if (dmgLe) s.maxDamageLE = +dmgLe[1];
   return s;
 }
 
@@ -63,6 +65,7 @@ export function matches(sel, card, ctx = {}) {
   if (sel.notTypes && (card.types ?? []).some((t) => sel.notTypes.includes(t))) return false;
   if (sel.minDamage && maxDamage(card) < sel.minDamage) return false;
   if (sel.unknown) return false;
+  if (sel.maxDamageLE && maxDamage(card) > sel.maxDamageLE) return false;
   if (sel.specialEnergy && !ctx.oppSpecialEnergy) return false;
   if (sel.status && !ctx.myStatuses?.has(sel.status)) return false;
   return true;
@@ -100,6 +103,7 @@ export function selectorPt(s) {
   if (s.notTypes) parts.push(`que não sejam ${s.notTypes.map(typePt).join('/')}`);
   if (s.hasAbility) parts.push('com Habilidade');
   if (s.minDamage) parts.push(`(quando o dano for ${s.minDamage}+)`);
+  if (s.maxDamageLE) parts.push(`(só dano de até ${s.maxDamageLE})`);
   if (s.specialEnergy) parts.push('com Energia Especial');
   if (s.status) parts.push(`(${{ burned: 'Queimados', poisoned: 'Envenenados', confused: 'Confusos', asleep: 'Adormecidos', paralyzed: 'Paralisados' }[s.status]})`);
   // "Pokémon ex Básicos" soa melhor como "Pokémon Básicos ex"
@@ -126,6 +130,7 @@ export function extractTags(card) {
     const prize = full.match(/only if your opponent has (\d+) or fewer prize/i);
     if (prize) cond.push(`prizes<=${prize[1]}`);
     if (/only if any of your pok[eé]mon were knocked out/i.test(full)) cond.push('afterKO');
+    if (/if your opponent.s pok[eé]mon is knocked out by damage from this attack/i.test(full)) cond.push('ifKO');
     const base = { source: b.source, name: b.name, cost: b.cost, cond };
 
     for (const s of sentences(b.text)) {
@@ -180,7 +185,10 @@ export function extractTags(card) {
       if (/special energy/i.test(s) && /(discard|knocked out|opponent)/i.test(s) && !/your special energy/i.test(s)) tags.push({ ...base, kind: 'SPECIAL_ENERGY_HATE' });
       if (/discard (a|the) stadium in play|discard a stadium/i.test(s)) tags.push({ ...base, kind: 'STADIUM_HATE' });
       if (/discard (an|\d+|up to \d+|all) energy from (your opponent|the defending|1 of your opponent|each of your opponent)/i.test(s)) tags.push({ ...base, kind: 'ENERGY_DISRUPT' });
-      // 8) Disrupção de mão
+      // 8) Corrida de prêmios: oponente pega menos / eu pego mais
+      const fewer = s.match(/takes? (\d+) fewer prize/i);
+      if (fewer) tags.push({ ...base, kind: 'PRIZE_DENIAL', amount: +fewer[1], once: /can.t be applied more than once/i.test(full) });
+      // 9) Disrupção de mão
       if (/your opponent (shuffles|reveals) their hand/i.test(s) || /opponent shuffles their hand/i.test(s)) tags.push({ ...base, kind: 'HAND_DISRUPT' });
     }
   }

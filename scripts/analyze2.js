@@ -1,0 +1,11 @@
+import { readFileSync } from 'node:fs';
+import { loadDb } from '../src/db.js';
+import { analyze } from '../src/engine.js';
+const ctx = process.argv[2] ?? '';
+const t0 = Date.now();
+const r = analyze(readFileSync('test/decks/sharpedo.txt', 'utf8'), readFileSync('test/decks/basic-box.txt', 'utf8'), loadDb(), { limit: 8, context: ctx });
+console.log(`(${Date.now() - t0} ms)`);
+console.log('CONTEXTO:', r.context.summary ?? '-', r.context.weights);
+console.log('\nCAMINHOS:'); r.clusters.forEach((c) => console.log(` ${c.icon} ${c.title} (peso ${c.weight}): ${c.items.map((i) => `${i.name} ${i.score}`).join(' | ')}`));
+console.log(`\nCORRIDA ingênua (${r.race.naive.attacker}): ${r.race.naive.result} | melhor ordem: ${r.race.best.result}`);
+console.log('\nTOP:'); r.suggestions.forEach((s, i) => console.log(` ${i + 1}. ${s.card.name} ${s.score}${s.boosted ? '↑' : ''} [${s.cluster}] ${s.race ? '— ' + s.race.result : ''}`));

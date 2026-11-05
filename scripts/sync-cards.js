@@ -113,6 +113,15 @@ async function main() {
     if (d) sets[id] = d;
   }
 
+  // Nomes em português (para o campo de contexto entender "Folhas Férreas" = Iron Leaves)
+  try {
+    const pt = await (await fetch(`${API_REST.replace('/en', '/pt')}/cards`)).json();
+    const ptById = new Map(pt.map((c) => [c.id, c.name]));
+    let n = 0;
+    for (const c of usable) { const name = ptById.get(c.id); if (name) { c.namePt = name; n++; } }
+    console.log(`  nomes em português: ${n} cartas`);
+  } catch (e) { console.log('  (sem nomes em português:', e.message, ')'); }
+
   // Conferência: marca de regulamento × flag legal da API
   const mismatch = usable.filter((c) => c.regulationMark !== 'BASIC' && !c.legalOverride && c.legal?.standard === false);
   console.log(`Conferência: ${mismatch.length} cartas com marca legal mas flag da API = false`);

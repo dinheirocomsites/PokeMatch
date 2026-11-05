@@ -262,6 +262,30 @@ document.addEventListener('error', (e) => {
   img.replaceWith(ph);
 }, true);
 
+// Imagens: no servidor vêm do TCGdex; na versão publicada vêm de pacotes embutidos (img/<coleção>.json)
+const BLANK = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+const cardIdFromUrl = (u) => { const m = String(u || '').match(/assets\.tcgdex\.net\/[a-z-]+\/[^/]+\/([^/]+)\/([^/]+)/); return m ? `${m[1]}-${m[2]}` : null; };
+function IMG(url) {
+  if (!url) return '';
+  if (!window.TF_STATIC) return `src="${url}"`;
+  const id = cardIdFromUrl(url);
+  return id ? `src="${BLANK}" data-cid="${id}"` : '';
+}
+const packs = {};
+async function hydrateImages() {
+  if (!window.TF_STATIC) return;
+  const imgs = [...document.querySelectorAll('img[data-cid]')];
+  const sets = [...new Set(imgs.map((i) => i.dataset.cid.replace(/-[^-]+$/, '')))];
+  await Promise.all(sets.map(async (set) => {
+    if (!packs[set]) packs[set] = fetch(`img/${set}.json`).then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
+    const pack = await packs[set];
+    for (const img of imgs) if (img.dataset.cid.startsWith(set + '-')) {
+      if (pack[img.dataset.cid]) img.src = pack[img.dataset.cid];
+      else img.dispatchEvent(new Event('error'));
+    }
+  }));
+}
+
 // Roda no servidor (npm start) ou direto no navegador (versão estática publicada)
 let localEngine = null;
 async function runAnalysis(payload) {
@@ -305,7 +329,7 @@ function render(d) {
   $('#others').innerHTML = (d.others || []).map((o) => `<li><b>${esc(o.name)}</b> — ${esc(o.missing)}. <i>${esc(o.why)}</i></li>`).join('');
   $('#othersWrap').style.display = d.others?.length ? '' : 'none';
   $('#understood').innerHTML = d.context && !d.context.empty ? `<div class="understood">🧠 <b>Entendi:</b> ${d.context.summary.map(esc).join(' ')}</div>` : '';
-  $('#clusters').innerHTML = d.clusters.map((c) => `<div class="cl ${c.weight > 1 ? 'hot' : ''}"><h3>${c.icon} ${esc(c.title)}</h3><p>${esc(c.desc)}</p>${c.items.map((it) => `<div class="it" data-go="${esc(it.name)}">${it.image ? `<img src="${it.image}/low.webp" alt="${esc(it.name)}" width="34">` : ''}<span>${esc(it.name)}</span><span class="sc">${it.score}</span></div>`).join('')}</div>`).join('');
+  $('#clusters').innerHTML = d.clusters.map((c) => `<div class="cl ${c.weight > 1 ? 'hot' : ''}"><h3>${c.icon} ${esc(c.title)}</h3><p>${esc(c.desc)}</p>${c.items.map((it) => `<div class="it" data-go="${esc(it.name)}">${it.image ? `<img ${IMG(it.image)} alt="${esc(it.name)}" width="34">` : ''}<span>${esc(it.name)}</span><span class="sc">${it.score}</span></div>`).join('')}</div>`).join('');
   const tl = (plan) => `<div class="tl">${plan.map((t) => `<div class="t" data-n="${t.turn}"><div class="me">${esc(t.mine)}</div><div class="op">${esc(t.theirs)}</div></div>`).join('')}</div>`;
   const res = (p) => `<span class="res ${p.win ? 'win' : 'loss'}">${esc(p.result)}</span>`;
   $('#race').innerHTML = d.race.naive ? `
@@ -315,7 +339,7 @@ function render(d) {
   document.querySelectorAll('[data-go]').forEach((el) => (el.onclick = () => document.querySelector(`[data-card="${CSS.escape(el.dataset.go)}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })));
 
   $('#alreadyWrap').style.display = d.already.length ? '' : 'none';
-  $('#already').innerHTML = d.already.map((a) => `<div class="row">${a.card.image ? `<img src="${a.card.image}" alt="${esc(a.card.name)}" width="60">` : ''}<div><b>${a.count}x ${esc(a.card.name)}</b><br>${a.reasons.map(esc).join('<br>')}</div></div>`).join('');
+  $('#already').innerHTML = d.already.map((a) => `<div class="row">${a.card.image ? `<img ${IMG(a.card.image)} alt="${esc(a.card.name)}" width="60">` : ''}<div><b>${a.count}x ${esc(a.card.name)}</b><br>${a.reasons.map(esc).join('<br>')}</div></div>`).join('');
 
   const ENERGY_SYM = { 'Psychic Energy': 'P', 'Water Energy': 'W', 'Fire Energy': 'R', 'Grass Energy': 'G', 'Lightning Energy': 'L', 'Fighting Energy': 'F', 'Darkness Energy': 'D', 'Metal Energy': 'M' };
   const consHtml = (s) => {
@@ -331,13 +355,13 @@ function render(d) {
   const CLUSTER_ICON = { premios: '🏁', protecao: '🛡️', disrupcao: '🚫', dano: '💥' };
   const CLUSTER_NAME = { premios: 'Corrida de prêmios', protecao: 'Muralha', disrupcao: 'Disrupção', dano: 'Dano' };
   const CRIT = { recursos: '🔋 Recursos', peso: '⚖️ Peso', sinergia: '🔗 Sinergia', risco: '🎯 Risco' };
-  const pkgHtml = (s) => !s.pkg || s.pkg.adds.length < 2 ? '' : `<div class="pkg"><span class="label">Pacote:</span>${s.pkg.adds.map((a, j) => `${j ? '<span class="plus">+</span>' : ''}<div class="item">${ENERGY_SYM[a.card?.name] ? `<div class="en">{${ENERGY_SYM[a.card.name]}}</div>` : a.card?.image ? `<img src="${a.card.image.replace('/high.webp', '/low.webp')}" alt="${esc(a.card.name)}" data-type="${esc(a.card.types?.[0] || '')}" width="70">` : ''}<span>${a.qty}x ${esc(a.card?.name)}${a.card?.setCode && !ENERGY_SYM[a.card.name] ? ` <br>${esc(a.card.setCode)} ${parseInt(a.card.localId, 10)}` : ''}<br><i>${esc(a.role)}</i></span></div>`).join('')}</div>`;
+  const pkgHtml = (s) => !s.pkg || s.pkg.adds.length < 2 ? '' : `<div class="pkg"><span class="label">Pacote:</span>${s.pkg.adds.map((a, j) => `${j ? '<span class="plus">+</span>' : ''}<div class="item">${ENERGY_SYM[a.card?.name] ? `<div class="en">{${ENERGY_SYM[a.card.name]}}</div>` : a.card?.image ? `<img ${IMG(a.card.image)} alt="${esc(a.card.name)}" data-type="${esc(a.card.types?.[0] || '')}" width="70">` : ''}<span>${a.qty}x ${esc(a.card?.name)}${a.card?.setCode && !ENERGY_SYM[a.card.name] ? ` <br>${esc(a.card.setCode)} ${parseInt(a.card.localId, 10)}` : ''}<br><i>${esc(a.role)}</i></span></div>`).join('')}</div>`;
   const dmgHtml = (s) => { const d = s.pkg?.damage; if (!d || !d.kos.length) return ''; return `<div class="dmg"><div class="eq">${d.base}${d.boost ? ` + ${d.boost}` : ''}${d.passive ? ` + ${d.passive}` : ''} = <b>${d.total}</b> de dano</div><div>"${esc(d.attack)}"${d.boost ? ' + combo' : ''}${d.passive ? ' + dano passivo' : ''} → nocauteia em 1 ataque: ${d.kos.map(esc).join(', ')}</div></div>`; };
   const swapHtml = (s) => !s.swap ? '' : `<div class="swap"><b style="color:var(--warn)">Troca sugerida:</b> ${s.swap.out.map((x) => `<span class="cut" title="${esc(x.why)}">−${x.qty} ${esc(x.name)}</span>`).join('')}<span class="arrow">→</span>${s.swap.in.map((x) => `<span class="in">${esc(x)}</span>`).join('')}</div>${s.swap.out.length ? `<div style="font-size:12px;color:var(--muted);margin-top:4px">${s.swap.out.map((x) => `${esc(x.name)}: ${esc(x.why)}`).join(' · ')}</div>` : ''}`;
   $('#suggestions').innerHTML = d.suggestions.map((s, i) => `
     <article class="sug ${i < 3 ? 'top' : ''}" data-card="${esc(s.card.name)}">
       <div class="rank">#${i + 1}</div>
-      <div class="cardwrap"><div class="holo">${s.card.image ? `<img src="${s.card.image}" alt="${esc(s.card.name)}" data-type="${esc(s.card.types?.[0] || '')}" style="width:100%;height:100%">` : ''}<div class="fallback" style="z-index:-1">${esc(s.card.name)}</div></div></div>
+      <div class="cardwrap"><div class="holo">${s.card.image ? `<img ${IMG(s.card.image)} alt="${esc(s.card.name)}" data-type="${esc(s.card.types?.[0] || '')}" style="width:100%;height:100%">` : ''}<div class="fallback" style="z-index:-1">${esc(s.card.name)}</div></div></div>
       <div>
         <h3>${esc(s.card.name)}${s.cluster ? `<span class="badge ${s.boosted ? 'up' : ''}">${CLUSTER_ICON[s.cluster] || ''} ${esc(CLUSTER_NAME[s.cluster] || '')}${s.boosted ? ' · ↑ sua dor' : ''}</span>` : ''}</h3>
         ${s.relevance ? `<div class="why-rel">✔ Por que resolve: ${esc(s.relevance)}</div>` : ''}
@@ -367,6 +391,7 @@ function render(d) {
   });
   if (d.suggestions[0]?.score >= 35) setTimeout(confetti, 450);
   attachHolo();
+  hydrateImages();
 }
 
 function animateRing(el, target) {

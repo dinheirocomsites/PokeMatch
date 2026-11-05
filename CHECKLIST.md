@@ -65,6 +65,8 @@ Legenda: [x] feito · [~] em andamento · [ ] a fazer
 - [x] **Versão web publicada** (motor roda no navegador): https://claude.ai/artifact/Bk5ULBHYeLMX7REJNJFVo9 — imagens de cartas viram cards com nome/cor (a página não pode carregar imagens externas)
 - [x] **Custo de consistência por troca** (Monte Carlo, 6.000 partidas): setup do atacante principal até T2, Supporter na mão inicial, achar a tech até T3, risco de prêmio — antes × depois
 - [x] Estágio 2 sugerido com a linha inteira (Gastly → Haunter → Mega Gengar ex)
+- [x] **Imagens das cartas na versão publicada**: 2.014 miniaturas em 18 pacotes por coleção (29 MB), carregadas sob demanda — a página do claude.ai bloqueia imagens externas
+- [ ] Caminho "⭐ ACE SPEC de consistência" (ex.: Secret Box × Unfair Stamp) medido no simulador de consistência
 - [ ] Caminho "contra-disrupção" (quando o oponente te atrapalha: Iono, item lock…) — precisa de um deck de teste com disrupção
 - [ ] Usar IA (LLM) para ler a dor com mais nuance e escrever o plano de jogo em linguagem natural
 

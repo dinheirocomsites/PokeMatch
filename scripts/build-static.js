@@ -13,6 +13,11 @@ const raw = JSON.parse(await readFile('data/cards.json', 'utf8'));
 const KEEP = ['id', 'localId', 'name', 'namePt', 'regulationMark', 'category', 'stage', 'hp', 'types', 'evolveFrom', 'suffix', 'trainerType', 'energyType', 'effect', 'retreat', 'rarity', 'image', 'abilities', 'attacks', 'weaknesses', 'resistances', 'legal', 'set', 'legalOverride'];
 raw.cards = raw.cards.map((c) => Object.fromEntries(KEEP.filter((k) => c[k] !== undefined && c[k] !== null).map((k) => [k, k === 'set' ? { id: c.set.id } : c[k]])));
 await writeFile(`${OUT}/data/cards.json`, JSON.stringify(raw));
+// Pacotes de imagens (gerados por scripts/pack-images.py), se existirem
+try {
+  await mkdir(`${OUT}/img`, { recursive: true });
+  for (const f of await readdir('data/img')) await copyFile(`data/img/${f}`, `${OUT}/img/${f}`);
+} catch { console.log('(sem pacotes de imagens — rode scripts/pack-images.py)'); }
 let html = await readFile('public/index.html', 'utf8');
 html = html.replace('<script>', '<script>window.TF_STATIC = true;</script>\n<script>');
 await writeFile(`${OUT}/index.html`, html);

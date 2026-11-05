@@ -280,7 +280,7 @@ async function hydrateImages() {
     const pack = await packs[set];
     for (const img of imgs) if (img.dataset.cid.startsWith(set + '-')) {
       if (pack[img.dataset.cid]) img.src = pack[img.dataset.cid];
-      else if (img.dataset.remote && !window.TF_STATIC) img.src = img.dataset.remote; // reserva: TCGdex
+      else if (img.dataset.remote) img.src = img.dataset.remote; // reserva: TCGdex (bloqueado no claude.ai → vira card)
       else img.dispatchEvent(new Event('error'));
     }
   }));

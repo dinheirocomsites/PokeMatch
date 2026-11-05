@@ -348,7 +348,8 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
   const race = {
     naive: naive && { result: describe(naive.best), plan: planText(naive.best), win: naive.best.win, attacker: me.mainAttacker.name },
     best: { result: describe(baseRace.best), plan: planText(baseRace.best), win: baseRace.best.win },
-    assumptions: `Você ataca primeiro em cada troca; o oponente responde com quem nocauteia seu atacante entregando menos prêmios; ${baseRace.gusts} Boss's Orders disponíveis; só alcança com Boss Pokémon que ficam no banco (habilidade de banco ou que já atacaram).`,
+    alt: baseRace.alt && { result: describe(baseRace.alt), plan: planText(baseRace.alt), win: baseRace.alt.win },
+    assumptions: `Você ataca primeiro em cada troca; o oponente responde com quem nocauteia seu atacante entregando menos prêmios; ${baseRace.gusts} Boss's Orders disponíveis (cada uso custa); energia: 3 montadas antes do 1º ataque e +${baseRace.income} por turno — atacante novo precisa ser energizado; Boss só alcança Pokémon que ficam no banco (habilidade de banco ou que já atacaram). Os combos (+40 envenenado, +Munkidori) supõem as peças em jogo.`,
   };
 
   return {

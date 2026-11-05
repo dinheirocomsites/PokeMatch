@@ -25,7 +25,9 @@ function myEngine(me) {
     const p = c.text.match(/move up to (\d+) damage counters from 1 of your pok[eé]mon to 1 of your opponent/i);
     if (p) { const needs = c.text.match(/has any \{([A-Z])\} energy attached/i); if (!needs || [...me.energyTypes].some((t) => SYM[t] === needs[1])) { passive = Math.max(passive, +p[1] * 10); passiveBy = c.name; } }
   }
-  return { selfDamage, selfDmgAmount, poisonSwitch, poisonBoost, passive, passiveBy };
+  // Aceleração de energia por turno (ex.: Toxtricity "Sinister Surge" liga 1 energia do deck)
+  const accel = texts.some((c) => (c.abilities ?? []).some((a) => /search your deck for a basic \{?[a-z]*\}? ?energy card and attach it|attach (a|up to \d+) basic .*energy/i.test(a.effect ?? '')));
+  return { selfDamage, selfDmgAmount, poisonSwitch, poisonBoost, passive, passiveBy, accel };
 }
 
 // Dano do meu ataque num alvo, dado o estado do jogo
@@ -122,23 +124,35 @@ export function simulateRace(me, opp, { extraAttackers = [], denial = null, ener
   // No banco dele (alcançável com Boss): Pokémon com habilidade que funciona no banco + os que já atacaram
   const benchy = new Set(targets.filter((t) => (t.abilities ?? []).some((a) => !/in the active spot/i.test(a.effect ?? ''))).map((t) => t.name));
 
+  const income = 1 + (eng.accel ? 1 : 0); // energia por turno: 1 manual + aceleração
+  const SETUP_BANK = 3; // energia montada antes do primeiro ataque
+  const killsMain = new Set(me.mainAttacker ? opp.threat.filter((e) => e.feas >= 0.3 && (e.card.attacks ?? []).some((a) => { let d = potentialDamage(a, opp); if ((me.mainAttacker.weaknesses ?? []).some((w) => (e.card.types ?? []).includes(w.type))) d *= 2; return d >= me.mainAttacker.hp - 20; })).map((e) => e.card.name) : []);
   let best = null;
+  const finals = [];
   const memo = new Map();
   function rec(state, steps, depth) {
-    const key = `${state.myTaken}|${state.oppTaken}|${state.active?.card.name}|${state.active?.dmgTaken}|${[...state.shown].sort()}|${state.oppActive}|${state.gusts}|${[...state.myLeft.values()]}|${[...state.oppLeft.values()]}|${state.denialLeft}`;
+    const key = `${state.bank}|${state.gustsUsed}|${state.energySpent}|${state.myTaken}|${state.oppTaken}|${state.active?.card.name}|${state.active?.dmgTaken}|${[...state.shown].sort()}|${state.oppActive}|${state.gusts}|${[...state.myLeft.values()]}|${[...state.oppLeft.values()]}|${state.denialLeft}`;
     if (memo.has(key) && memo.get(key) <= depth) return;
     memo.set(key, depth);
     if (state.myTaken >= 6 || state.oppTaken >= 6 || depth >= maxTurns) {
-      const score = state.myTaken >= 6 ? 1000 - depth * 20 + (6 - state.oppTaken) * 5 : state.oppTaken >= 6 ? state.myTaken * 10 - 500 : state.myTaken * 10 - state.oppTaken * 10 - 100;
-      if (!best || score > best.score) best = { score, steps, win: state.myTaken >= 6, myTaken: state.myTaken, oppTaken: state.oppTaken, turns: depth };
+      // Vence quem fecha primeiro; entre vitórias, prefere margem MAS cobra recursos (Boss e energia)
+      const cost = state.gustsUsed * 4 + state.energySpent * 1.5;
+      const score = state.myTaken >= 6 ? 1000 - depth * 20 + (6 - state.oppTaken) * 5 - cost : state.oppTaken >= 6 ? state.myTaken * 10 - 500 - cost : state.myTaken * 10 - state.oppTaken * 10 - 100 - cost;
+      const res = { score, steps, win: state.myTaken >= 6, myTaken: state.myTaken, oppTaken: state.oppTaken, turns: depth, gustsUsed: state.gustsUsed, energySpent: state.energySpent };
+      finals.push(res);
+      if (!best || score > best.score) best = res;
       return;
     }
     const choices = state.active ? [state.active.att, ...pool.filter((p) => p !== state.active.att)] : pool;
     for (const att of choices) {
       if (!state.myLeft.get(att.card.name)) continue;
+      const continuing = state.active?.att === att;
       // Opções de alvo: o Ativo dele (de graça) ou o melhor alvo com Boss
       const options = [];
-      const ko = (t) => { let r = null; for (const a of att.atks) { const x = myDamage(att.card, a, t, state, meX, eng); if (x.dmg >= (t.hp ?? 999) && (!r || x.dmg > r.r.dmg)) r = { a, r: x }; } return r; };
+      // Só ataques que dá para energizar: o atacante atual já está pronto; um novo precisa sair do "banco de energia"
+      const payable = (a) => continuing || (a.cost ?? []).length <= state.bank;
+      const ko = (t) => { let r = null; for (const a of att.atks) { if (!payable(a)) continue; const x = myDamage(att.card, a, t, state, meX, eng); if (x.dmg >= (t.hp ?? 999) && (!r || (a.cost ?? []).length < (r.a.cost ?? []).length || x.dmg > r.r.dmg)) r = { a, r: x }; } return r; };
+      if (!continuing && !att.atks.some(payable)) continue;
       const act = targets.find((t) => t.name === state.oppActive && state.oppLeft.get(t.name));
       const kAct = act && ko(act);
       if (kAct) options.push({ t: act, ...kAct, gust: false });
@@ -147,7 +161,9 @@ export function simulateRace(me, opp, { extraAttackers = [], denial = null, ener
         for (const t of targets) {
           if (!state.oppLeft.get(t.name) || t.name === state.oppActive || !(benchy.has(t.name) || state.shown.has(t.name))) continue;
           const k = ko(t);
-          if (k && (!g || t.prizeValue > g.t.prizeValue)) g = { t, ...k, gust: true };
+          // Entre alvos de mesmo valor, prefere quem mata o seu atacante principal
+          const rank = (x) => x.t.prizeValue * 10 + (killsMain.has(x.t.name) ? 1 : 0);
+          if (k && (!g || rank({ t }) > rank(g))) g = { t, ...k, gust: true };
         }
         if (g && (!kAct || g.t.prizeValue > act.prizeValue)) options.push(g);
       }
@@ -157,7 +173,12 @@ export function simulateRace(me, opp, { extraAttackers = [], denial = null, ener
         const oppLeft = new Map(state.oppLeft);
         let myTaken = state.myTaken;
         let gustsLeft = state.gusts;
-        const step = { attacker: att.card.name, prizeValue: att.card.prizeValue };
+        const step = { attacker: att.card.name, prizeValue: att.card.prizeValue, vsActive: state.oppActive, activeValue: targets.find((t) => t.name === state.oppActive)?.prizeValue };
+        const used = pick?.a ?? att.atks.filter(payable).sort((a, b) => (a.cost ?? []).length - (b.cost ?? []).length)[0];
+        const spend = continuing ? 0 : (used?.cost ?? []).length;
+        step.newAttacker = !continuing;
+        step.energy = spend;
+        step.killsMain = pick && killsMain.has(pick.t.name);
         if (pick) {
           myTaken += pick.t.prizeValue;
           oppLeft.set(pick.t.name, oppLeft.get(pick.t.name) - 1);
@@ -165,7 +186,10 @@ export function simulateRace(me, opp, { extraAttackers = [], denial = null, ener
           Object.assign(step, { attack: pick.a.name, target: pick.t.name, gust: pick.gust, dmg: Math.round(pick.r.dmg), hp: pick.t.hp, notes: pick.r.notes, prizes: pick.t.prizeValue });
         } else Object.assign(step, { attack: null, target: null, prizes: 0, vs: state.oppActive });
         step.myTotal = myTaken;
-        if (myTaken >= 6) { rec({ ...state, myTaken, myLeft, oppLeft, gusts: gustsLeft }, [...steps, step], depth + 1); continue; }
+        const bankAfter = state.bank - spend;
+        const gustsUsed = state.gustsUsed + (pick?.gust ? 1 : 0);
+        const energySpent = state.energySpent + spend;
+        if (myTaken >= 6) { rec({ ...state, myTaken, myLeft, oppLeft, gusts: gustsLeft, gustsUsed, energySpent, bank: bankAfter }, [...steps, step], depth + 1); continue; }
         // Atacante que depende de estar ferido (ex.: Hungry Jaws) entra no ataque já com dano
         const selfHurt = pick && eng.selfDamage && /if this pok[eé]mon has any damage counters/i.test(pick.a.effect ?? '') ? eng.selfDmgAmount : 0;
         const prevHits = (state.active?.att === att ? state.active.dmgTaken : 0) + (state.active?.att === att ? 0 : selfHurt);
@@ -185,13 +209,16 @@ export function simulateRace(me, opp, { extraAttackers = [], denial = null, ener
         }
         step.oppTotal = oppTaken;
         const shown = new Set(state.shown); if (hit?.card) shown.add(hit.card.name);
-        rec({ myTaken, oppTaken, myLeft, oppLeft, active, oppActive: hit?.card.name ?? state.oppActive, gusts: gustsLeft, denialLeft, shown }, [...steps, step], depth + 1);
+        rec({ myTaken, oppTaken, myLeft, oppLeft, active, oppActive: hit?.card.name ?? state.oppActive, gusts: gustsLeft, denialLeft, shown, gustsUsed, energySpent, bank: Math.min(6, bankAfter + income) }, [...steps, step], depth + 1);
       }
     }
   }
   const myLeft = new Map(pool.map((p) => [p.card.name, p.count]));
-  rec({ myTaken: 0, oppTaken: 0, myLeft, oppLeft: oppLeft0, active: null, oppActive: opener, gusts, denialLeft: denial ? (denial.uses ?? 1) : 0, shown: new Set([opener]) }, [], 0);
-  return { best, pool: pool.map((p) => p.card.name), engine: eng, gusts, opener };
+  rec({ myTaken: 0, oppTaken: 0, myLeft, oppLeft: oppLeft0, active: null, oppActive: opener, gusts, denialLeft: denial ? (denial.uses ?? 1) : 0, shown: new Set([opener]), gustsUsed: 0, energySpent: 0, bank: SETUP_BANK }, [], 0);
+  // Linha alternativa: melhor resultado que usa um conjunto diferente de atacantes
+  const sig = (r) => [...new Set(r.steps.map((x) => x.attacker))].sort().join('+');
+  const alt = best && finals.filter((r) => r.win === best.win && sig(r) !== sig(best)).sort((a, b) => b.score - a.score)[0];
+  return { best, alt: alt ?? null, pool: pool.map((p) => p.card.name), engine: eng, gusts, opener, income };
 }
 
 function denialApplies(d, mine, theirs) {
@@ -229,9 +256,12 @@ export function parseDenial(card, me) {
 export function planText(plan) {
   if (!plan?.steps?.length) return [];
   return plan.steps.map((s, i) => {
-    const mine = s.target
-      ? `${s.gust ? "Boss's Orders no " + s.target + ' e ataque' : 'Ataque'} com ${s.attacker} ("${s.attack}", ~${s.dmg}${s.notes?.length ? `: ${s.notes.join(', ')}` : ''}) → nocauteia ${s.target} (+${s.prizes}). Você: ${s.myTotal}/6.`
-      : `${s.attacker} ataca${s.vs ? ` o ${s.vs}` : ''}, mas não nocauteia (sem prêmio).`;
+    const front = s.vsActive ? `Ativo dele: ${s.vsActive}${s.activeValue ? ` (${s.activeValue} prêmio${s.activeValue > 1 ? 's' : ''})` : ''}. ` : '';
+    const ready = s.newAttacker && s.energy ? ` [entra no ataque: ${s.energy} energia${s.energy > 1 ? 's' : ''}]` : '';
+    let mine;
+    if (!s.target) mine = `${front}${s.attacker}${ready} ataca, mas não nocauteia ninguém (sem prêmio).`;
+    else if (s.gust) mine = `${front}${s.vsActive && s.activeValue < s.prizes ? `Ele só vale ${s.activeValue}, então ` : 'Ele não cai, então '}Boss's Orders no ${s.target}${s.killsMain ? ' (o atacante que mata o seu principal)' : ''} e ${s.attacker}${ready} ataca com "${s.attack}" (~${s.dmg}${s.notes?.length ? `: ${s.notes.join(', ')}` : ''}) → nocauteia (+${s.prizes}). Você: ${s.myTotal}/6.`;
+    else mine = `${front}${s.attacker}${ready} ataca com "${s.attack}" (~${s.dmg}${s.notes?.length ? `: ${s.notes.join(', ')}` : ''}) → nocauteia ${s.target} sem precisar de Boss (+${s.prizes}). Você: ${s.myTotal}/6.`;
     const theirs = s.myTotal >= 6 ? '🏆 Você pega o último prêmio.' : s.ko
       ? `Oponente: ${s.oppAttacker} nocauteia ${s.attacker}${s.oppWeak ? ' (fraqueza)' : ''} → +${s.oppGain}${s.denial ? ` (${s.denial}: −1)` : ''}. Ele: ${s.oppTotal}/6.`
       : `Oponente não nocauteia ${s.attacker} neste turno${s.oppAttacker ? ` (${s.oppAttacker} faz ~${s.oppDmg})` : ''}.`;

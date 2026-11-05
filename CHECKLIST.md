@@ -55,6 +55,9 @@ Legenda: [x] feito · [~] em andamento · [ ] a fazer
 - [x] Cartas que **reduzem prêmios** (Legacy Energy, Mega Gengar ex, Munkidori ex, Lillie's Pearl) testadas no simulador
 - [x] **Caminhos agrupados**: 🏁 Prêmios · 🛡️ Muralha · ⭐ ACE SPEC · 💥 Dano · 🚫 Disrupção — os da sua dor sobem
 - [x] Corrigidos falsos positivos: "dano de 40 ou menos" (Roggenrola), "só se nocautear" (Golisopod/Marshadow)
+- [x] **Correção (feedback):** simulador agora considera energia por turno (atacante novo precisa ser energizado), custo de Boss/energia, nocautear o Ativo antes de gastar Boss, e mostra quem está no Ativo em cada turno → linha certa: Pecharunt ex mata o Ogerpon (60×3+30) sem Boss
+- [x] Linha alternativa de jogo + anti-sinergia detectada: Legacy Energy reduz o dano do Pecharunt ex (menos prêmios tomados)
+- [x] Cada erro apontado pelo jogador vira **teste permanente** (19 testes ✅)
 - [ ] Caminho "contra-disrupção" (quando o oponente te atrapalha: Iono, item lock…) — precisa de um deck de teste com disrupção
 - [ ] Usar IA (LLM) para ler a dor com mais nuance e escrever o plano de jogo em linguagem natural
 
@@ -64,7 +67,7 @@ Legenda: [x] feito · [~] em andamento · [ ] a fazer
 - [x] Visual UAAAU 🔥: carta holográfica que inclina com o mouse, anéis de nota animados, confete, Pokébola de loading
 
 ## Fase 7 — Validação
-- [x] Caso de teste real: Mega Sharpedo ex × Basic Box → **#1 Farigiraf ex** com o pacote Girafarig TWM + Energia Psíquica e todos os combos (17 testes ✅)
+- [x] Caso de teste real: Mega Sharpedo ex × Basic Box → **#1 Farigiraf ex** com o pacote Girafarig TWM + Energia Psíquica e todos os combos (19 testes ✅)
 - [ ] Testar com mais 3 matchups do meta
 - [ ] Publicar (GitHub + hospedagem grátis)
 

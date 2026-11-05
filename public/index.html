@@ -253,7 +253,7 @@ function render(d) {
   const res = (p) => `<span class="res ${p.win ? 'win' : 'loss'}">${esc(p.result)}</span>`;
   $('#race').innerHTML = d.race.naive ? `
     <div class="plan"><h3>Jogando só com ${esc(d.race.naive.attacker)} ${res(d.race.naive)}</h3>${tl(d.race.naive.plan)}</div>
-    <div class="plan"><h3>Melhor ordem com a sua lista ${res(d.race.best)}</h3>${tl(d.race.best.plan)}</div>` : '';
+    <div class="plan"><h3>Melhor ordem com a sua lista ${res(d.race.best)}</h3>${tl(d.race.best.plan)}${d.race.alt ? `<details class="cplan"><summary>Linha alternativa (${esc(d.race.alt.result)})</summary>${tl(d.race.alt.plan)}</details>` : ''}</div>` : '';
   $('#assump').textContent = d.race.assumptions ? `Premissas: ${d.race.assumptions}` : '';
   document.querySelectorAll('[data-go]').forEach((el) => (el.onclick = () => document.querySelector(`[data-card="${CSS.escape(el.dataset.go)}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })));
 

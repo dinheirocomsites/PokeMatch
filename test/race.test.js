@@ -43,3 +43,21 @@ test('Roggenrola (só bloqueia dano até 40) não é sugerido como muralha', () 
   const r = analyze(read('sharpedo.txt'), read('basic-box.txt'), db, { limit: 40 });
   assert.ok(!r.suggestions.some((s) => s.card.name === 'Roggenrola'));
 });
+
+// Feedback do Felipe (jogador de Sharpedo): após perder um Sharpedo (oponente com 3 prêmios),
+// quem mata o Ogerpon no Ativo é o Pecharunt ex (60×3 + 30 Munkidori = 210), SEM gastar Boss.
+// E o Boss só deve ser usado quando o Ativo dele não fecha a conta.
+test('feedback: Pecharunt ex mata o Ogerpon do Ativo sem Boss; Boss só quando necessário', () => {
+  const r = analyze(read('sharpedo.txt'), read('basic-box.txt'), db);
+  const plan = r.race.best.plan.map((t) => t.mine);
+  const t2 = plan[1];
+  assert.match(t2, /Pecharunt ex/);
+  assert.match(t2, /nocauteia Teal Mask Ogerpon ex sem precisar de Boss/);
+  assert.doesNotMatch(r.race.best.plan.map((t) => t.mine).join(' '), /Yveltal/);
+  for (const m of plan.filter((x) => /Boss's Orders/.test(x))) assert.match(m, /Ele só vale|Ele não cai/, 'todo Boss precisa de justificativa');
+});
+
+test('feedback: todo passo do plano diz quem está no Ativo do oponente', () => {
+  const r = analyze(read('sharpedo.txt'), read('basic-box.txt'), db);
+  for (const t of r.race.best.plan) assert.match(t.mine, /^Ativo dele: /);
+});

@@ -78,7 +78,10 @@ Legenda: [x] feito · [~] em andamento · [ ] a fazer
 ## Fase 7 — Validação
 - [x] Caso de teste real: Mega Sharpedo ex × Basic Box → **#1 Farigiraf ex** com o pacote Girafarig TWM + Energia Psíquica e todos os combos (22 testes ✅)
 - [ ] Testar com mais 3 matchups do meta
-- [~] Publicar: versão privada no claude.ai ✅ · falta GitHub + hospedagem pública com imagens (GitHub Pages/Vercel)
+- [x] Publicar: versão privada no claude.ai ✅
+- [x] Repositório no GitHub: https://github.com/dinheirocomsites/PokeMatch
+- [x] Automação: testes + publicação no GitHub Pages a cada push; atualização diária das cartas
+- [~] Site público: https://dinheirocomsites.github.io/PokeMatch/
 
 ## Próximos passos (ideias)
 - [ ] Interações mais finas: Boss's Orders do oponente contorna muralha; muralha precisa estar Ativa

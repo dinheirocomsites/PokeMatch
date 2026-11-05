@@ -1,0 +1,12 @@
+{
+  "name": "tech-finder-tcg",
+  "version": "0.1.0",
+  "description": "Sugere tech cards para o seu deck de Pokémon TCG contra um deck específico",
+  "type": "module",
+  "scripts": {
+    "sync": "NODE_USE_ENV_PROXY=1 node --no-warnings scripts/sync-cards.js",
+    "start": "node src/server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "license": "MIT"
+}

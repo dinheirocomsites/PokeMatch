@@ -265,15 +265,14 @@ document.addEventListener('error', (e) => {
 // Imagens: no servidor vêm do TCGdex; na versão publicada vêm de pacotes embutidos (img/<coleção>.json)
 const BLANK = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
 const cardIdFromUrl = (u) => { const m = String(u || '').match(/assets\.tcgdex\.net\/[a-z-]+\/[^/]+\/([^/]+)\/([^/]+)/); return m ? `${m[1]}-${m[2]}` : null; };
+// Sempre tenta os pacotes embutidos primeiro (funcionam em qualquer lugar); o TCGdex é só reserva.
 function IMG(url) {
   if (!url) return '';
-  if (!window.TF_STATIC) return `src="${url}"`;
   const id = cardIdFromUrl(url);
-  return id ? `src="${BLANK}" data-cid="${id}"` : '';
+  return id ? `src="${BLANK}" data-cid="${id}" data-remote="${url}"` : `src="${url}"`;
 }
 const packs = {};
 async function hydrateImages() {
-  if (!window.TF_STATIC) return;
   const imgs = [...document.querySelectorAll('img[data-cid]')];
   const sets = [...new Set(imgs.map((i) => i.dataset.cid.replace(/-[^-]+$/, '')))];
   await Promise.all(sets.map(async (set) => {
@@ -281,6 +280,7 @@ async function hydrateImages() {
     const pack = await packs[set];
     for (const img of imgs) if (img.dataset.cid.startsWith(set + '-')) {
       if (pack[img.dataset.cid]) img.src = pack[img.dataset.cid];
+      else if (img.dataset.remote && !window.TF_STATIC) img.src = img.dataset.remote; // reserva: TCGdex
       else img.dispatchEvent(new Event('error'));
     }
   }));

@@ -26,6 +26,12 @@ const server = createServer(async (req, res) => {
       res.writeHead(200, { 'content-type': 'application/json' });
       return res.end(JSON.stringify(result));
     }
+    if (url.pathname.startsWith('/img/')) {
+      const f = normalize(url.pathname.replace('/img/', '')).replace(/^(\.\.[/\\])+/, '');
+      const data = await readFile(join(ROOT, 'data', 'img', f));
+      res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'public, max-age=86400' });
+      return res.end(data);
+    }
     if (url.pathname.startsWith('/examples/')) {
       const f = normalize(url.pathname.replace('/examples/', '')).replace(/^(\.\.[/\\])+/, '');
       const txt = await readFile(join(ROOT, 'test', 'decks', f), 'utf8');

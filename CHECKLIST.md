@@ -33,13 +33,25 @@ Legenda: [x] feito · [~] em andamento · [ ] a fazer
 - [x] Sugerir o que cortar (protege atacante principal, Boss, motores de habilidade e counters que você já tem)
 - [x] Explicação em PT-BR + seção "Você já tem" (ex.: Watchtower desliga Kangaskhan/Meowth)
 
+## Fase 5.5 — Análise profunda (feedback do Felipe)
+- [x] Encaixe dividido em 4 critérios visíveis: **Recursos · Peso · Sinergia · Risco**
+- [x] **Risco de muralha**: o que passa pela muralha nocauteia ela? (Passimian 20×9 = 180 > Crustle 150 HP)
+- [x] Dano realista de ataques "×" e "+" no contexto do deck (banco de 8 com Area Zero etc.)
+- [x] **Versões da mesma carta**: Girafarig TEF ≠ Girafarig TWM — escolhe a melhor pré-evolução para o seu deck
+- [x] **Pacote completo**: pré-evolução + tech + energia habilitadora (ex.: +1 Energia Psíquica)
+- [x] Energia que destrava outras cartas suas (Munkidori "Mind Bend") conta como meio slot
+- [x] **Cadeias de combo**: aceleração de energia por tipo (Toxtricity), troca p/ Ativo (Pecharunt) + veneno → Binding Mochi +40, dano passivo (Munkidori)
+- [x] **Dano real no seu deck** + quem ele nocauteia (160 + 40 + 30 = 230 → 11 atacantes)
+- [x] Plano de troca explícito, começando por cartas **mortas no matchup** (Gravity Mountain)
+- [x] Seletores que não sabemos ler não viram mais "qualquer Pokémon" (Carracosta, Heatran, Rabsca)
+
 ## Fase 6 — Interface web
 - [x] Página com duas caixas (sua lista × deck oponente), salva no navegador
 - [x] Top 8 techs com imagem real, nota, impacto/encaixe e cortes
 - [x] Visual UAAAU 🔥: carta holográfica que inclina com o mouse, anéis de nota animados, confete, Pokébola de loading
 
 ## Fase 7 — Validação
-- [x] Caso de teste real: Mega Sharpedo ex × Basic Box → **#1 Crustle, #2 Farigiraf ex, #3 Drednaw** (9 testes ✅)
+- [x] Caso de teste real: Mega Sharpedo ex × Basic Box → **#1 Farigiraf ex** com o pacote Girafarig TWM + Energia Psíquica e todos os combos (12 testes ✅)
 - [ ] Testar com mais 3 matchups do meta
 - [ ] Publicar (GitHub + hospedagem grátis)
 

@@ -84,6 +84,24 @@
   .cuts { margin-top: 10px; font-size: 13px; }
   .cuts b { color: var(--warn); }
   .cut { display: inline-block; background: #ff5d7314; border: 1px solid #ff5d7344; color: #ffc2cb; border-radius: 8px; padding: 3px 8px; margin: 3px 4px 0 0; }
+  .parts { display: grid; grid-template-columns: repeat(2, minmax(150px, 1fr)); gap: 4px 18px; flex: 1; min-width: 300px; }
+  .parts .bar span:first-child { width: 72px; }
+  .tabs { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; margin-top: 12px; }
+  .crit { background: var(--panel2); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: 12.5px; color: #c9cfe6; }
+  .crit h4 { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); display: flex; justify-content: space-between; }
+  .crit div { margin: 3px 0; line-height: 1.35; }
+  .pkg { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 12px 0; padding: 12px; background: #0e1122; border: 1px dashed var(--line); border-radius: 14px; }
+  .pkg .item { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11px; color: var(--muted); width: 74px; text-align: center; }
+  .pkg .item img { width: 70px; border-radius: 5px; box-shadow: 0 4px 12px #0008; }
+  .pkg .item .en { width: 70px; height: 98px; border-radius: 6px; display: grid; place-items: center; font-weight: 900; font-size: 26px; background: radial-gradient(circle, #a855f7, #4c1d95); color: #fff; }
+  .pkg .plus { font-size: 22px; color: var(--accent); font-weight: 900; }
+  .pkg .label { font-weight: 800; color: var(--text); margin-right: 6px; }
+  .dmg { background: linear-gradient(90deg, #3ddc9722, transparent); border-left: 3px solid var(--good); border-radius: 0 10px 10px 0; padding: 10px 12px; margin: 8px 0; font-size: 14px; }
+  .dmg .eq { font-size: 20px; font-weight: 900; letter-spacing: .5px; }
+  .dmg .eq b { color: var(--good); }
+  .swap { margin-top: 12px; font-size: 13px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .swap .in { display: inline-block; background: #3ddc9714; border: 1px solid #3ddc9755; color: #b6f5d8; border-radius: 8px; padding: 3px 8px; }
+  .swap .arrow { color: var(--accent); font-weight: 900; margin: 0 4px; }
   .already .row { display: flex; gap: 12px; align-items: flex-start; padding: 8px 0; border-bottom: 1px dashed var(--line); font-size: 14px; }
   .already img { width: 60px; border-radius: 6px; }
   .disclaimer { color: var(--muted); font-size: 12px; text-align: center; margin-top: 40px; }
@@ -129,7 +147,7 @@
       <div class="box already" id="already"></div>
     </div>
 
-    <h2 class="section-title">🃏 Tech cards sugeridas <small>nota = impacto no matchup × encaixe no seu deck</small></h2>
+    <h2 class="section-title">🃏 Tech cards sugeridas <small>nota = impacto no matchup × recursos × peso × sinergia × risco</small></h2>
     <div class="grid" id="suggestions"></div>
     <p class="disclaimer" id="disclaimer"></p>
   </section>
@@ -188,20 +206,27 @@ function render(d) {
   $('#alreadyWrap').style.display = d.already.length ? '' : 'none';
   $('#already').innerHTML = d.already.map((a) => `<div class="row">${a.card.image ? `<img src="${a.card.image}" alt="" loading="lazy">` : ''}<div><b>${a.count}x ${esc(a.card.name)}</b><br>${a.reasons.map(esc).join('<br>')}</div></div>`).join('');
 
+  const ENERGY_SYM = { 'Psychic Energy': 'P', 'Water Energy': 'W', 'Fire Energy': 'R', 'Grass Energy': 'G', 'Lightning Energy': 'L', 'Fighting Energy': 'F', 'Darkness Energy': 'D', 'Metal Energy': 'M' };
+  const CRIT = { recursos: '🔋 Recursos', peso: '⚖️ Peso', sinergia: '🔗 Sinergia', risco: '🎯 Risco' };
+  const pkgHtml = (s) => !s.pkg || s.pkg.adds.length < 2 ? '' : `<div class="pkg"><span class="label">Pacote:</span>${s.pkg.adds.map((a, j) => `${j ? '<span class="plus">+</span>' : ''}<div class="item">${ENERGY_SYM[a.card?.name] ? `<div class="en">{${ENERGY_SYM[a.card.name]}}</div>` : a.card?.image ? `<img src="${a.card.image.replace('/high.webp', '/low.webp')}" alt="" loading="lazy">` : ''}<span>${a.qty}x ${esc(a.card?.name)}${a.card?.setCode && !ENERGY_SYM[a.card.name] ? ` <br>${esc(a.card.setCode)} ${parseInt(a.card.localId, 10)}` : ''}<br><i>${esc(a.role)}</i></span></div>`).join('')}</div>`;
+  const dmgHtml = (s) => { const d = s.pkg?.damage; if (!d || !d.kos.length) return ''; return `<div class="dmg"><div class="eq">${d.base}${d.boost ? ` + ${d.boost}` : ''}${d.passive ? ` + ${d.passive}` : ''} = <b>${d.total}</b> de dano</div><div>"${esc(d.attack)}"${d.boost ? ' + combo' : ''}${d.passive ? ' + dano passivo' : ''} → nocauteia em 1 ataque: ${d.kos.map(esc).join(', ')}</div></div>`; };
+  const swapHtml = (s) => !s.swap ? '' : `<div class="swap"><b style="color:var(--warn)">Troca sugerida:</b> ${s.swap.out.map((x) => `<span class="cut" title="${esc(x.why)}">−${x.qty} ${esc(x.name)}</span>`).join('')}<span class="arrow">→</span>${s.swap.in.map((x) => `<span class="in">${esc(x)}</span>`).join('')}</div>${s.swap.out.length ? `<div style="font-size:12px;color:var(--muted);margin-top:4px">${s.swap.out.map((x) => `${esc(x.name)}: ${esc(x.why)}`).join(' · ')}</div>` : ''}`;
   $('#suggestions').innerHTML = d.suggestions.map((s, i) => `
     <article class="sug ${i < 3 ? 'top' : ''}">
       <div class="rank">#${i + 1}</div>
       <div class="cardwrap"><div class="holo">${s.card.image ? `<img src="${s.card.image}" alt="${esc(s.card.name)}" loading="lazy" onerror="this.remove()">` : ''}<div class="fallback" style="z-index:-1">${esc(s.card.name)}</div></div></div>
       <div>
         <h3>${esc(s.card.name)}</h3>
-        <div class="meta">${esc(s.card.setCode || '')} ${esc(s.card.localId || '')} · ${esc(s.card.category === 'Pokemon' ? `${STAGE[s.card.stage] || s.card.stage} · ${s.card.hp} HP` : s.card.trainerType || s.card.category)}${s.slots > 1 ? ` · ocupa ${s.slots} slots` : ''}</div>
+        <div class="meta">${esc(s.card.setCode || '')} ${esc(s.card.localId || '')} · ${esc(s.card.category === 'Pokemon' ? `${STAGE[s.card.stage] || s.card.stage} · ${s.card.hp} HP` : s.card.trainerType || s.card.category)} · ${s.slots} slot${s.slots > 1 ? 's' : ''}</div>
         <div class="scores">
           <div><div class="ring" data-v="${s.score}"><b>${s.score}</b></div><div class="ring-label">Nota</div></div>
-          <div class="mini">${bars([{ label: 'Impacto', value: s.impact }, { label: 'Encaixe', value: s.fit }])}</div>
+          <div class="parts">${bars([{ label: 'Impacto', value: s.impact }, { label: 'Recursos', value: s.parts.recursos }, { label: 'Peso', value: s.parts.peso }, { label: 'Sinergia', value: s.parts.sinergia }, { label: 'Risco', value: s.parts.risco }])}</div>
         </div>
-        ${s.reasons.slice(0, 3).map((r, j) => `<div class="reason ${j ? 'sec' : ''}">${j ? '' : '★ '}${esc(r.why)}</div>`).join('')}
-        <ul class="fit">${s.fitNotes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>
-        ${s.cuts.length ? `<div class="cuts"><b>Para abrir espaço (${s.slots} slot${s.slots > 1 ? 's' : ''}):</b><br>${s.cuts.map((x) => `<span class="cut" title="${esc(x.why)}">−1 ${esc(x.name)}</span>`).join('')}</div>` : ''}
+        ${s.reasons.filter((r) => r.kind !== 'COMBO_DMG' && r.kind !== 'UNLOCK').slice(0, 2).map((r, j) => `<div class="reason ${j ? 'sec' : ''}">${j ? '' : '★ '}${esc(r.why)}</div>`).join('')}
+        ${dmgHtml(s)}
+        ${pkgHtml(s)}
+        <div class="tabs">${Object.entries(CRIT).map(([k, label]) => s.notes[k]?.length ? `<div class="crit"><h4>${label}<span>${s.parts[k]}</span></h4>${s.notes[k].map((n) => `<div>${esc(n)}</div>`).join('')}</div>` : '').join('')}</div>
+        ${swapHtml(s)}
       </div>
     </article>`).join('') || '<div class="box">Nenhuma tech forte encontrada para esse matchup.</div>';
 
@@ -214,7 +239,7 @@ function render(d) {
     document.querySelectorAll('.ring').forEach((r) => animateRing(r, +r.dataset.v));
     $('#results').scrollIntoView({ behavior: 'smooth' });
   });
-  if (d.suggestions[0]?.score >= 40) setTimeout(confetti, 450);
+  if (d.suggestions[0]?.score >= 35) setTimeout(confetti, 450);
   attachHolo();
 }
 

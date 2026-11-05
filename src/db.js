@@ -65,7 +65,21 @@ export function loadDb(path = join(ROOT, 'data', 'cards.json')) {
     if (prints.some((p) => p.aceSpec)) prints.forEach((p) => (p.aceSpec = true));
   }
   // Uma carta "canônica" por nome (a mais recente com texto), usada nas sugestões.
-  const unique = [...byName.values()].map((prints) => prints.find((p) => !/^tk-/.test(p.set?.id)) ?? prints[0]);
-  cache = { syncedAt: raw.syncedAt, marks: raw.marks, sets: raw.sets, cards, unique, byId, bySetNum, byName };
+  // Cartas com o MESMO nome podem ter textos diferentes (ex.: Girafarig TEF × TWM) — são cartas diferentes.
+  // "unique" guarda uma impressão por versão (nome + texto); "versionsByName" agrupa as versões.
+  const unique = [];
+  const versionsByName = new Map();
+  for (const [k, prints] of byName) {
+    const bySig = new Map();
+    for (const p of prints) {
+      const sig = JSON.stringify([p.hp, p.abilities, (p.attacks ?? []).map((a) => [a.name, a.cost, a.damage]), p.effect]);
+      if (!bySig.has(sig)) bySig.set(sig, []);
+      bySig.get(sig).push(p);
+    }
+    const versions = [...bySig.values()].map((ps) => ps.find((p) => !/^tk-/.test(p.set?.id) && p.image) ?? ps[0]);
+    versionsByName.set(k, versions);
+    unique.push(...versions);
+  }
+  cache = { syncedAt: raw.syncedAt, marks: raw.marks, sets: raw.sets, cards, unique, versionsByName, byId, bySetNum, byName };
   return cache;
 }

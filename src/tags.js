@@ -5,7 +5,7 @@
 const SYM = { G: 'Grass', R: 'Fire', W: 'Water', L: 'Lightning', P: 'Psychic', F: 'Fighting', D: 'Darkness', M: 'Metal', N: 'Dragon', C: 'Colorless', Y: 'Fairy' };
 
 // Listas curadas para traços que a API não informa.
-export const TERA = new Set(['Teal Mask Ogerpon ex', 'Hearthflame Mask Ogerpon ex', 'Wellspring Mask Ogerpon ex', 'Cornerstone Mask Ogerpon ex', 'Terapagos ex']);
+export const TERA = new Set(['Teal Mask Ogerpon ex', 'Hearthflame Mask Ogerpon ex', 'Wellspring Mask Ogerpon ex', 'Cornerstone Mask Ogerpon ex', 'Terapagos ex', 'Farigiraf ex']);
 export const ANCIENT = new Set(['Raging Bolt ex', 'Walking Wake ex', 'Gouging Fire ex', 'Roaring Moon', 'Roaring Moon ex', 'Great Tusk', 'Scream Tail', 'Scream Tail ex', 'Flutter Mane', 'Brute Bonnet', 'Slither Wing', 'Sandy Shocks', 'Koraidon', 'Koraidon ex']);
 export const isFuture = (name) => /^Iron /.test(name) || /^Miraidon/.test(name);
 
@@ -32,6 +32,11 @@ export function parseSelector(ph) {
   if (non.length) s.notTypes = non;
   const typed = p.replace(/non-\{[A-Z]\}/g, '').match(/((?:\{[A-Z]\}(?:,\s*(?:or\s+)?|\s+or\s+|\s*)?)+)\s*pok[eé]mon/i);
   if (typed) s.types = [...typed[1].matchAll(/\{([A-Z])\}/g)].map((m) => SYM[m[1]]);
+  if (/special energy attached/i.test(p)) s.specialEnergy = true;
+  const st = p.match(/\b(burned|poisoned|confused|asleep|paralyzed) pok[eé]mon/i);
+  if (st) s.status = st[1].toLowerCase();
+  // Qualificador que não sabemos ler → seletor "desconhecido" (nunca vira "qualquer Pokémon")
+  if (/that ha(ve|s)|with any|that (is|are) /i.test(p) && !s.hasAbility && !s.specialEnergy && !s.noRuleBox && !/rule box/i.test(p)) s.unknown = true;
   const dmg = p.match(/damage is (\d+) or more/i);
   if (dmg) s.minDamage = +dmg[1];
   return s;
@@ -57,6 +62,9 @@ export function matches(sel, card, ctx = {}) {
   if (sel.types && !(card.types ?? []).some((t) => sel.types.includes(t))) return false;
   if (sel.notTypes && (card.types ?? []).some((t) => sel.notTypes.includes(t))) return false;
   if (sel.minDamage && maxDamage(card) < sel.minDamage) return false;
+  if (sel.unknown) return false;
+  if (sel.specialEnergy && !ctx.oppSpecialEnergy) return false;
+  if (sel.status && !ctx.myStatuses?.has(sel.status)) return false;
   return true;
 }
 
@@ -92,6 +100,8 @@ export function selectorPt(s) {
   if (s.notTypes) parts.push(`que não sejam ${s.notTypes.map(typePt).join('/')}`);
   if (s.hasAbility) parts.push('com Habilidade');
   if (s.minDamage) parts.push(`(quando o dano for ${s.minDamage}+)`);
+  if (s.specialEnergy) parts.push('com Energia Especial');
+  if (s.status) parts.push(`(${{ burned: 'Queimados', poisoned: 'Envenenados', confused: 'Confusos', asleep: 'Adormecidos', paralyzed: 'Paralisados' }[s.status]})`);
   // "Pokémon ex Básicos" soa melhor como "Pokémon Básicos ex"
   let out = parts.join(' ');
   out = out.replace('Pokémon ex Básicos', 'Pokémon Básicos ex').replace('Mega Pokémon ex Básicos', 'Mega Pokémon ex Básicos');
@@ -124,7 +134,7 @@ export function extractTags(card) {
         const after = s.split(/attacks/i).slice(1).join('attacks') || s;
         const sel = parseSelector(after.replace(/done to (this|that) pok[eé]mon/i, ''));
         delete sel.noRuleBox;
-        if (/(is|are) on your bench/i.test(s)) tags.push({ ...base, kind: 'BENCH_WALL', sel });
+        if (/(is|are) on your bench|to your benched pok[eé]mon/i.test(s)) tags.push({ ...base, kind: 'BENCH_WALL', sel });
         else if (/this pok[eé]mon/i.test(s)) tags.push({ ...base, kind: 'WALL_SELF', sel });
         else if (/that pok[eé]mon/i.test(s)) tags.push({ ...base, kind: 'WALL_CHOSEN', sel });
         else {

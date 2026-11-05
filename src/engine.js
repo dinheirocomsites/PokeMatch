@@ -3,6 +3,8 @@
 import { extractTags, matches, selectorPt, typePt, maxDamage, attackDamage } from './tags.js';
 import { profileDeck } from './profile.js';
 import { parseDeck } from './parser.js';
+import { evaluateFit, deadInMatchup } from './fit.js';
+import { buildOptions } from './synergy.js';
 
 const pct = (x) => `${Math.round(x * 100)}%`;
 const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
@@ -151,62 +153,9 @@ function weaknessValue(card, opp, me) {
   return { value: 35 * share * clamp(attackDamage(best) / 150), why: `Tipo ${typePt(type)}: ${pct(share)} do poder de ataque do oponente é fraco a ${typePt(type)} (dano ×2 com "${best.name}").`, kind: 'WEAKNESS' };
 }
 
-// Encaixe no deck do jogador → { factor, notes[], slots }
-function fitOf(card, tagsUsed, me, db) {
-  let factor = 1;
-  const notes = [];
-  let slots = 1;
-  if (card.category === 'Pokemon') {
-    const usableAttack = (card.attacks ?? []).some((a) => attackDamage(a) > 0 && canPayCost(a.cost, me));
-    const needsAttack = tagsUsed.some((t) => t.source === 'attack');
-    if (needsAttack && !tagsUsed.filter((t) => t.source === 'attack').every((t) => canPayCost(t.cost, me))) {
-      factor *= 0.25;
-      notes.push(`✗ O ataque precisa de energia que seu deck não tem (${[...new Set(tagsUsed.flatMap((t) => t.cost ?? []).filter((x) => x !== 'Colorless'))].map(typePt).join('/')}).`);
-    } else if (!usableAttack) {
-      factor *= 0.8;
-      const need = [...new Set((card.attacks ?? []).flatMap((a) => a.cost ?? []).filter((x) => x !== 'Colorless'))].map(typePt);
-      notes.push(`⚠ Não consegue atacar com as suas energias${need.length ? ` (precisa de ${need.join('/')})` : ''} — funciona como muralha/suporte.`);
-    } else notes.push('✓ Consegue atacar com as energias do seu deck.');
-
-    if (card.stage === 'Stage1' || card.stage === 'Stage2') {
-      const prevo = db.byName.get(card.evolveFrom?.toLowerCase?.() ?? '')?.[0];
-      if (!prevo) { factor *= 0.1; notes.push(`✗ A pré-evolução (${card.evolveFrom}) não está legal no Standard.`); }
-      slots = card.stage === 'Stage1' ? 2 : 3;
-      if (card.stage === 'Stage2' && me.search.rareCandy) slots = 2;
-      factor *= card.stage === 'Stage1' ? 0.88 : me.search.rareCandy ? 0.75 : 0.55;
-      if (prevo) notes.push(`• Linha ${slots}-slot: ${card.stage === 'Stage2' ? `${prevo.name} → … → ${card.name}` : `${prevo.name} → ${card.name}`}.`);
-      if (me.names.has(card.evolveFrom)) { slots -= 1; factor /= 0.92; notes.push(`✓ Você já joga ${card.evolveFrom}.`); }
-    }
-    // Acesso por busca
-    const basicHp = card.stage === 'Basic' ? card.hp : db.byName.get(card.evolveFrom?.toLowerCase?.() ?? '')?.[0]?.hp;
-    const ways = [];
-    if (me.search.any) ways.push('Ultra Ball');
-    if (me.search.nonRuleBox && !card.isRuleBox) ways.push('Poké Pad');
-    if (me.search.basicLowHp && basicHp <= 70) ways.push('Buddy-Buddy Poffin (base)');
-    if (me.search.basic || me.search.evolution) ways.push('busca de Básicos/Evolução');
-    if (ways.length) notes.push(`✓ Buscável com: ${ways.join(', ')}.`);
-    else { factor *= 0.85; notes.push('⚠ Seu deck tem pouca busca para essa carta.'); }
-
-    if (card.isMega) { factor *= 0.8; notes.push('⚠ Mega ex: entrega 3 prêmios se for nocauteado.'); }
-    else if (card.isEx) { factor *= 0.9; notes.push('⚠ Pokémon ex: entrega 2 prêmios.'); }
-    else notes.push('✓ Sem Rule Box: entrega só 1 prêmio.');
-  } else if (card.category === 'Trainer') {
-    if (card.trainerType === 'Supporter') { factor *= 0.85; notes.push('• Supporter: gasta o Supporter do turno.'); }
-    if (card.trainerType === 'Stadium') {
-      const mine = me.stadiums.reduce((s, e) => s + e.count, 0);
-      if (mine) notes.push(`• Você já joga ${mine} Estádio(s): ${me.stadiums.map((e) => e.card.name).join(', ')} — talvez trocar 1 por este.`);
-      slots = 1;
-    }
-    if (me.search.trainer) notes.push('✓ Buscável com Team Rocket\'s Petrel.');
-  } else if (card.category === 'Energy') {
-    if (card.isSpecialEnergy) notes.push('• Energia Especial.');
-  }
-  if (card.aceSpec && me.aceSpec) { factor *= 0.6; notes.push(`⚠ ACE SPEC: precisa trocar pelo seu ${me.aceSpec.name}.`); }
-  return { factor: clamp(factor), notes, slots };
-}
-
-// Sugestões de corte (heurística — o jogador conhece o deck melhor)
-function suggestCuts(me, opp, ctx, slotsNeeded) {
+// Plano de troca: o que sai para a tech entrar.
+// Prioridade: cartas mortas no matchup → cópias extras de cartas não essenciais.
+function suggestCuts(me, opp, slotsNeeded) {
   const main = me.mainAttacker;
   const core = new Set([main?.name, main?.evolveFrom].filter(Boolean));
   for (const { entry } of me.tagsByCard) {
@@ -218,19 +167,30 @@ function suggestCuts(me, opp, ctx, slotsNeeded) {
   for (const { entry, tags } of me.tagsByCard) {
     const c = entry.card;
     if (core.has(c.name) || c.category === 'Energy') continue;
-    const relevance = tags.reduce((s, t) => s + (tagValue(t, opp, me, { lockedByMe: new Map() })?.value ?? 0), 0);
-    if (relevance >= 15 && !tags.every((t) => t.kind === 'STADIUM_REPLACE')) continue; // carta já ajuda neste matchup
+    const dead = deadInMatchup(c, me, opp);
+    if (dead) { out.push({ name: c.name, count: entry.count, expend: 10 + entry.count, why: `morta neste matchup: ${dead}`, dead: true }); continue; }
+    const relevance = tags.filter((t) => t.kind !== 'STADIUM_REPLACE').reduce((s, t) => s + (tagValue(t, opp, me, { lockedByMe: new Map() })?.value ?? 0), 0);
+    if (relevance >= 15) continue; // carta já ajuda neste matchup
     const isEngine = /search your deck|draw \d+ cards/i.test(c.text) && entry.count >= 4;
     if (isEngine) continue;
     let expend = 0;
     let why = '';
-    if (entry.count >= 3) { expend = entry.count - 2 + 0.5; why = `${entry.count} cópias — dá para tirar 1`; }
-    else if (entry.count === 2 && c.category === 'Trainer') { expend = 0.8; why = '2 cópias de Treinador situacional'; }
+    if (entry.count >= 3) { expend = entry.count - 2 + 0.5; why = `${entry.count} cópias — dá para ficar com ${entry.count - 1}`; }
+    else if (entry.count === 2 && c.category === 'Trainer') { expend = 0.8; why = 'Treinador situacional com 2 cópias'; }
     else if (entry.count === 1 && relevance < 5 && c.category === 'Pokemon' && maxDamage(c) < 100) { expend = 0.6; why = 'tech de 1 cópia com pouco efeito neste matchup'; }
     if (relevance > 0) expend *= 0.6;
     if (expend > 0) out.push({ name: c.name, count: entry.count, expend, why });
   }
-  return out.sort((a, b) => b.expend - a.expend).slice(0, Math.max(3, slotsNeeded + 1));
+  out.sort((a, b) => b.expend - a.expend);
+  // Monta o plano: tira 1 de cada (ou mais de uma carta morta) até cobrir os slots
+  const plan = [];
+  for (const o of out) {
+    if (plan.reduce((s, p) => s + p.qty, 0) >= slotsNeeded) break;
+    const room = slotsNeeded - plan.reduce((s, p) => s + p.qty, 0);
+    const qty = o.dead ? Math.min(o.count, room) : 1;
+    plan.push({ ...o, qty });
+  }
+  return { plan, alternatives: out.filter((o) => !plan.some((p) => p.name === o.name)).slice(0, 3) };
 }
 
 export function analyze(myText, oppText, db, { limit = 8 } = {}) {
@@ -238,7 +198,13 @@ export function analyze(myText, oppText, db, { limit = 8 } = {}) {
   const oppParsed = parseDeck(oppText, db);
   const me = profileDeck(myParsed);
   const opp = profileDeck(oppParsed);
-  const ctx = { lockedByMe: locksFromMyDeck(me, opp) };
+  // Condições que meu deck consegue causar no oponente (para seletores tipo "Burned Pokémon")
+  const myStatuses = new Set();
+  for (const e of me.entries) for (const a of e.card.attacks ?? []) {
+    const m = (a.effect ?? '').match(/opponent.s active pok[eé]mon is now (burned|poisoned|confused|asleep|paralyzed)/i);
+    if (m) myStatuses.add(m[1].toLowerCase());
+  }
+  const ctx = { lockedByMe: locksFromMyDeck(me, opp), oppSpecialEnergy: opp.counts.specialEnergy > 0, myStatuses };
 
   const evaluate = (card) => {
     const reasons = [];
@@ -261,14 +227,38 @@ export function analyze(myText, oppText, db, { limit = 8 } = {}) {
     if (card.isBasicEnergy || me.names.has(card.name)) continue;
     const ev = evaluate(card);
     if (!ev || ev.impact < 8) continue;
-    const fit = fitOf(card, ev.used, me, db);
-    const score = ev.impact * fit.factor;
-    candidates.push({ card, impact: Math.round(ev.impact), fit: Math.round(fit.factor * 100), score: Math.round(score), reasons: ev.reasons, fitNotes: fit.notes, slots: fit.slots });
+    // Avalia o pacote sem e com energia habilitadora e fica com o melhor
+    let best = null;
+    const options = card.category === 'Pokemon' ? buildOptions(card, me, opp, db) : [null];
+    for (const opt of options) {
+      const reasons = [...ev.reasons];
+      if (opt?.damage?.kos.length) {
+        const d = opt.damage;
+        const parts = [`${d.base} ("${d.attack.name}")`, d.boost ? `+${d.boost} (combo)` : '', d.passive ? `+${d.passive} (dano passivo)` : ''].filter(Boolean).join(' ');
+        reasons.push({ kind: 'COMBO_DMG', value: 30 * d.koShare, why: `Dano no SEU deck: ${parts} = ${d.total} → nocauteia em 1 ataque: ${d.kos.join(', ')}.` });
+      }
+      for (const u of opt?.unlocks ?? []) reasons.push({ kind: 'UNLOCK', value: 6, why: `A energia nova também libera "${u.attack}" do seu ${u.name}.` });
+      reasons.sort((a, b) => b.value - a.value);
+      const impact = clamp(reasons.reduce((s, r, i) => s + r.value * (i === 0 ? 1 : 0.4), 0), 0, 100);
+      const fit = evaluateFit(card, ev.used, reasons, me, opp, db, opt);
+      const score = impact * fit.factor;
+      if (!best || score > best.score) best = { card, impact: Math.round(impact), fit: Math.round(fit.factor * 100), parts: fit.parts, score: Math.round(score), reasons, notes: fit.notes, slots: fit.slots, pkg: opt };
+    }
+    candidates.push(best);
   }
+  // Uma entrada por nome (a melhor versão)
+  const seenName = new Set();
+  for (let i = candidates.length - 1; i >= 0; i--) if (!candidates[i]) candidates.splice(i, 1);
+  candidates.sort((a, b) => b.score - a.score);
+  for (let i = 0; i < candidates.length; i++) { if (seenName.has(candidates[i].card.name)) { candidates.splice(i, 1); i--; } else seenName.add(candidates[i].card.name); }
   candidates.sort((a, b) => b.score - a.score);
   // Uma carta por "família" de motivo principal dominante não é necessário; mantemos variedade simples
   const top = candidates.slice(0, limit);
-  for (const s of top) s.cuts = suggestCuts(me, opp, ctx, s.slots).slice(0, s.slots + 1);
+  for (const s of top) {
+    const { plan, alternatives } = suggestCuts(me, opp, s.slots);
+    const adds = s.pkg ? s.pkg.adds.map((a) => `+${a.qty} ${a.card?.name}${a.card?.setCode && a.role !== 'energia habilitadora' ? ` (${a.card.setCode} ${parseInt(a.card.localId, 10)})` : ''}`) : [`+1 ${s.card.name}`];
+    s.swap = { out: plan, in: adds, alternatives };
+  }
 
   // Counters que o jogador JÁ tem
   const already = [];

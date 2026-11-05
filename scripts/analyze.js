@@ -11,6 +11,7 @@ console.log('\n== Sugestões:');
 r.suggestions.forEach((s, i) => {
   console.log(`\n${i + 1}. ${s.card.name} [${s.card.id}]  nota ${s.score} (impacto ${s.impact} × encaixe ${s.fit}%)`);
   s.reasons.slice(0, 2).forEach((x) => console.log('   ★', x.why));
-  s.fitNotes.forEach((n) => console.log('    ', n));
-  console.log('    cortes:', s.cuts.map((c) => `-1 ${c.name} (${c.why})`).join('; '));
+  console.log(`    recursos ${s.parts.recursos} · peso ${s.parts.peso} · sinergia ${s.parts.sinergia} · risco ${s.parts.risco}`);
+  for (const [k, ns] of Object.entries(s.notes)) ns.forEach((n) => console.log(`     [${k}] ${n}`));
+  console.log('    TROCA:', s.swap.out.map((c) => `-${c.qty} ${c.name} (${c.why})`).join('; '), '→', s.swap.in.join(' '));
 });

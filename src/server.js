@@ -22,8 +22,14 @@ function toJson(r) {
     me: r.me, opp: r.opp, insights: r.insights, locked: r.locked,
     already: r.already.map((a) => ({ card: slimCard(a.card), count: a.count, reasons: a.reasons.map((x) => x.why) })),
     suggestions: r.suggestions.map((s) => ({
-      card: slimCard(s.card), score: s.score, impact: s.impact, fit: s.fit, slots: s.slots,
-      reasons: s.reasons.map((x) => ({ kind: x.kind, why: x.why })), fitNotes: s.fitNotes, cuts: s.cuts,
+      card: slimCard(s.card), score: s.score, impact: s.impact, fit: s.fit, parts: s.parts, slots: s.slots,
+      reasons: s.reasons.map((x) => ({ kind: x.kind, why: x.why })), notes: s.notes,
+      pkg: s.pkg && {
+        adds: s.pkg.adds.map((a) => ({ qty: a.qty, role: a.role, card: slimCard(a.card) })),
+        combos: s.pkg.combos.map((c) => c.text), unlocks: s.pkg.unlocks,
+        damage: s.pkg.damage && { attack: s.pkg.damage.attack.name, base: s.pkg.damage.base, boost: s.pkg.damage.boost, passive: s.pkg.damage.passive, total: s.pkg.damage.total, kos: s.pkg.damage.kos },
+      },
+      swap: s.swap,
     })),
     db: { syncedAt: db.syncedAt, marks: db.marks },
   };

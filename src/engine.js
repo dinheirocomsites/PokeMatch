@@ -7,6 +7,7 @@ import { evaluateFit, deadInMatchup, potentialDamage } from './fit.js';
 import { buildOptions } from './synergy.js';
 import { simulateRace, planText, parseDenial } from './prizes.js';
 import { readContext, clusterOf, CLUSTERS } from './context.js';
+import { consistencyImpact } from './consistency.js';
 
 const pct = (x) => `${Math.round(x * 100)}%`;
 const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
@@ -369,7 +370,11 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
     const { plan, alternatives } = suggestCuts(me, opp, s.slots);
     const adds = s.pkg ? s.pkg.adds.map((a) => `+${a.qty} ${a.card?.name}${a.card?.setCode && a.role !== 'energia habilitadora' ? ` (${a.card.setCode} ${parseInt(a.card.localId, 10)})` : ''}`) : [`+1 ${s.card.name}`];
     s.swap = { out: plan, in: adds, alternatives };
+    // Quanto de consistência a troca custa? (Monte Carlo antes × depois)
+    s.consistency = consistencyImpact(me, s);
+    s.score = Math.round(s.score * s.consistency.factor);
   }
+  top.sort((a, b) => b.score - a.score);
 
   // Counters que o jogador JÁ tem
   const already = [];

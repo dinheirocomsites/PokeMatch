@@ -120,6 +120,9 @@ export function buildOptions(card, me, opp, db) {
   for (const v of variants) {
     const adds = [];
     const prevo = card.stage && card.stage !== 'Basic' && !me.names.has(card.evolveFrom) ? bestPrevo(card, me, v.types, db) : null;
+    // Estágio 2: a linha inteira (Básico → Estágio 1 → Estágio 2)
+    const basePrevo = prevo?.card.evolveFrom && !me.names.has(prevo.card.evolveFrom) ? bestPrevo(prevo.card, me, v.types, db) : null;
+    if (basePrevo) adds.push({ qty: 1, card: basePrevo.card, role: 'Básico da linha', notes: basePrevo.notes });
     if (prevo) adds.push({ qty: 1, card: prevo.card, role: 'pré-evolução', notes: prevo.notes });
     adds.push({ qty: 1, card, role: 'tech' });
     const energyCard = v.energy ? db.byName.get(`${v.energy.type.toLowerCase()} energy`)?.[0] : null;

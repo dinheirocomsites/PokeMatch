@@ -57,12 +57,14 @@ Legenda: [x] feito · [~] em andamento · [ ] a fazer
 - [x] Corrigidos falsos positivos: "dano de 40 ou menos" (Roggenrola), "só se nocautear" (Golisopod/Marshadow)
 - [x] **Correção (feedback):** simulador agora considera energia por turno (atacante novo precisa ser energizado), custo de Boss/energia, nocautear o Ativo antes de gastar Boss, e mostra quem está no Ativo em cada turno → linha certa: Pecharunt ex mata o Ogerpon (60×3+30) sem Boss
 - [x] Linha alternativa de jogo + anti-sinergia detectada: Legacy Energy reduz o dano do Pecharunt ex (menos prêmios tomados)
-- [x] Cada erro apontado pelo jogador vira **teste permanente** (20 testes ✅)
+- [x] Cada erro apontado pelo jogador vira **teste permanente** (22 testes ✅)
 - [x] **Passo para trás (feedback):** diagnóstico primeiro — "por que ESTE deck perde ESTE matchup" (quem mata seu atacante, troca de prêmios, banco cheio)
 - [x] **Filtro de relevância:** só sugere o que bloqueia quem mata seu atacante, vira a corrida na simulação ou reduz prêmios entregues; o resto vai para "descartadas" com o motivo
 - [x] **Espaço no banco** do plano do deck entra no peso (Sharpedo: banco cheio com Pecharunt, Toxtricity, Munkidori, Fezandipiti + Carvanha)
 - [x] Energia fora do tipo para efeito de **ataque recorrente** é penalizada (Dipplin fora); muralha de time que não protege o atacante principal não conta (Neutralization Zone fora)
 - [x] **Versão web publicada** (motor roda no navegador): https://claude.ai/artifact/Bk5ULBHYeLMX7REJNJFVo9 — imagens de cartas viram cards com nome/cor (a página não pode carregar imagens externas)
+- [x] **Custo de consistência por troca** (Monte Carlo, 6.000 partidas): setup do atacante principal até T2, Supporter na mão inicial, achar a tech até T3, risco de prêmio — antes × depois
+- [x] Estágio 2 sugerido com a linha inteira (Gastly → Haunter → Mega Gengar ex)
 - [ ] Caminho "contra-disrupção" (quando o oponente te atrapalha: Iono, item lock…) — precisa de um deck de teste com disrupção
 - [ ] Usar IA (LLM) para ler a dor com mais nuance e escrever o plano de jogo em linguagem natural
 
@@ -72,7 +74,7 @@ Legenda: [x] feito · [~] em andamento · [ ] a fazer
 - [x] Visual UAAAU 🔥: carta holográfica que inclina com o mouse, anéis de nota animados, confete, Pokébola de loading
 
 ## Fase 7 — Validação
-- [x] Caso de teste real: Mega Sharpedo ex × Basic Box → **#1 Farigiraf ex** com o pacote Girafarig TWM + Energia Psíquica e todos os combos (20 testes ✅)
+- [x] Caso de teste real: Mega Sharpedo ex × Basic Box → **#1 Farigiraf ex** com o pacote Girafarig TWM + Energia Psíquica e todos os combos (22 testes ✅)
 - [ ] Testar com mais 3 matchups do meta
 - [~] Publicar: versão privada no claude.ai ✅ · falta GitHub + hospedagem pública com imagens (GitHub Pages/Vercel)
 

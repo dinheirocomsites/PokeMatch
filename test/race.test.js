@@ -61,3 +61,19 @@ test('feedback: todo passo do plano diz quem está no Ativo do oponente', () => 
   const r = analyze(read('sharpedo.txt'), read('basic-box.txt'), db);
   for (const t of r.race.best.plan) assert.match(t.mine, /^Ativo dele: /);
 });
+
+test('consistência: cada sugestão mostra o custo da troca; tirar Judge custa Supporter na mão inicial', () => {
+  const r = analyze(read('sharpedo.txt'), read('basic-box.txt'), db, { context: PAIN });
+  for (const s of r.suggestions) {
+    assert.ok(s.consistency?.setup && s.consistency.tech, s.card.name);
+    assert.ok(Math.abs(s.consistency.setup.delta) < 3, `${s.card.name} não deveria mexer no setup do Sharpedo`);
+  }
+  const withJudgeCut = r.suggestions.find((s) => s.swap.out.some((o) => o.name === 'Judge'));
+  assert.ok(withJudgeCut.consistency.supporter.delta < -1);
+});
+
+test('Estágio 2 traz a linha inteira (Gastly → Haunter → Mega Gengar ex)', () => {
+  const r = analyze(read('sharpedo.txt'), read('basic-box.txt'), db, { context: PAIN, limit: 20 });
+  const g = r.suggestions.find((s) => s.card.name === 'Mega Gengar ex');
+  if (g) assert.deepEqual(g.pkg.adds.map((a) => a.card.name), ['Gastly', 'Haunter', 'Mega Gengar ex']);
+});

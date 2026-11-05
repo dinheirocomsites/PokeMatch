@@ -9,3 +9,7 @@ export function isLegalMark(mark) {
   const m = mark.toUpperCase();
   return /^[A-Z]$/.test(m) && m >= MIN_MARK;
 }
+
+// Sets legais no Standard que a API ainda não marcou com regulation mark
+// (dados recentes/incompletos). Baixados carta por carta no sync.
+export const EXTRA_LEGAL_SETS = ['30th'];

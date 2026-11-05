@@ -1,7 +1,7 @@
 // Baixa do TCGdex todas as cartas com marca de regulamento legal no Standard
 // e salva em data/cards.json (base local usada pelo motor de análise).
 import { writeFile, mkdir } from 'node:fs/promises';
-import { MIN_MARK, API_GRAPHQL, API_REST } from '../src/config.js';
+import { MIN_MARK, API_GRAPHQL, API_REST, EXTRA_LEGAL_SETS } from '../src/config.js';
 
 const FIELDS = `id localId name regulationMark category stage hp types evolveFrom suffix
   trainerType energyType effect retreat rarity image
@@ -71,6 +71,22 @@ async function main() {
     cards.push(...batch);
   }
 
+  // Sets legais que a API ainda não marcou (ex.: 30th Celebration)
+  for (const setId of EXTRA_LEGAL_SETS) {
+    const set = await (await fetch(`${API_REST}/sets/${encodeURIComponent(setId)}`)).json();
+    const have = new Set(cards.map((c) => c.id));
+    let added = 0;
+    for (const brief of set.cards) {
+      if (have.has(brief.id)) continue;
+      const res = await fetch(`${API_REST}/cards/${encodeURIComponent(brief.id)}`);
+      if (!res.ok) continue;
+      const c = await res.json();
+      cards.push({ ...c, regulationMark: c.regulationMark ?? 'J', legalOverride: true });
+      added++;
+    }
+    console.log(`  set ${setId} (sem marca na API): ${added} cartas`);
+  }
+
   // Energias básicas não têm marca de regulamento e são sempre legais.
   const energy = { cards: [] };
   for (const n of ["Grass","Fire","Water","Lightning","Psychic","Fighting","Darkness","Metal"]) {
@@ -98,7 +114,7 @@ async function main() {
   }
 
   // Conferência: marca de regulamento × flag legal da API
-  const mismatch = usable.filter((c) => c.regulationMark !== 'BASIC' && c.legal?.standard === false);
+  const mismatch = usable.filter((c) => c.regulationMark !== 'BASIC' && !c.legalOverride && c.legal?.standard === false);
   console.log(`Conferência: ${mismatch.length} cartas com marca legal mas flag da API = false`);
   if (mismatch.length) console.log('  exemplos:', mismatch.slice(0, 5).map((c) => c.id).join(', '));
 

@@ -51,4 +51,4 @@ const server = createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => console.log(`Tech Finder rodando em http://localhost:${PORT}  (base: ${db.unique.length} cartas, marcas ${db.marks.join(', ')})`));
+server.listen(PORT, () => console.log(`PokeMatch rodando em http://localhost:${PORT}  (base: ${db.unique.length} cartas, marcas ${db.marks.join(', ')})`));

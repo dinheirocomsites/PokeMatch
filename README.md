@@ -1,4 +1,6 @@
-# Tech Finder TCG ⚡
+# PokeMatch ⚡
+
+**Site:** https://dinheirocomsites.github.io/PokeMatch/
 
 Cole a sua lista de Pokémon TCG e a lista do deck que você quer vencer: a ferramenta lê
 **todas as cartas legais no Standard** (marca H em diante) e sugere as tech cards que viram o matchup,

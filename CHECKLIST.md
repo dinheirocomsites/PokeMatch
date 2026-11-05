@@ -1,4 +1,4 @@
-# Tech Finder TCG — Checklist
+# PokeMatch — Checklist
 
 Legenda: [x] feito · [~] em andamento · [ ] a fazer
 

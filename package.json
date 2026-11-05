@@ -1,5 +1,5 @@
 {
-  "name": "tech-finder-tcg",
+  "name": "pokematch",
   "version": "0.1.0",
   "description": "Sugere tech cards para o seu deck de Pok\u00e9mon TCG contra um deck espec\u00edfico",
   "type": "module",

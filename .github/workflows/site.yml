@@ -1,4 +1,4 @@
-# Publica o Tech Finder no GitHub Pages.
+# Publica o PokeMatch no GitHub Pages.
 # - A cada push na main: roda os testes, gera o site estático e publica.
 # - Todo dia às 06:17 (UTC): baixa as cartas atualizadas do TCGdex e republica.
 name: Site
@@ -35,7 +35,7 @@ jobs:
       - name: Salva a base atualizada no repositório
         if: github.event_name != 'push'
         run: |
-          git config user.name "tech-finder-bot"
+          git config user.name "pokematch-bot"
           git config user.email "actions@users.noreply.github.com"
           git add data/cards.json
           git diff --cached --quiet || git commit -m "Atualiza base de cartas ($(date -u +%F))"

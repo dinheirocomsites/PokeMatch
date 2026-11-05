@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tech Finder TCG — ache a tech card certa para o seu matchup</title>
+<style>
+  :root {
+    --bg: #0b0d17; --panel: #141829; --panel2: #1b2036; --line: #2a3150; --text: #e9ecf7; --muted: #8f97b8;
+    --accent: #ffcb05; --accent2: #3d7dca; --good: #3ddc97; --warn: #ffb547; --bad: #ff5d73;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+  body::before { content: ""; position: fixed; inset: -50%; background: radial-gradient(circle at 30% 20%, #3d7dca33, transparent 40%), radial-gradient(circle at 75% 60%, #ffcb0522, transparent 40%), radial-gradient(circle at 50% 100%, #a855f733, transparent 45%); animation: drift 22s ease-in-out infinite alternate; z-index: -1; }
+  @keyframes drift { to { transform: translate(6%, -4%) rotate(8deg); } }
+  header { text-align: center; padding: 48px 20px 18px; }
+  .logo { font-size: clamp(34px, 6vw, 60px); font-weight: 900; letter-spacing: -1px; margin: 0; background: linear-gradient(90deg, var(--accent), #fff3b0, var(--accent2), #a855f7, var(--accent)); background-size: 300% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: shine 6s linear infinite; }
+  @keyframes shine { to { background-position: 300% 0; } }
+  .tagline { color: var(--muted); margin: 10px auto 0; max-width: 640px; font-size: 17px; }
+  main { max-width: 1200px; margin: 0 auto; padding: 0 20px 80px; }
+  .decks { display: grid; grid-template-columns: 1fr auto 1fr; gap: 18px; align-items: stretch; margin-top: 24px; }
+  .deck { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; }
+  .deck h2 { margin: 0 0 4px; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+  .deck p { margin: 0 0 10px; color: var(--muted); font-size: 13px; }
+  textarea { flex: 1; min-height: 300px; width: 100%; resize: vertical; background: #0e1122; color: var(--text); border: 1px solid var(--line); border-radius: 12px; padding: 12px; font: 13px/1.45 ui-monospace, Menlo, Consolas, monospace; }
+  textarea:focus { outline: 2px solid var(--accent2); border-color: transparent; }
+  .vs { align-self: center; font-weight: 900; font-size: 28px; color: var(--accent); text-shadow: 0 0 24px #ffcb0588; }
+  .status { font-size: 12px; margin-top: 8px; min-height: 16px; color: var(--muted); }
+  .status.err { color: var(--bad); } .status.ok { color: var(--good); }
+  .actions { display: flex; justify-content: center; gap: 12px; margin: 26px 0 8px; flex-wrap: wrap; }
+  button { cursor: pointer; border: 0; border-radius: 999px; font-weight: 800; font-size: 16px; padding: 14px 30px; }
+  .go { background: linear-gradient(135deg, var(--accent), #ff9f1c); color: #1a1300; box-shadow: 0 8px 30px #ffcb0555; transition: transform .15s, box-shadow .15s; }
+  .go:hover { transform: translateY(-2px) scale(1.03); box-shadow: 0 12px 40px #ffcb0588; }
+  .go:disabled { opacity: .6; transform: none; cursor: wait; }
+  .ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); font-weight: 600; font-size: 14px; padding: 12px 20px; }
+  .ghost:hover { color: var(--text); border-color: var(--muted); }
+
+  /* Pokébola girando enquanto analisa */
+  .loader { display: none; margin: 40px auto; width: 70px; height: 70px; border-radius: 50%; background: linear-gradient(#ff4d4d 0 46%, #111 46% 54%, #f4f4f4 54%); position: relative; animation: spin .9s cubic-bezier(.6,.1,.4,.9) infinite; box-shadow: 0 0 40px #ff4d4d55; }
+  .loader::after { content: ""; position: absolute; inset: 26px; border-radius: 50%; background: #f4f4f4; border: 5px solid #111; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { display: none; text-align: center; color: var(--muted); }
+
+  #results { display: none; margin-top: 30px; }
+  .section-title { font-size: 22px; margin: 34px 0 14px; display: flex; align-items: center; gap: 10px; }
+  .section-title small { color: var(--muted); font-weight: 500; font-size: 14px; }
+  .profile { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+  .box { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 16px; }
+  .box h3 { margin: 0 0 10px; font-size: 15px; color: var(--accent); }
+  .insight { padding: 6px 0; border-bottom: 1px dashed var(--line); font-size: 14px; }
+  .insight:last-child { border: 0; }
+  .bar { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: 13px; }
+  .bar span:first-child { width: 90px; color: var(--muted); }
+  .bar .track { flex: 1; height: 8px; background: #0e1122; border-radius: 99px; overflow: hidden; }
+  .bar .fill { height: 100%; background: linear-gradient(90deg, var(--accent2), #a855f7); width: 0; transition: width 1s ease; border-radius: 99px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { background: var(--panel2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; font-size: 12px; }
+
+  /* Cartas sugeridas */
+  .grid { display: grid; gap: 22px; }
+  .sug { display: grid; grid-template-columns: 230px 1fr; gap: 22px; background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 18px; position: relative; opacity: 0; transform: translateY(30px) scale(.98); }
+  .sug.show { animation: rise .6s cubic-bezier(.2,.9,.3,1.2) forwards; }
+  @keyframes rise { to { opacity: 1; transform: none; } }
+  .sug.top { border-color: #ffcb0588; box-shadow: 0 0 0 1px #ffcb0544, 0 20px 60px -20px #ffcb0566; }
+  .rank { position: absolute; top: -14px; left: -10px; background: var(--accent); color: #1a1300; font-weight: 900; border-radius: 12px; padding: 4px 12px; font-size: 15px; box-shadow: 0 6px 20px #0008; }
+  .cardwrap { perspective: 900px; }
+  .holo { position: relative; width: 100%; aspect-ratio: 63/88; border-radius: 12px; transform-style: preserve-3d; transition: transform .12s; will-change: transform; box-shadow: 0 18px 40px #000a; overflow: hidden; background: #222 center/cover; }
+  .holo img { width: 100%; height: 100%; display: block; object-fit: cover; }
+  .holo::after { content: ""; position: absolute; inset: 0; background: linear-gradient(115deg, transparent 20%, rgba(255,255,255,.0) 35%, rgba(255,255,255,.45) 45%, rgba(120,200,255,.35) 50%, rgba(255,120,220,.3) 55%, transparent 70%); background-size: 250% 250%; background-position: var(--px, 50%) var(--py, 50%); mix-blend-mode: color-dodge; opacity: .0; transition: opacity .2s; pointer-events: none; }
+  .holo:hover::after { opacity: 1; }
+  .holo .fallback { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 14px; font-weight: 800; background: linear-gradient(160deg, #2a3150, #141829); }
+  .sug h3 { margin: 0; font-size: 24px; }
+  .meta { color: var(--muted); font-size: 13px; margin: 2px 0 14px; }
+  .scores { display: flex; gap: 18px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+  .ring { --v: 0; width: 84px; height: 84px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(var(--c, var(--accent)) calc(var(--v) * 1%), #0e1122 0); position: relative; transition: --v 1.2s; }
+  .ring::before { content: ""; position: absolute; inset: 8px; background: var(--panel); border-radius: 50%; }
+  .ring b { position: relative; font-size: 24px; }
+  .ring-label { font-size: 11px; color: var(--muted); text-align: center; margin-top: 4px; text-transform: uppercase; letter-spacing: .08em; }
+  .mini { display: flex; flex-direction: column; gap: 6px; font-size: 13px; min-width: 240px; flex: 1; max-width: 360px; }
+  .mini .bar span:first-child { width: 70px; }
+  .reason { background: linear-gradient(90deg, #ffcb0514, transparent); border-left: 3px solid var(--accent); border-radius: 0 10px 10px 0; padding: 10px 12px; margin-bottom: 8px; font-size: 14.5px; line-height: 1.45; }
+  .reason.sec { border-left-color: var(--accent2); background: linear-gradient(90deg, #3d7dca14, transparent); font-size: 13.5px; }
+  .fit { list-style: none; padding: 0; margin: 10px 0; display: grid; gap: 4px; font-size: 13px; color: #c9cfe6; }
+  .cuts { margin-top: 10px; font-size: 13px; }
+  .cuts b { color: var(--warn); }
+  .cut { display: inline-block; background: #ff5d7314; border: 1px solid #ff5d7344; color: #ffc2cb; border-radius: 8px; padding: 3px 8px; margin: 3px 4px 0 0; }
+  .already .row { display: flex; gap: 12px; align-items: flex-start; padding: 8px 0; border-bottom: 1px dashed var(--line); font-size: 14px; }
+  .already img { width: 60px; border-radius: 6px; }
+  .disclaimer { color: var(--muted); font-size: 12px; text-align: center; margin-top: 40px; }
+  canvas#confetti { position: fixed; inset: 0; pointer-events: none; z-index: 50; }
+  @media (max-width: 820px) { .decks { grid-template-columns: 1fr; } .vs { justify-self: center; } .sug { grid-template-columns: 1fr; } .cardwrap { max-width: 240px; margin: 0 auto; } }
+</style>
+</head>
+<body>
+<canvas id="confetti"></canvas>
+<header>
+  <h1 class="logo">Tech Finder TCG</h1>
+  <p class="tagline">Cole a sua lista e a do deck que te amassa. A gente lê <b>cada carta do Standard</b> e encontra a tech que vira o matchup.</p>
+</header>
+<main>
+  <section class="decks">
+    <div class="deck">
+      <h2>🛡️ Seu deck</h2>
+      <p>Exporte do Pokémon TCG Live e cole aqui (60 cartas).</p>
+      <textarea id="mine" spellcheck="false" placeholder="Pokémon: 19&#10;3 Carvanha PFL 60&#10;3 Mega Sharpedo ex PFL 61&#10;..."></textarea>
+      <div class="status" id="mineStatus"></div>
+    </div>
+    <div class="vs">VS</div>
+    <div class="deck">
+      <h2>⚔️ Deck a analisar</h2>
+      <p>A lista do oponente que você quer vencer.</p>
+      <textarea id="opp" spellcheck="false" placeholder="Pokémon: 21&#10;4 Mega Kangaskhan ex MEG 104&#10;..."></textarea>
+      <div class="status" id="oppStatus"></div>
+    </div>
+  </section>
+  <div class="actions">
+    <button class="go" id="go">⚡ Encontrar tech cards</button>
+    <button class="ghost" id="example">Carregar exemplo: Mega Sharpedo ex × Basic Box</button>
+  </div>
+  <div class="loader" id="loader"></div>
+  <p class="loading-text" id="loadingText">Lendo habilidades e ataques de todas as cartas legais…</p>
+
+  <section id="results">
+    <h2 class="section-title">🔍 Raio-X do oponente</h2>
+    <div class="profile" id="profile"></div>
+
+    <div id="alreadyWrap">
+      <h2 class="section-title">✅ Você já tem <small>counters que já estão na sua lista</small></h2>
+      <div class="box already" id="already"></div>
+    </div>
+
+    <h2 class="section-title">🃏 Tech cards sugeridas <small>nota = impacto no matchup × encaixe no seu deck</small></h2>
+    <div class="grid" id="suggestions"></div>
+    <p class="disclaimer" id="disclaimer"></p>
+  </section>
+</main>
+<script>
+const $ = (s) => document.querySelector(s);
+const STAGE = { Basic: 'Básico', Stage1: 'Estágio 1', Stage2: 'Estágio 2' };
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const KEY = 'techfinder:v1';
+try { const saved = JSON.parse(localStorage.getItem(KEY) || '{}'); $('#mine').value = saved.mine || ''; $('#opp').value = saved.opp || ''; } catch {}
+
+$('#example').onclick = async () => {
+  const [a, b] = await Promise.all(['sharpedo.txt', 'basic-box.txt'].map((f) => fetch('/examples/' + f).then((r) => r.text())));
+  $('#mine').value = a; $('#opp').value = b;
+};
+
+$('#go').onclick = async () => {
+  const mine = $('#mine').value, opp = $('#opp').value;
+  localStorage.setItem(KEY, JSON.stringify({ mine, opp }));
+  $('#go').disabled = true; $('#results').style.display = 'none';
+  $('#loader').style.display = 'block'; $('#loadingText').style.display = 'block';
+  const started = Date.now();
+  try {
+    const res = await fetch('/api/analyze', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ mine, opp }) });
+    const data = await res.json();
+    await new Promise((r) => setTimeout(r, Math.max(0, 900 - (Date.now() - started)))); // suspense 😎
+    if (!res.ok) throw new Error(data.error);
+    render(data);
+  } catch (e) {
+    $('#oppStatus').className = 'status err'; $('#oppStatus').textContent = e.message;
+  } finally {
+    $('#go').disabled = false; $('#loader').style.display = 'none'; $('#loadingText').style.display = 'none';
+  }
+};
+
+function status(el, deck) {
+  if (deck.errors.length) { el.className = 'status err'; el.innerHTML = '⚠ ' + deck.errors.map(esc).join('<br>⚠ '); }
+  else { el.className = 'status ok'; el.textContent = `✓ ${deck.total} cartas, todas legais no Standard`; }
+}
+
+function bars(rows) {
+  return rows.map((r) => `<div class="bar"><span>${esc(r.label)}</span><div class="track"><div class="fill" data-w="${r.value}"></div></div><span>${r.value}%</span></div>`).join('');
+}
+
+function render(d) {
+  status($('#mineStatus'), d.me); status($('#oppStatus'), d.opp);
+  const c = d.opp.counts;
+  $('#profile').innerHTML = `
+    <div class="box"><h3>O que importa</h3>${d.insights.map((i) => `<div class="insight">${esc(i)}</div>`).join('') || '<div class="insight">Nada fora do comum.</div>'}</div>
+    <div class="box"><h3>Quem bate (poder de ataque)</h3>${bars(d.opp.topThreats.map((t) => ({ label: `${t.count}x ${t.name}`, value: t.share })))}</div>
+    <div class="box"><h3>Fraquezas (peso no ataque)</h3>${bars(d.opp.weakness.slice(0, 5).map((w) => ({ label: w.typePt, value: w.share })))}
+      <h3 style="margin-top:14px">Composição</h3><div class="chips">
+      ${[[c.basic, 'Básicos'], [c.ex, 'ex'], [c.mega, 'Mega'], [c.withAbility, 'c/ Habilidade'], [c.item, 'Itens'], [c.supporter, 'Supporters'], [c.tool, 'Ferramentas'], [c.stadium, 'Estádios'], [c.specialEnergy, 'En. Especial']].filter(([n]) => n).map(([n, l]) => `<span class="chip"><b>${n}</b> ${l}</span>`).join('')}
+      </div></div>`;
+
+  $('#alreadyWrap').style.display = d.already.length ? '' : 'none';
+  $('#already').innerHTML = d.already.map((a) => `<div class="row">${a.card.image ? `<img src="${a.card.image}" alt="" loading="lazy">` : ''}<div><b>${a.count}x ${esc(a.card.name)}</b><br>${a.reasons.map(esc).join('<br>')}</div></div>`).join('');
+
+  $('#suggestions').innerHTML = d.suggestions.map((s, i) => `
+    <article class="sug ${i < 3 ? 'top' : ''}">
+      <div class="rank">#${i + 1}</div>
+      <div class="cardwrap"><div class="holo">${s.card.image ? `<img src="${s.card.image}" alt="${esc(s.card.name)}" loading="lazy" onerror="this.remove()">` : ''}<div class="fallback" style="z-index:-1">${esc(s.card.name)}</div></div></div>
+      <div>
+        <h3>${esc(s.card.name)}</h3>
+        <div class="meta">${esc(s.card.setCode || '')} ${esc(s.card.localId || '')} · ${esc(s.card.category === 'Pokemon' ? `${STAGE[s.card.stage] || s.card.stage} · ${s.card.hp} HP` : s.card.trainerType || s.card.category)}${s.slots > 1 ? ` · ocupa ${s.slots} slots` : ''}</div>
+        <div class="scores">
+          <div><div class="ring" data-v="${s.score}"><b>${s.score}</b></div><div class="ring-label">Nota</div></div>
+          <div class="mini">${bars([{ label: 'Impacto', value: s.impact }, { label: 'Encaixe', value: s.fit }])}</div>
+        </div>
+        ${s.reasons.slice(0, 3).map((r, j) => `<div class="reason ${j ? 'sec' : ''}">${j ? '' : '★ '}${esc(r.why)}</div>`).join('')}
+        <ul class="fit">${s.fitNotes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>
+        ${s.cuts.length ? `<div class="cuts"><b>Para abrir espaço (${s.slots} slot${s.slots > 1 ? 's' : ''}):</b><br>${s.cuts.map((x) => `<span class="cut" title="${esc(x.why)}">−1 ${esc(x.name)}</span>`).join('')}</div>` : ''}
+      </div>
+    </article>`).join('') || '<div class="box">Nenhuma tech forte encontrada para esse matchup.</div>';
+
+  $('#disclaimer').textContent = `Base: cartas com marca de regulamento ${d.db.marks[0]} em diante · atualizada em ${new Date(d.db.syncedAt).toLocaleDateString('pt-BR')} · Dados: TCGdex. Sugestões são um ponto de partida — teste antes do torneio!`;
+
+  $('#results').style.display = 'block';
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.fill').forEach((f) => (f.style.width = f.dataset.w + '%'));
+    document.querySelectorAll('.sug').forEach((el, i) => setTimeout(() => el.classList.add('show'), 150 + i * 140));
+    document.querySelectorAll('.ring').forEach((r) => animateRing(r, +r.dataset.v));
+    $('#results').scrollIntoView({ behavior: 'smooth' });
+  });
+  if (d.suggestions[0]?.score >= 40) setTimeout(confetti, 450);
+  attachHolo();
+}
+
+function animateRing(el, target) {
+  const color = target >= 40 ? 'var(--good)' : target >= 25 ? 'var(--accent)' : 'var(--warn)';
+  el.style.setProperty('--c', color);
+  const t0 = performance.now();
+  const step = (t) => { const p = Math.min(1, (t - t0) / 1100); const v = Math.round(target * (1 - Math.pow(1 - p, 3))); el.style.setProperty('--v', v); el.querySelector('b').textContent = v; if (p < 1) requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+}
+
+// Efeito de carta holográfica: inclina e brilha seguindo o mouse
+function attachHolo() {
+  document.querySelectorAll('.holo').forEach((card) => {
+    card.onmousemove = (e) => {
+      const r = card.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+      card.style.transform = `rotateY(${(x - 0.5) * 22}deg) rotateX(${(0.5 - y) * 22}deg) scale(1.04)`;
+      card.style.setProperty('--px', `${x * 100}%`); card.style.setProperty('--py', `${y * 100}%`);
+    };
+    card.onmouseleave = () => { card.style.transform = ''; };
+  });
+}
+
+// Confete com as cores do Pokémon
+function confetti() {
+  const cv = $('#confetti'), ctx = cv.getContext('2d');
+  cv.width = innerWidth; cv.height = innerHeight;
+  const colors = ['#ffcb05', '#3d7dca', '#ff4d4d', '#ffffff', '#a855f7', '#3ddc97'];
+  const ps = Array.from({ length: 160 }, () => ({ x: innerWidth / 2, y: innerHeight / 3, vx: (Math.random() - 0.5) * 16, vy: Math.random() * -14 - 4, s: Math.random() * 7 + 4, c: colors[(Math.random() * colors.length) | 0], r: Math.random() * 6, vr: (Math.random() - 0.5) * 0.3 }));
+  let frames = 0;
+  (function tick() {
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    for (const p of ps) { p.vy += 0.35; p.vx *= 0.99; p.x += p.vx; p.y += p.vy; p.r += p.vr; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillStyle = p.c; ctx.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2); ctx.restore(); }
+    if (++frames < 160) requestAnimationFrame(tick); else ctx.clearRect(0, 0, cv.width, cv.height);
+  })();
+}
+</script>
+</body>
+</html>

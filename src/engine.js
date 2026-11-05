@@ -3,7 +3,7 @@
 import { extractTags, matches, selectorPt, typePt, maxDamage, attackDamage } from './tags.js';
 import { profileDeck } from './profile.js';
 import { parseDeck } from './parser.js';
-import { evaluateFit, deadInMatchup } from './fit.js';
+import { evaluateFit, deadInMatchup, potentialDamage } from './fit.js';
 import { buildOptions } from './synergy.js';
 import { simulateRace, planText, parseDenial } from './prizes.js';
 import { readContext, clusterOf, CLUSTERS } from './context.js';
@@ -56,6 +56,7 @@ function tagValue(t, opp, me, ctx) {
       if (cov < 0.25) return null;
       const base = t.kind === 'WALL_SELF' ? 75 : 40;
       return {
+        covered, source: t.source,
         value: base * cov * condFactor * nextTurn,
         why: `${t.source === 'ability' ? `Habilidade "${t.name}"` : t.source === 'attack' ? `Ataque "${t.name}"` : `"${t.name}"`}: ${t.source === 'attack' ? 'no turno seguinte, ' : ''}previne todo dano de ataques de ${selectorPt(t.sel)}. Cobre ${pct(cov)} do poder de ataque do oponente (${names(covered)}).${uncovered.length ? ` Não cobre: ${names(uncovered, 3)}.` : ''}`,
       };
@@ -75,8 +76,10 @@ function tagValue(t, opp, me, ctx) {
       const myTotal = mine.reduce((s, e) => s + e.threat, 0) || 1;
       const protectedShare = t.protects === 'noRuleBox' ? mine.filter((e) => !e.card.isRuleBox).reduce((s, e) => s + e.threat, 0) / myTotal : t.protects === 'future' ? 0.1 : 1;
       if (protectedShare < 0.15) return null;
+      const protectsMain = me.mainAttacker && (t.protects === 'team' || (t.protects === 'noRuleBox' && !me.mainAttacker.isRuleBox));
       return {
-        value: 65 * cov * protectedShare * condFactor * nextTurn,
+        covered: protectsMain ? covered : [], source: t.source,
+        value: 65 * cov * protectedShare * condFactor * nextTurn * (protectsMain ? 1 : 0.35),
         why: `"${t.name}": previne dano de ${selectorPt(t.sel)} (${names(covered)}) nos seus Pokémon ${t.protects === 'noRuleBox' ? 'sem Rule Box' : ''} — protege ${pct(protectedShare)} do seu poder de ataque.`,
       };
     }
@@ -237,7 +240,7 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
       if (opt?.damage?.kos.length) {
         const d = opt.damage;
         const parts = [`${d.base} ("${d.attack.name}")`, d.boost ? `+${d.boost} (combo)` : '', d.passive ? `+${d.passive} (dano passivo)` : ''].filter(Boolean).join(' ');
-        reasons.push({ kind: 'COMBO_DMG', value: 30 * d.koShare, why: `Dano no SEU deck: ${parts} = ${d.total} → nocauteia em 1 ataque: ${d.kos.join(', ')}.` });
+        reasons.push({ kind: 'COMBO_DMG', koNames: d.kos.map((k) => k.replace(' (fraqueza!)', '')), value: 30 * d.koShare, why: `Dano no SEU deck: ${parts} = ${d.total} → nocauteia em 1 ataque: ${d.kos.join(', ')}.` });
       }
       for (const u of opt?.unlocks ?? []) reasons.push({ kind: 'UNLOCK', value: 6, why: `A energia nova também libera "${u.attack}" do seu ${u.name}.` });
       reasons.sort((a, b) => b.value - a.value);
@@ -271,7 +274,8 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
     const parts = [];
     if (rn && naive && outcome(rn.best) > naiveScore) parts.push(`jogando só com ${me.mainAttacker.name}: ${describe(naive.best)} → ${describe(rn.best)}`);
     if (outcome(r.best) > baseScore) parts.push(`na melhor ordem: ${describe(baseRace.best)} → ${describe(r.best)}`);
-    return { kind: 'PRIZE_RACE', value: clamp(delta * 0.8, 0, 45), why: `Simulação da corrida de prêmios ${how} — ${parts.join('; ') || 'melhora a margem'}.` };
+    const flip = (rn && naive && !naive.best.win && rn.best.win) || (!baseRace.best.win && r.best.win);
+    return { kind: 'PRIZE_RACE', flip, value: clamp(delta * 0.8, 0, 45), why: `Simulação da corrida de prêmios ${how} — ${parts.join('; ') || 'melhora a margem'}.` };
   };
   // (a) cartas que reduzem prêmios
   for (const card of db.unique) {
@@ -305,6 +309,37 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
     c.race = { plan: planText(r.best), result: describe(r.best) };
   }
 
+  // ---------- Diagnóstico: por que este deck perde este matchup? ----------
+  const main = me.mainAttacker;
+  const killers = [];
+  if (main) {
+    const hurt = /if this pok[eé]mon has any damage counters/i.test(main.text) ? 20 : 0;
+    for (const e of opp.threat) {
+      if (e.feas < 0.3) continue;
+      const weak = (main.weaknesses ?? []).some((w) => (e.card.types ?? []).includes(w.type));
+      const dmg = Math.max(0, ...(e.card.attacks ?? []).map((a) => potentialDamage(a, opp) * (weak ? 2 : 1)));
+      if (dmg >= main.hp - hurt) killers.push({ name: e.card.name, dmg: Math.round(dmg), weak, prize: e.card.prizeValue });
+    }
+  }
+  const killerNames = killers.map((k) => k.name);
+  const diagnosis = [];
+  if (killers.length) diagnosis.push(`${killers.map((k) => k.name).join(' e ')} nocauteiam ${main.name} (${main.hp} HP) em 1 ataque${killers.some((k) => k.weak) ? ` — fraqueza a ${typePt(main.weaknesses[0].type)}` : ''}.`);
+  if (killers.length && main.prizeValue > Math.min(...killers.map((k) => k.prize))) diagnosis.push(`Troca desfavorável: você entrega ${main.prizeValue} prêmios por ${main.name} e pega ${Math.min(...killers.map((k) => k.prize))} ao nocautear ${killers.length > 1 ? 'eles' : 'ele'}.`);
+  if (naive) diagnosis.push(`Jogando só com ${main.name}: ${describe(naive.best)}.${baseRace.best.win && !naive.best.win ? ` Com a melhor ordem da sua lista dá para virar (${describe(baseRace.best)}) — a tech certa deve deixar isso mais seguro.` : ''}`);
+  if (me.board?.benchNeeded >= 5) diagnosis.push(`Seu banco já fica cheio no plano normal (${me.board.pieces.join(', ')} + ${me.board.backup} de reserva): techs que ocupam banco custam caro.`);
+
+  // Uma tech só é RELEVANTE se resolve o diagnóstico
+  const relevanceOf = (c) => {
+    for (const r of c.reasons) {
+      // Melhorar só a margem não basta para quem pesa no banco/lista; virar derrota em vitória sim
+      if (r.kind === 'PRIZE_RACE' && r.value >= 8 && (r.flip || (c.parts?.peso ?? 100) >= 70)) return r.flip ? 'vira a corrida de prêmios (derrota → vitória) na simulação' : 'melhora a corrida de prêmios na simulação';
+      if (r.kind === 'PRIZE_DENIAL') return 'reduz os prêmios que você entrega';
+      if (['WALL_SELF', 'WALL_CHOSEN', 'WALL_TEAM'].includes(r.kind) && killerNames.length && killerNames.every((k) => r.covered?.includes(k))) return `bloqueia ${killerNames.join(' e ')}`;
+      if (r.kind === 'COMBO_DMG' && main && (c.parts?.peso ?? 100) >= 70 && c.card.prizeValue < main.prizeValue && r.koNames?.some((k) => killerNames.includes(k))) return `nocauteia ${r.koNames.filter((k) => killerNames.includes(k)).join('/')} entregando menos prêmios`;
+    }
+    return null;
+  };
+
   // ---------- Contexto do jogador ----------
   const ctxRead = readContext(context, me, opp, db);
   for (const c of candidates) {
@@ -316,6 +351,8 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
     if (ctxRead.mentions.opp.some((n) => c.reasons.some((r) => r.why.includes(n)))) w *= 1.12;
     c.score = Math.round(c.score * w);
     c.boosted = w > 1;
+    c.relevance = relevanceOf(c);
+    if (!c.relevance && ctxRead.weights[c.cluster] && c.cluster === 'disrupcao') c.relevance = 'você pediu disrupção';
   }
 
   // Uma entrada por nome (a melhor versão)
@@ -325,7 +362,9 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
   for (let i = 0; i < candidates.length; i++) { if (seenName.has(candidates[i].card.name)) { candidates.splice(i, 1); i--; } else seenName.add(candidates[i].card.name); }
   candidates.sort((a, b) => b.score - a.score);
   // Uma carta por "família" de motivo principal dominante não é necessário; mantemos variedade simples
-  const top = candidates.slice(0, limit);
+  const relevantList = candidates.filter((c) => c.relevance && c.score >= 20);
+  const others = candidates.filter((c) => !relevantList.includes(c)).slice(0, 6).map((c) => ({ name: c.card.name, score: c.score, why: c.reasons[0]?.why ?? '', missing: 'não resolve o problema principal deste matchup' }));
+  const top = relevantList.slice(0, limit);
   for (const s of top) {
     const { plan, alternatives } = suggestCuts(me, opp, s.slots);
     const adds = s.pkg ? s.pkg.adds.map((a) => `+${a.qty} ${a.card?.name}${a.card?.setCode && a.role !== 'energia habilitadora' ? ` (${a.card.setCode} ${parseInt(a.card.localId, 10)})` : ''}`) : [`+1 ${s.card.name}`];
@@ -342,7 +381,7 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
   const locked = [...ctx.lockedByMe].map(([oppCard, by]) => ({ oppCard, by }));
 
   const clusters = Object.entries(CLUSTERS).map(([key, c]) => {
-    const items = candidates.filter((x) => (key === 'acespec' ? x.card.aceSpec : x.cluster === key)).slice(0, 4);
+    const items = top.filter((x) => (key === 'acespec' ? x.card.aceSpec : x.cluster === key) && x.score >= 20).slice(0, 4);
     return { key, ...c, weight: ctxRead.weights[key] ?? 1, items: items.map((x) => ({ name: x.card.name, score: x.score, image: x.card.image, id: x.card.id })) };
   }).filter((c) => c.items.length).sort((a, b) => b.weight - a.weight || b.items[0].score - a.items[0].score);
   const race = {
@@ -353,6 +392,9 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
   };
 
   return {
+    diagnosis,
+    killers,
+    others,
     context: ctxRead,
     clusters,
     race,

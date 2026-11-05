@@ -131,6 +131,14 @@
   details.cplan { margin-top: 10px; background: #0e1122; border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; }
   details.cplan summary { cursor: pointer; font-size: 13px; font-weight: 700; color: var(--accent); }
   @media (max-width: 820px) { .race { grid-template-columns: 1fr; } }
+  .diag { background: linear-gradient(135deg, #ff5d7318, #ffcb0510); border: 1px solid #ff5d7355; border-radius: 16px; padding: 14px 18px; }
+  .diag h3 { margin: 0 0 8px; color: #ffb3bf; font-size: 15px; }
+  .diag li { margin: 4px 0; font-size: 14.5px; }
+  .why-rel { display: inline-block; margin: 2px 0 10px; font-size: 13px; color: var(--good); background: #3ddc9714; border: 1px solid #3ddc9744; border-radius: 8px; padding: 3px 10px; }
+  details.others { margin-top: 24px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 10px 16px; color: var(--muted); font-size: 13.5px; }
+  details.others summary { cursor: pointer; font-weight: 700; color: var(--text); }
+  details.others li { margin: 6px 0; }
+  .ph { display: grid; place-items: center; text-align: center; font-weight: 800; color: #fff; border-radius: 6px; padding: 4px; line-height: 1.1; text-shadow: 0 1px 3px #0009; background: linear-gradient(160deg, var(--c1, #3d7dca), var(--c2, #1b2036)); border: 2px solid #ffcb0566; }
   .already .row { display: flex; gap: 12px; align-items: flex-start; padding: 8px 0; border-bottom: 1px dashed var(--line); font-size: 14px; }
   .already img { width: 60px; border-radius: 6px; }
   .disclaimer { color: var(--muted); font-size: 12px; text-align: center; margin-top: 40px; }
@@ -178,6 +186,9 @@
 
     <div id="understood"></div>
 
+    <h2 class="section-title">🩺 Diagnóstico <small>por que o seu deck perde este matchup</small></h2>
+    <div class="diag" id="diag"></div>
+
     <h2 class="section-title">🧭 Caminhos para virar o matchup <small>agrupados pelo tipo de solução</small></h2>
     <div class="clusters" id="clusters"></div>
 
@@ -192,6 +203,7 @@
 
     <h2 class="section-title">🃏 Tech cards sugeridas <small>nota = impacto × recursos × peso × sinergia × risco (× peso da sua dor)</small></h2>
     <div class="grid" id="suggestions"></div>
+    <details class="others" id="othersWrap"><summary>Cartas que analisamos e descartamos</summary><ul id="others"></ul></details>
     <p class="disclaimer" id="disclaimer"></p>
   </section>
 </main>
@@ -203,20 +215,19 @@ const KEY = 'techfinder:v1';
 try { const saved = JSON.parse(localStorage.getItem(KEY) || '{}'); $('#mine').value = saved.mine || ''; $('#opp').value = saved.opp || ''; $('#ctx').value = saved.context || ''; } catch {}
 
 $('#example').onclick = async () => {
-  const [a, b] = await Promise.all(['sharpedo.txt', 'basic-box.txt'].map((f) => fetch('/examples/' + f).then((r) => r.text())));
+  const [a, b] = await Promise.all(['sharpedo.txt', 'basic-box.txt'].map((f) => fetch('examples/' + f).then((r) => r.text())));
   $('#mine').value = a; $('#opp').value = b;
   $('#ctx').value = 'Meu problema é a corrida de prêmios: morro em um hit para Ogerpon ou Folhas Férreas e entrego 3 prêmios de uma vez, enquanto quando eu mato pego só 2. Assim a conta não fecha.';
 };
 
 $('#go').onclick = async () => {
   const mine = $('#mine').value, opp = $('#opp').value, context = $('#ctx').value;
-  localStorage.setItem(KEY, JSON.stringify({ mine, opp, context }));
+  try { localStorage.setItem(KEY, JSON.stringify({ mine, opp, context })); } catch {}
   $('#go').disabled = true; $('#results').style.display = 'none';
   $('#loader').style.display = 'block'; $('#loadingText').style.display = 'block';
   const started = Date.now();
   try {
-    const res = await fetch('/api/analyze', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ mine, opp, context }) });
-    const data = await res.json();
+    const { res, data } = await runAnalysis({ mine, opp, context });
     await new Promise((r) => setTimeout(r, Math.max(0, 900 - (Date.now() - started)))); // suspense 😎
     if (!res.ok) throw new Error(data.error);
     render(data);
@@ -226,6 +237,40 @@ $('#go').onclick = async () => {
     $('#go').disabled = false; $('#loader').style.display = 'none'; $('#loadingText').style.display = 'none';
   }
 };
+
+// Se a imagem da carta não carregar (ex.: página publicada sem acesso a imagens externas),
+// troca por um "card" com o nome e a cor do tipo.
+const TYPE_COLORS = { Grass: ['#3a9d4a', '#16351c'], Fire: ['#e0573a', '#3a160e'], Water: ['#3d7dca', '#0f2440'], Lightning: ['#e8c22c', '#3b300a'], Psychic: ['#a855f7', '#2a1240'], Fighting: ['#c0703a', '#36200f'], Darkness: ['#4a5170', '#12141f'], Metal: ['#8d99ae', '#23262e'], Dragon: ['#b08d2a', '#2e240a'], Colorless: ['#a7a9b3', '#2a2b31'] };
+document.addEventListener('error', (e) => {
+  const img = e.target;
+  if (img.tagName !== 'IMG' || img.dataset.ph) return;
+  img.dataset.ph = 1;
+  const ph = document.createElement('div');
+  ph.className = 'ph';
+  const [c1, c2] = TYPE_COLORS[img.dataset.type] || ['#ffcb05', '#3a2f05'];
+  ph.style.cssText = `--c1:${c1};--c2:${c2};width:${img.width || img.clientWidth || 70}px;height:${Math.round((img.width || img.clientWidth || 70) * 1.4)}px;font-size:${(img.width || 70) > 120 ? 22 : 9}px`;
+  ph.textContent = img.alt || '';
+  img.replaceWith(ph);
+}, true);
+
+// Roda no servidor (npm start) ou direto no navegador (versão estática publicada)
+let localEngine = null;
+async function runAnalysis(payload) {
+  if (!window.TF_STATIC) {
+    const res = await fetch('/api/analyze', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) });
+    return { res, data: await res.json() };
+  }
+  if (!localEngine) {
+    $('#loadingText').textContent = 'Carregando as 3.000+ cartas do Standard (só na primeira vez)…';
+    const [core, eng, ser, raw] = await Promise.all([import('./src/db-core.js'), import('./src/engine.js'), import('./src/serialize.js'), fetch('data/cards.json').then((r) => r.json())]);
+    localEngine = { db: core.buildDb(raw), analyze: eng.analyze, toJson: ser.toJson };
+    $('#loadingText').textContent = 'Lendo habilidades e ataques de todas as cartas legais…';
+  }
+  if (!payload.mine.trim() || !payload.opp.trim()) return { res: { ok: false }, data: { error: 'Cole as duas listas.' } };
+  await new Promise((r) => setTimeout(r, 30)); // deixa a Pokébola girar antes do cálculo
+  const r = localEngine.analyze(payload.mine, payload.opp, localEngine.db, { limit: 8, context: payload.context.slice(0, 2000) });
+  return { res: { ok: true }, data: localEngine.toJson(r, localEngine.db) };
+}
 
 function status(el, deck) {
   if (deck.errors.length) { el.className = 'status err'; el.innerHTML = '⚠ ' + deck.errors.map(esc).join('<br>⚠ '); }
@@ -247,8 +292,11 @@ function render(d) {
       ${[[c.basic, 'Básicos'], [c.ex, 'ex'], [c.mega, 'Mega'], [c.withAbility, 'c/ Habilidade'], [c.item, 'Itens'], [c.supporter, 'Supporters'], [c.tool, 'Ferramentas'], [c.stadium, 'Estádios'], [c.specialEnergy, 'En. Especial']].filter(([n]) => n).map(([n, l]) => `<span class="chip"><b>${n}</b> ${l}</span>`).join('')}
       </div></div>`;
 
+  $('#diag').innerHTML = `<ul style="margin:0;padding-left:18px">${(d.diagnosis || []).map((x) => `<li>${esc(x)}</li>`).join('')}</ul>`;
+  $('#others').innerHTML = (d.others || []).map((o) => `<li><b>${esc(o.name)}</b> — ${esc(o.missing)}. <i>${esc(o.why)}</i></li>`).join('');
+  $('#othersWrap').style.display = d.others?.length ? '' : 'none';
   $('#understood').innerHTML = d.context && !d.context.empty ? `<div class="understood">🧠 <b>Entendi:</b> ${d.context.summary.map(esc).join(' ')}</div>` : '';
-  $('#clusters').innerHTML = d.clusters.map((c) => `<div class="cl ${c.weight > 1 ? 'hot' : ''}"><h3>${c.icon} ${esc(c.title)}</h3><p>${esc(c.desc)}</p>${c.items.map((it) => `<div class="it" data-go="${esc(it.name)}">${it.image ? `<img src="${it.image}/low.webp" alt="" loading="lazy">` : ''}<span>${esc(it.name)}</span><span class="sc">${it.score}</span></div>`).join('')}</div>`).join('');
+  $('#clusters').innerHTML = d.clusters.map((c) => `<div class="cl ${c.weight > 1 ? 'hot' : ''}"><h3>${c.icon} ${esc(c.title)}</h3><p>${esc(c.desc)}</p>${c.items.map((it) => `<div class="it" data-go="${esc(it.name)}">${it.image ? `<img src="${it.image}/low.webp" alt="${esc(it.name)}" width="34">` : ''}<span>${esc(it.name)}</span><span class="sc">${it.score}</span></div>`).join('')}</div>`).join('');
   const tl = (plan) => `<div class="tl">${plan.map((t) => `<div class="t" data-n="${t.turn}"><div class="me">${esc(t.mine)}</div><div class="op">${esc(t.theirs)}</div></div>`).join('')}</div>`;
   const res = (p) => `<span class="res ${p.win ? 'win' : 'loss'}">${esc(p.result)}</span>`;
   $('#race').innerHTML = d.race.naive ? `
@@ -258,21 +306,22 @@ function render(d) {
   document.querySelectorAll('[data-go]').forEach((el) => (el.onclick = () => document.querySelector(`[data-card="${CSS.escape(el.dataset.go)}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })));
 
   $('#alreadyWrap').style.display = d.already.length ? '' : 'none';
-  $('#already').innerHTML = d.already.map((a) => `<div class="row">${a.card.image ? `<img src="${a.card.image}" alt="" loading="lazy">` : ''}<div><b>${a.count}x ${esc(a.card.name)}</b><br>${a.reasons.map(esc).join('<br>')}</div></div>`).join('');
+  $('#already').innerHTML = d.already.map((a) => `<div class="row">${a.card.image ? `<img src="${a.card.image}" alt="${esc(a.card.name)}" width="60">` : ''}<div><b>${a.count}x ${esc(a.card.name)}</b><br>${a.reasons.map(esc).join('<br>')}</div></div>`).join('');
 
   const ENERGY_SYM = { 'Psychic Energy': 'P', 'Water Energy': 'W', 'Fire Energy': 'R', 'Grass Energy': 'G', 'Lightning Energy': 'L', 'Fighting Energy': 'F', 'Darkness Energy': 'D', 'Metal Energy': 'M' };
   const CLUSTER_ICON = { premios: '🏁', protecao: '🛡️', disrupcao: '🚫', dano: '💥' };
   const CLUSTER_NAME = { premios: 'Corrida de prêmios', protecao: 'Muralha', disrupcao: 'Disrupção', dano: 'Dano' };
   const CRIT = { recursos: '🔋 Recursos', peso: '⚖️ Peso', sinergia: '🔗 Sinergia', risco: '🎯 Risco' };
-  const pkgHtml = (s) => !s.pkg || s.pkg.adds.length < 2 ? '' : `<div class="pkg"><span class="label">Pacote:</span>${s.pkg.adds.map((a, j) => `${j ? '<span class="plus">+</span>' : ''}<div class="item">${ENERGY_SYM[a.card?.name] ? `<div class="en">{${ENERGY_SYM[a.card.name]}}</div>` : a.card?.image ? `<img src="${a.card.image.replace('/high.webp', '/low.webp')}" alt="" loading="lazy">` : ''}<span>${a.qty}x ${esc(a.card?.name)}${a.card?.setCode && !ENERGY_SYM[a.card.name] ? ` <br>${esc(a.card.setCode)} ${parseInt(a.card.localId, 10)}` : ''}<br><i>${esc(a.role)}</i></span></div>`).join('')}</div>`;
+  const pkgHtml = (s) => !s.pkg || s.pkg.adds.length < 2 ? '' : `<div class="pkg"><span class="label">Pacote:</span>${s.pkg.adds.map((a, j) => `${j ? '<span class="plus">+</span>' : ''}<div class="item">${ENERGY_SYM[a.card?.name] ? `<div class="en">{${ENERGY_SYM[a.card.name]}}</div>` : a.card?.image ? `<img src="${a.card.image.replace('/high.webp', '/low.webp')}" alt="${esc(a.card.name)}" data-type="${esc(a.card.types?.[0] || '')}" width="70">` : ''}<span>${a.qty}x ${esc(a.card?.name)}${a.card?.setCode && !ENERGY_SYM[a.card.name] ? ` <br>${esc(a.card.setCode)} ${parseInt(a.card.localId, 10)}` : ''}<br><i>${esc(a.role)}</i></span></div>`).join('')}</div>`;
   const dmgHtml = (s) => { const d = s.pkg?.damage; if (!d || !d.kos.length) return ''; return `<div class="dmg"><div class="eq">${d.base}${d.boost ? ` + ${d.boost}` : ''}${d.passive ? ` + ${d.passive}` : ''} = <b>${d.total}</b> de dano</div><div>"${esc(d.attack)}"${d.boost ? ' + combo' : ''}${d.passive ? ' + dano passivo' : ''} → nocauteia em 1 ataque: ${d.kos.map(esc).join(', ')}</div></div>`; };
   const swapHtml = (s) => !s.swap ? '' : `<div class="swap"><b style="color:var(--warn)">Troca sugerida:</b> ${s.swap.out.map((x) => `<span class="cut" title="${esc(x.why)}">−${x.qty} ${esc(x.name)}</span>`).join('')}<span class="arrow">→</span>${s.swap.in.map((x) => `<span class="in">${esc(x)}</span>`).join('')}</div>${s.swap.out.length ? `<div style="font-size:12px;color:var(--muted);margin-top:4px">${s.swap.out.map((x) => `${esc(x.name)}: ${esc(x.why)}`).join(' · ')}</div>` : ''}`;
   $('#suggestions').innerHTML = d.suggestions.map((s, i) => `
     <article class="sug ${i < 3 ? 'top' : ''}" data-card="${esc(s.card.name)}">
       <div class="rank">#${i + 1}</div>
-      <div class="cardwrap"><div class="holo">${s.card.image ? `<img src="${s.card.image}" alt="${esc(s.card.name)}" loading="lazy" onerror="this.remove()">` : ''}<div class="fallback" style="z-index:-1">${esc(s.card.name)}</div></div></div>
+      <div class="cardwrap"><div class="holo">${s.card.image ? `<img src="${s.card.image}" alt="${esc(s.card.name)}" data-type="${esc(s.card.types?.[0] || '')}" style="width:100%;height:100%">` : ''}<div class="fallback" style="z-index:-1">${esc(s.card.name)}</div></div></div>
       <div>
         <h3>${esc(s.card.name)}${s.cluster ? `<span class="badge ${s.boosted ? 'up' : ''}">${CLUSTER_ICON[s.cluster] || ''} ${esc(CLUSTER_NAME[s.cluster] || '')}${s.boosted ? ' · ↑ sua dor' : ''}</span>` : ''}</h3>
+        ${s.relevance ? `<div class="why-rel">✔ Por que resolve: ${esc(s.relevance)}</div>` : ''}
         <div class="meta">${esc(s.card.setCode || '')} ${esc(s.card.localId || '')} · ${esc(s.card.category === 'Pokemon' ? `${STAGE[s.card.stage] || s.card.stage} · ${s.card.hp} HP` : s.card.trainerType || s.card.category)} · ${s.slots} slot${s.slots > 1 ? 's' : ''}</div>
         <div class="scores">
           <div><div class="ring" data-v="${s.score}"><b>${s.score}</b></div><div class="ring-label">Nota</div></div>

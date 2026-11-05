@@ -73,7 +73,13 @@ export function profileDeck(parsed) {
     rareCandy: has(/^Rare Candy$/),
   };
 
+  // Quem fica no banco durante o jogo: Pokémon de habilidade que funciona no banco + reserva do atacante principal
+  const benchEngine = pokemon.filter((e) => e.card !== mainAttacker && (e.card.abilities ?? []).some((a) => !/in the active spot|when you play this pok[eé]mon from your hand/i.test(a.effect ?? ''))).map((e) => e.card.name);
+  const backup = mainAttacker?.evolveFrom ?? (mainAttacker ? mainAttacker.name : null);
+  const board = { pieces: [...new Set(benchEngine)], backup, benchNeeded: new Set(benchEngine).size + (backup ? 1 : 0) };
+
   return {
+    board,
     total: parsed.total,
     counts: {
       pokemon: sum(pokemon), trainer: sum(trainers), energy: sum(energy),

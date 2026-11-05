@@ -5,7 +5,7 @@
 //   4 Ultra Ball MEG 131
 //   Energy: 12
 //   8 Basic {D} Energy SVE 7
-import { normName, BASIC_ENERGY } from './db.js';
+import { normName, BASIC_ENERGY } from './db-core.js';
 
 const ENERGY_SYMBOL = { G: 'Grass', R: 'Fire', W: 'Water', L: 'Lightning', P: 'Psychic', F: 'Fighting', D: 'Darkness', M: 'Metal' };
 // Códigos usados pelo Live que diferem da abreviação oficial

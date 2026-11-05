@@ -100,6 +100,10 @@ export function evaluateFit(card, used, reasons, meBase, opp, db, opt = null) {
       const need = [...new Set((card.attacks ?? []).flatMap((a) => a.cost ?? []).filter((x) => x !== 'Colorless'))].map(typePt);
       add('recursos', 0.9, `⚠ Não ataca com as suas energias${need.length ? ` (precisa de ${need.join('/')})` : ''}.`);
     }
+    const attackValue = used.filter((t) => t.source === 'attack' && (t.cost ?? []).includes(opt?.energy?.type));
+    if (opt?.energy && attackValue.length && !opt.unlocks?.length) {
+      add('recursos', 0.4, `✗ O efeito vem de um ataque que precisa de Energia ${ENERGY_PT[opt.energy.type] ?? opt.energy.type} TODO turno — com 1 energia fora do tipo isso não se sustenta.`);
+    }
     if (opt?.energy) {
       add('recursos', 0.95, `✓ Com +${opt.energy.qty} Energia ${ENERGY_PT[opt.energy.type] ?? typePt(opt.energy.type)} no deck ela ataca ("${opt.energy.attack.name}").`);
       const recur = meBase.entries.find((e) => /basic energy card from your discard pile/i.test(e.card.text));
@@ -135,6 +139,13 @@ export function evaluateFit(card, used, reasons, meBase, opp, db, opt = null) {
   }
   if (card.trainerType && me.search.trainer) notes.recursos.push("✓ Buscável com Team Rocket's Petrel.");
 
+  // Espaço no banco: o plano do deck já ocupa as vagas?
+  if (card.category === 'Pokemon' && meBase.board) {
+    const b = meBase.board;
+    const list = `${b.pieces.join(', ')}${b.backup ? ` + ${b.backup} de reserva` : ''}`;
+    if (b.benchNeeded >= 5) add('peso', 0.72, `✗ Seu banco já fica cheio (${list}) — ${card.name}${card.stage !== 'Basic' ? ` e a pré-evolução` : ''} disputam vaga.`);
+    else if (b.benchNeeded >= 4) add('peso', 0.88, `⚠ Banco quase cheio (${list}).`);
+  }
   // ---------- PESO ----------
   let effSlots = null;
   if (opt) {

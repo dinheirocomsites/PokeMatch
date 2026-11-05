@@ -1,6 +1,6 @@
 // Lê o texto livre do jogador ("qual é a sua dor?") e transforma em pesos para
 // os caminhos de melhoria + cartas citadas (nomes em inglês ou português).
-import { normName } from './db.js';
+import { normName } from './db-core.js';
 
 export const CLUSTERS = {
   premios: { icon: '🏁', title: 'Corrida de prêmios', desc: 'Entregar menos prêmios, pegar mais, ou trocar melhor (atacantes de 1 prêmio, Legacy Energy…).' },

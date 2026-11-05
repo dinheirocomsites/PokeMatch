@@ -22,9 +22,17 @@ test('Sharpedo × Basic Box: Farigiraf ex é o #1 com o pacote e os combos certo
 
 test('Crustle é penalizado: Passimian passa pela muralha e nocauteia', () => {
   const r = analyze(read('sharpedo.txt'), read('basic-box.txt'), db, { limit: 60 });
-  const c = r.suggestions.find((s) => s.card.name === 'Crustle');
-  assert.ok(c.notes.risco.some((n) => n.includes('Passimian') && n.includes('de uma vez')));
-  assert.ok(r.suggestions.indexOf(c) > 5);
+  const i = r.suggestions.findIndex((s) => s.card.name === 'Crustle');
+  assert.ok(i === -1 || i >= 5, 'Crustle não pode estar no top 5');
+  if (i >= 0) assert.ok(r.suggestions[i].notes.risco.some((n) => n.includes('Passimian') && n.includes('de uma vez')));
+});
+
+test('feedback: só sugere o que resolve o diagnóstico (Dipplin, Neutralization Zone, Zoroark fora)', () => {
+  const r = analyze(read('sharpedo.txt'), read('basic-box.txt'), db, { limit: 60, context: 'corrida dos prêmios, morro em um hit para Ogerpon ou Folhas Férreas' });
+  const names = r.suggestions.map((s) => s.card.name);
+  for (const n of ['Dipplin', 'Neutralization Zone', 'Zoroark']) assert.ok(!names.includes(n), n);
+  assert.ok(r.diagnosis[0].includes('Teal Mask Ogerpon ex') && r.diagnosis[0].includes('Iron Leaves ex'));
+  for (const s of r.suggestions) assert.ok(s.relevance, `${s.card.name} sem justificativa de relevância`);
 });
 
 test('seletores que não sabemos ler não viram "qualquer Pokémon"', () => {

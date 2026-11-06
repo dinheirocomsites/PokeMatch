@@ -10,7 +10,14 @@
 | Rodada 4 (simulador realista + eixos novos de diagnóstico) | 58% | 66% | 72 |
 | Rodada 5 (régua nova + leitor genérico de condições de dano) | 79% lido · 69% usado · 8% testado | 100% | 84 |
 | Rodada 6 (famílias que mudam o cálculo + buscas na simulação de mão) | 87% lido · 80% usado · 13% testado | 100% | 96 |
-| Rodada 7 (camada de IA pronta; aguardando a chave para rodar) | 87% lido · 80% usado (regras) — IA ainda não rodou | 100% | **101** |
+| Rodada 7 (camada de IA rodando: Claude lê, motor confere) | **99% lido · 84% usado · 13% testado** (336 frases via IA) | 100% | **102** |
+
+### Rodada 7 — primeira leitura real (06/11/2026)
+- **336 frases** classificadas (24 ficaram de fora da resposta e vão na próxima sincronização, automaticamente).
+- **263 efeitos aceitos** pelo validador: 91 frases com efeito tático (contadores, dano extra, desvantagem, mão do oponente, prêmios, redução, trava, condição, troca…) e o resto com resumo "sem efeito tático na análise".
+- **82 rejeitados** (o filtro funcionando): tipo que não aparece no texto (ex.: Pinsir "nocauteado no fim do turno" classificado como contadores), número que não existe na carta, condição especial trocada.
+- **Custo real**: US$ 1,15 (a primeira tentativa, US$ 1,19, se perdeu porque o workflow testava antes de salvar — corrigido: agora salva antes).
+- **Correção depois da revisão**: a IA marcou bônus "deste Pokémon" (Seviper +120, Annihilape, Feraligatr) como dano extra para qualquer atacante — o Seviper subiu para 1º contra Dragapult. O motor agora confere **a quem** o bônus vale no texto: "deste Pokémon" → só ele; "seus Pokémon {G} e {R}" → só esses tipos; "se você tiver…" → condição (vale metade).
 
 ### Rodada 7: camada de IA (pronta, aguardando a chave)
 **Como funciona**

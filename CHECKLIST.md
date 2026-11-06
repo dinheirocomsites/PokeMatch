@@ -121,7 +121,7 @@ Legenda: [x] feito · [~] em andamento · [ ] a fazer
 - [x] Rodada 6: retaliação, aguentar com HP cheio, tirar o Ativo dele, evolução do oponente, cópia do ataque dele, buscas genéricas na mão; 87% lido · 80% usado (96 testes ✅)
 
 - [x] Rodada 7: camada de IA pronta (classificação na sincronização + validação pelo motor + cache) — falta o segredo `ANTHROPIC_API_KEY` no GitHub para rodar (101 testes ✅)
-- [ ] Rodar a classificação da IA (depois do segredo) e revisar os rejeitados
+- [x] Rodar a classificação da IA e revisar: 336 frases, 263 efeitos aceitos, 82 rejeitados, US$ 1,15; bônus "deste Pokémon" corrigido (99% lido · 84% usado)
 
 ## Próximos passos (ideias)
 - [ ] Interações mais finas: Boss's Orders do oponente contorna muralha; muralha precisa estar Ativa

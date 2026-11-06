@@ -81,6 +81,8 @@ export function validateEffect(sentence, e0) {
   const out = { kind: e.kind, cond: [...new Set((e.conditions ?? []).filter((c) => CONDS.includes(c)))] };
   // Moeda no texto → o efeito é com moeda, diga o que disser a resposta (conservador)
   if (/flip a coin|if heads/i.test(s) && !out.cond.includes('coin')) out.cond.push('coin');
+  // Condição escrita ("If you have 6 or more…", "As long as…", "only if…") → o efeito nem sempre vale
+  else if (/^(if|as long as)\b|\bonly if\b|, if (you|your|this)/i.test(s.trim()) && !out.cond.length) out.cond.push('if');
   if (spec.amount) {
     const n = e.amount;
     if (!Number.isInteger(n) || n <= 0) return { ok: false, why: 'faltou o número' };

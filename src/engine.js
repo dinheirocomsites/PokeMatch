@@ -50,7 +50,7 @@ function canPayCost(cost, me) {
 // Valor de uma etiqueta contra o deck oponente → { value, why }
 function tagValue(t, opp, me, ctx) {
   const c = opp.counts;
-  const condFactor = (t.cond ?? []).reduce((f, x) => f * (x === 'coin' ? 0.35 : x.startsWith('prizes') ? 0.6 : x === 'afterKO' ? 0.7 : x === 'ifKO' ? 0.45 : x === 'active' ? 0.85 : 1), 1);
+  const condFactor = (t.cond ?? []).reduce((f, x) => f * (x === 'coin' ? 0.35 : x.startsWith('prizes') ? 0.6 : x === 'afterKO' ? 0.7 : x === 'ifKO' ? 0.45 : x === 'active' ? 0.85 : x === 'if' ? 0.5 : 1), 1);
   const nextTurn = t.source === 'attack' ? 0.65 : 1; // efeito de ataque dura 1 turno e exige atacar
   switch (t.kind) {
     case 'WALL_SELF':
@@ -154,6 +154,12 @@ function tagValue(t, opp, me, ctx) {
       const { cov, covered } = coverage(t.sel, opp, ctx);
       if (cov < 0.4) return null;
       let usable = 1;
+      // Bônus só para atacantes de certos tipos (Lilligant: seus {G} e {R})
+      if (t.typeFor) {
+        const mine = me.threat.filter((e) => maxDamage(e.card) > 0);
+        usable = mine.filter((e) => (e.card.types ?? []).some((x) => t.typeFor.includes(x))).reduce((s, e) => s + e.threat, 0) / (mine.reduce((s, e) => s + e.threat, 0) || 1);
+        if (usable < 0.2) return null;
+      }
       // Bônus só para Pokémon de um Treinador (Hop's Snorlax, Postwick, Cynthia's Roserade…)
       if (t.ownerFor) {
         const mine = me.threat.filter((e) => maxDamage(e.card) > 0);
@@ -547,7 +553,7 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
   if (koGap?.need > 0) {
     for (const c of candidates) {
       if (!c || c.reasons.some((r) => r.kind === 'KO_GAP')) continue;
-      const bonus = extractTags(c.card).filter((t) => (t.kind === 'EXTRA_DMG' && matches(t.sel, oppMain) && (!t.onlyFor || t.onlyFor === main.name) && (!t.ownerFor || t.ownerFor === main.owner) && !(t.needsNoRuleBox && main.isRuleBox)) || (t.kind === 'HP_DOWN' && matches(t.sel, oppMain)));
+      const bonus = extractTags(c.card).filter((t) => (t.kind === 'EXTRA_DMG' && matches(t.sel, oppMain) && (!t.onlyFor || t.onlyFor === main.name) && (!t.ownerFor || t.ownerFor === main.owner) && (!t.typeFor || (main.types ?? []).some((x) => t.typeFor.includes(x))) && !(t.needsNoRuleBox && main.isRuleBox)) || (t.kind === 'HP_DOWN' && matches(t.sel, oppMain)));
       if (!bonus.length) continue;
       const amt = Math.max(...bonus.map((t) => t.amount));
       const piecesSaved = koGap.minSet ? koGap.minSet.filter((p) => p.amount <= amt).length : 0;

@@ -304,6 +304,15 @@ export function extractTags(card) {
       if (e.kind === 'PLACE_COUNTERS') t.where = e.scope === 'bench' ? 'benched pokémon' : e.scope === 'active' ? 'active pokémon' : 'pokémon';
       if (e.kind === 'DRAWBACK') t.what = 'other';
       if (['EXTRA_DMG', 'REDUCE', 'WALL_SELF', 'ABILITY_LOCK'].includes(e.kind)) { const sel = e.target ? parseSelector(e.target) : {}; t.sel = sel.unknown ? {} : sel; }
+      // A QUEM o bônus se aplica (o motor confere no texto, não confia na resposta):
+      //   "attacks used by this Pokémon" → só a própria carta; "attacks used by your {G} Pokémon and {R} Pokémon" → só esses tipos
+      if (e.kind === 'EXTRA_DMG') {
+        const sx = (it.sentence ?? '').replace(/[’]/g, "'");
+        if (/attacks used by this pok[eé]mon|this attack does/i.test(sx) || !/attacks used by (your|the pok[eé]mon this card is attached to|each of your)/i.test(sx)) t.onlyFor = card.name;
+        const types = [...sx.matchAll(/\{([A-Z])\}/g)].map((m) => ({ G: 'Grass', R: 'Fire', W: 'Water', L: 'Lightning', P: 'Psychic', F: 'Fighting', D: 'Darkness', M: 'Metal', N: 'Dragon', C: 'Colorless' }[m[1]])).filter(Boolean);
+        if (!t.onlyFor && /attacks used by your [^.]*\{[A-Z]\}/i.test(sx) && types.length) t.typeFor = [...new Set(types)];
+        if (/attached to/i.test(sx) && !t.onlyFor) t.attached = true;
+      }
       tags.push(t);
     }
   }

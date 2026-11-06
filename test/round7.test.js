@@ -82,3 +82,25 @@ test('sem chave da API o classificador não faz nada e não quebra a sincroniza�
   assert.match(out, /Sem ANTHROPIC_API_KEY|a classificar agora: 0/);
   assert.equal(existsSync(new URL('data/llm-effects.json', root)), before);
 });
+
+test('bônus lido pela IA vale só para quem o texto diz: "deste Pokémon" (Seviper) e "seus {G} e {R}" (Lilligant)', () => {
+  const raw = JSON.parse(readFileSync(new URL('data/cards.json', root), 'utf8'));
+  const sev = db.unique.find((c) => c.name === 'Seviper' && /attacks used by this Pokémon do 120 more damage/i.test(c.text));
+  const lil = db.unique.find((c) => c.name === 'Lilligant' && /Attacks used by your \{G\} Pokémon and \{R\} Pokémon/i.test(c.text));
+  const blk = (c, re) => [...(c.abilities ?? []), ...(c.attacks ?? [])].find((a) => re.test(a.effect ?? ''));
+  const sb = blk(sev, /120 more damage/), lb = blk(lil, /20 more damage/);
+  const sSent = sb.effect.replace(/\([^)]*\)/g, ' ').split(/(?<=[.!])\s+/).find((x) => /120 more/.test(x)).trim();
+  const lSent = lb.effect.replace(/\([^)]*\)/g, ' ').split(/(?<=[.!])\s+/).find((x) => /20 more/.test(x)).trim();
+  // FIXTURE: resposta "ingênua" (sem dizer a quem vale) — o motor precisa restringir sozinho
+  raw.llm = { items: {
+    a: { card: sev.name, block: sb.name, sentence: sSent, effects: [{ kind: 'EXTRA_DMG', amount: 120, cond: [] }] },
+    b: { card: lil.name, block: lb.name, sentence: lSent, effects: [{ kind: 'EXTRA_DMG', amount: 20, cond: [] }] },
+  } };
+  const db2 = buildDb(raw);
+  const ts = extractTags(db2.unique.find((c) => c.name === 'Seviper' && c.llm)).find((t) => t.via === 'ia');
+  const tl = extractTags(db2.unique.find((c) => c.name === 'Lilligant' && c.llm)).find((t) => t.via === 'ia');
+  assert.equal(ts.onlyFor, 'Seviper'); // não turbina o seu atacante
+  assert.deepEqual(tl.typeFor.sort(), ['Fire', 'Grass']);
+  // condição escrita ("If you have…") vira condição do efeito
+  assert.ok(validateEffect(sSent, { kind: 'EXTRA_DMG', amount: 120, conditions: [] }).effect.cond.includes('if'));
+});

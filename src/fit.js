@@ -41,7 +41,7 @@ export function potentialDamage(attack, deck) {
 // Maior dano que os atacantes listados conseguem causar em "target"
 function worstHit(target, attackers, opp) {
   let worst = { dmg: 0, by: null, note: '' };
-  const boosts = opp.tagsByCard.flatMap(({ tags }) => tags.filter((t) => t.kind === 'EXTRA_DMG' && !t.onlyFor && !t.ownerFor && matches(t.sel, target)).map((t) => t.amount));
+  const boosts = opp.tagsByCard.flatMap(({ tags }) => tags.filter((t) => t.kind === 'EXTRA_DMG' && !t.onlyFor && !t.ownerFor && !t.typeFor && matches(t.sel, target)).map((t) => t.amount));
   const boost = Math.max(0, ...boosts);
   // bônus de grupo do oponente (ex.: Hop's Snorlax: +30 nos ataques dos Pokémon de Hop dele)
   const ownerBoost = (card) => Math.max(0, ...opp.tagsByCard.flatMap(({ tags }) => tags.filter((t) => t.kind === 'EXTRA_DMG' && t.ownerFor && t.ownerFor === card.owner).map((t) => t.amount)));

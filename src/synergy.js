@@ -2,6 +2,7 @@
 // a carta, energia habilitadora), descobre cadeias de combo com cartas que o
 // jogador já usa e calcula o dano real da tech dentro do deck.
 import { attackDamage, typePt, matches } from './tags.js';
+import { damageVs } from './damage.js';
 
 const SYM = { Grass: 'G', Fire: 'R', Water: 'W', Lightning: 'L', Psychic: 'P', Fighting: 'F', Darkness: 'D', Metal: 'M' };
 const canPay = (cost, types) => (cost ?? []).every((t) => t === 'Colorless' || types.has(t));
@@ -95,19 +96,31 @@ export function findCombos(card, me, energyTypes) {
 
 // Dano real da tech no deck + quem ela nocauteia em 1 ataque
 export function realDamage(card, me, opp, energyTypes, combo) {
-  const atk = (card.attacks ?? []).filter((a) => attackDamage(a) && canPay(a.cost, energyTypes)).sort((a, b) => attackDamage(b) - attackDamage(a))[0];
-  if (!atk) return null;
-  const base = attackDamage(atk);
-  const hitting = base + combo.boost;
+  const atks = (card.attacks ?? []).filter((a) => (attackDamage(a) || /more damage|for each/i.test(a.effect ?? '')) && canPay(a.cost, energyTypes));
+  if (!atks.length) return null;
+  const selfDamaged = me.entries.some((e) => /place \d+ damage counters on that pok[eé]mon|also does \d+ damage to itself|damage to 1 of your benched/i.test(e.card.text));
   const kos = [];
   let koThreat = 0;
-  const attackThreat = opp.threat.filter((e) => attackDamage((e.card.attacks ?? [])[0] ?? {}) || e.threat > 0.3).reduce((s, e) => s + e.threat, 0) || 1;
+  let shown = null; // ataque e dano contra o alvo mais relevante, para a explicação
+  const attackThreat = opp.threat.filter((e) => e.feas >= 0.3 && (e.card.attacks ?? []).some((a) => attackDamage(a))).reduce((s, e) => s + e.threat, 0) || 1;
   for (const e of opp.threat) {
-    const weak = (e.card.weaknesses ?? []).some((w) => (card.types ?? []).includes(w.type));
-    const dmg = hitting * (weak ? 2 : 1) + combo.passive;
-    if (dmg >= e.card.hp) { kos.push(`${e.card.name}${weak ? ' (fraqueza!)' : ''}`); koThreat += e.threat; }
+    let best = null;
+    for (const a of atks) {
+      const r = damageVs(a, card, e.card, { deck: me, oppTaken: 3, selfDamaged, bonus: combo.boost, ...me.pressure });
+      if (!best || r.dmg > best.dmg) best = { ...r, attack: a };
+    }
+    const total = best.dmg + combo.passive;
+    if (total >= e.card.hp) {
+      kos.push(`${e.card.name}${best.notes.includes('fraqueza') ? ' (fraqueza!)' : ''}`);
+      koThreat += e.threat;
+      if (!shown || e.threat > shown.threat) shown = { ...best, total, threat: e.threat, target: e.card.name };
+    }
   }
-  return { attack: atk, base, boost: combo.boost, passive: combo.passive, total: hitting + combo.passive, kos, koShare: Math.min(1, koThreat / attackThreat) };
+  const top = shown ?? { attack: atks[0], dmg: attackDamage(atks[0]) + combo.boost, total: attackDamage(atks[0]) + combo.boost + combo.passive, notes: [] };
+  return {
+    attack: top.attack, base: top.dmg - combo.boost, boost: combo.boost, passive: combo.passive, total: top.total,
+    vs: top.target ?? null, notes: top.notes, kos, koShare: Math.min(1, koThreat / attackThreat),
+  };
 }
 
 // Monta as opções de pacote (sem e com energia habilitadora) para a tech

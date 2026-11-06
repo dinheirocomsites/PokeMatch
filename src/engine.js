@@ -3,7 +3,8 @@
 import { extractTags, matches, selectorPt, typePt, maxDamage, attackDamage } from './tags.js';
 import { profileDeck } from './profile.js';
 import { parseDeck } from './parser.js';
-import { evaluateFit, deadInMatchup, potentialDamage } from './fit.js';
+import { evaluateFit, deadInMatchup } from './fit.js';
+import { damageVs } from './damage.js';
 import { buildOptions } from './synergy.js';
 import { simulateRace, planText, parseDenial } from './prizes.js';
 import { readContext, clusterOf, CLUSTERS } from './context.js';
@@ -212,6 +213,43 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
   }
   const ctx = { lockedByMe: locksFromMyDeck(me, opp), oppSpecialEnergy: opp.counts.specialEnergy > 0, myStatuses };
 
+  // Troca de nocaute: este Pokémon nocauteia atacantes importantes do oponente entregando MENOS prêmios?
+  // (Pega casos como Moltres × Ogerpon: 1 energia, 110 contra ex, ×2 na fraqueza = 220.)
+  const keyTargets = opp.threat.filter((e) => e.feas >= 0.3 && (e.card.attacks ?? []).some((a) => attackDamage(a)));
+  const keyThreat = keyTargets.reduce((s, e) => s + e.threat, 0) || 1;
+  const mainKillers = new Set();
+  if (me.mainAttacker) for (const e of keyTargets) if ((e.card.attacks ?? []).some((a) => damageVs(a, e.card, me.mainAttacker, { deck: opp, oppTaken: 3 }).dmg >= me.mainAttacker.hp - 20)) mainKillers.add(e.card.name);
+  const koTradeValue = (card) => {
+    if (card.category !== 'Pokemon') return null;
+    let best = null;
+    for (const a of card.attacks ?? []) {
+      const cost = (a.cost ?? []).length;
+      if (cost > 3) continue;
+      // Precisa ser pagável com as suas energias + no máximo 1 cópia de energia de outro tipo
+      const missingTyped = (a.cost ?? []).filter((t) => t !== 'Colorless' && !me.energyTypes.has(t));
+      if (missingTyped.length > 1) continue;
+      const kos = [];
+      let share = 0;
+      for (const e of keyTargets) {
+        if (e.card.prizeValue <= card.prizeValue) continue; // só troca favorável
+        const r = damageVs(a, card, e.card, { deck: me, oppTaken: 3, ...me.pressure });
+        if (r.dmg >= e.card.hp) { kos.push({ name: e.card.name, dmg: r.dmg, notes: r.notes }); share += e.threat / keyThreat; }
+      }
+      if (!kos.length) continue;
+      const hitsKillers = kos.filter((k) => mainKillers.has(k.name));
+      // Nocautear QUEM MATA o seu atacante é o problema do diagnóstico: pesa mais que o resto
+      const killerFrac = mainKillers.size ? hitsKillers.length / mainKillers.size : 0;
+      const value = Math.min(45, 30 * killerFrac + 30 * share);
+      if (!best || value > best.value) best = { a, cost, kos, hitsKillers, value };
+    }
+    if (!best || best.value < 8) return null;
+    const list = best.kos.map((k) => `${k.name} (${Math.round(k.dmg)}${k.notes.includes('fraqueza') ? ', fraqueza' : ''})`).join(', ');
+    return {
+      kind: 'KO_TRADE', attackName: best.a.name, koNames: best.kos.map((k) => k.name), value: best.value,
+      why: `Com ${best.cost} energia${best.cost > 1 ? 's' : ''}, "${best.a.name}" nocauteia ${list} entregando só ${card.prizeValue} prêmio${card.prizeValue > 1 ? 's' : ''}${best.hitsKillers.length ? ` — inclusive quem mata o seu ${me.mainAttacker.name}` : ''}.`,
+    };
+  };
+
   const evaluate = (card) => {
     const reasons = [];
     const used = [];
@@ -221,6 +259,8 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
     }
     const w = weaknessValue(card, opp, me);
     if (w) reasons.push(w);
+    const kt = koTradeValue(card);
+    if (kt) reasons.push(kt);
     if (!reasons.length) return null;
     reasons.sort((a, b) => b.value - a.value);
     // retornos decrescentes para várias razões
@@ -240,7 +280,7 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
       const reasons = [...ev.reasons];
       if (opt?.damage?.kos.length) {
         const d = opt.damage;
-        const parts = [`${d.base} ("${d.attack.name}")`, d.boost ? `+${d.boost} (combo)` : '', d.passive ? `+${d.passive} (dano passivo)` : ''].filter(Boolean).join(' ');
+        const parts = [`${d.base} ("${d.attack.name}"${d.vs ? ` no ${d.vs}${d.notes?.length ? `: ${d.notes.filter((x) => !/envenenado/.test(x)).join(', ')}` : ''}` : ''})`, d.boost ? `+${d.boost} (combo)` : '', d.passive ? `+${d.passive} (dano passivo)` : ''].filter(Boolean).join(' ');
         reasons.push({ kind: 'COMBO_DMG', koNames: d.kos.map((k) => k.replace(' (fraqueza!)', '')), value: 30 * d.koShare, why: `Dano no SEU deck: ${parts} = ${d.total} → nocauteia em 1 ataque: ${d.kos.join(', ')}.` });
       }
       for (const u of opt?.unlocks ?? []) reasons.push({ kind: 'UNLOCK', value: 6, why: `A energia nova também libera "${u.attack}" do seu ${u.name}.` });
@@ -318,7 +358,7 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
     for (const e of opp.threat) {
       if (e.feas < 0.3) continue;
       const weak = (main.weaknesses ?? []).some((w) => (e.card.types ?? []).includes(w.type));
-      const dmg = Math.max(0, ...(e.card.attacks ?? []).map((a) => potentialDamage(a, opp) * (weak ? 2 : 1)));
+      const dmg = Math.max(0, ...(e.card.attacks ?? []).map((a) => damageVs(a, e.card, main, { deck: opp, oppTaken: 3 }).dmg));
       if (dmg >= main.hp - hurt) killers.push({ name: e.card.name, dmg: Math.round(dmg), weak, prize: e.card.prizeValue });
     }
   }
@@ -336,6 +376,7 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
       if (r.kind === 'PRIZE_RACE' && r.value >= 8 && (r.flip || (c.parts?.peso ?? 100) >= 70)) return r.flip ? 'vira a corrida de prêmios (derrota → vitória) na simulação' : 'melhora a corrida de prêmios na simulação';
       if (r.kind === 'PRIZE_DENIAL') return 'reduz os prêmios que você entrega';
       if (['WALL_SELF', 'WALL_CHOSEN', 'WALL_TEAM'].includes(r.kind) && killerNames.length && killerNames.every((k) => r.covered?.includes(k))) return `bloqueia ${killerNames.join(' e ')}`;
+      if (r.kind === 'KO_TRADE' && (c.parts?.peso ?? 100) >= 55 && r.koNames?.some((k) => killerNames.includes(k))) return `nocauteia ${r.koNames.filter((k) => killerNames.includes(k)).join(' e ')} entregando só ${c.card.prizeValue} prêmio${c.card.prizeValue > 1 ? 's' : ''}`;
       // Atacante de 1 prêmio, barato de energizar, que bate na fraqueza de quem mata o seu atacante (ex.: Moltres × Hydrapple)
       if (r.kind === 'WEAKNESS' && main && c.card.prizeValue < main.prizeValue && (c.parts?.peso ?? 100) >= 60) {
         const weakKillers = killers.filter((k) => (opp.entries.find((e) => e.card.name === k.name)?.card.weaknesses ?? []).some((w) => (c.card.types ?? []).includes(w.type)));
@@ -364,7 +405,8 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
   // Uma entrada por nome (a melhor versão)
   const seenName = new Set();
   for (let i = candidates.length - 1; i >= 0; i--) if (!candidates[i]) candidates.splice(i, 1);
-  candidates.sort((a, b) => b.score - a.score);
+  // Entre versões com o mesmo nome, fica a RELEVANTE de maior nota (ex.: Moltres PFL 1 energia × Moltres 30th 3 energias)
+  candidates.sort((a, b) => (b.relevance ? 1 : 0) - (a.relevance ? 1 : 0) || b.score - a.score);
   for (let i = 0; i < candidates.length; i++) { if (seenName.has(candidates[i].card.name)) { candidates.splice(i, 1); i--; } else seenName.add(candidates[i].card.name); }
   candidates.sort((a, b) => b.score - a.score);
   // Uma carta por "família" de motivo principal dominante não é necessário; mantemos variedade simples

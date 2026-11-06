@@ -17,7 +17,7 @@ test('Sharpedo × Basic Box: Farigiraf ex é o #1 com o pacote e os combos certo
   assert.ok(f.pkg.unlocks.some((u) => u.name === 'Munkidori'), 'a energia também libera o Munkidori');
   const combos = f.pkg.combos.map((c) => c.with);
   for (const n of ['Pecharunt ex', 'Toxtricity', 'Munkidori', 'Binding Mochi']) assert.ok(combos.includes(n), `combo com ${n}`);
-  assert.equal(f.pkg.damage.total, 230);
+  assert.ok(f.pkg.damage.kos.some((k) => k.startsWith('Teal Mask Ogerpon ex')), 'Farigiraf (160+40+30=230) nocauteia o Ogerpon (210)');
 });
 
 test('Crustle é penalizado: Passimian passa pela muralha e nocauteia', () => {

@@ -7,7 +7,8 @@
     "sync": "NODE_USE_ENV_PROXY=1 node --no-warnings scripts/sync-cards.js",
     "start": "node src/server.js",
     "test": "node --test test/*.test.js",
-    "build": "node scripts/build-static.js"
+    "build": "node scripts/build-static.js",
+    "audit": "node scripts/audit-damage.js"
   },
   "license": "MIT"
 }

@@ -4,6 +4,7 @@
 //   sinergia  — conversa com o plano do deck (tipo, trocas, fonte de dano)?
 //   risco     — o que passa pela muralha nocauteia ela? prêmios entregues? Boss contorna?
 import { attackDamage, matches, typePt, parseSelector, extractTags } from './tags.js';
+import { multiplier, damageVs } from './damage.js';
 
 const ENERGY_PT = { Grass: 'Planta', Fire: 'Fogo', Water: 'Água', Lightning: 'Elétrica', Psychic: 'Psíquica', Fighting: 'Lutadora', Darkness: 'Escuridão', Metal: 'Metálica' };
 const STATUS_PT = { confused: 'Confuso', poisoned: 'Envenenado', burned: 'Queimado', asleep: 'Adormecido', paralyzed: 'Paralisado' };
@@ -20,21 +21,7 @@ export function canPayCost(cost, me) {
 }
 
 // Quantas vezes um "for each" costuma contar, no contexto do deck que ataca
-export function multiplier(effect, deck, defenderBench = 5) {
-  const maxInPlay = deck.bigBench ? 9 : 6;
-  if (/for each of your basic pok[eé]mon in play/i.test(effect)) return Math.min(maxInPlay, deck.counts.basic);
-  if (/for each benched pok[eé]mon \(both|for each benched pok[eé]mon .both/i.test(effect)) return maxInPlay - 1 + defenderBench;
-  if (/for each of your benched pok[eé]mon/i.test(effect)) return maxInPlay - 1;
-  if (/for each of your pok[eé]mon in play/i.test(effect)) return maxInPlay;
-  if (/for each of your opponent.s benched/i.test(effect)) return defenderBench;
-  if (/for each prize card/i.test(effect)) return 4;
-  if (/for each energy attached to both active/i.test(effect)) return 5; // ~3 dele + ~2 do seu Ativo
-  if (/for each energy|for each .*energy attached/i.test(effect)) return 4;
-  if (/flip a coin until you get tails/i.test(effect)) return 1; // valor esperado ~1
-  if (/for each heads/i.test(effect)) return 1.5;
-  if (/for each damage counter/i.test(effect)) return 8;
-  return 3;
-}
+export { multiplier } from './damage.js';
 
 // Dano realista (perto do teto) de um ataque, considerando o deck que ataca
 export function potentialDamage(attack, deck) {
@@ -57,12 +44,8 @@ function worstHit(target, attackers, opp) {
   for (const e of attackers) {
     if (e.feas !== undefined && e.feas < 0.3) continue; // não consegue energizar esse ataque
     for (const a of e.card.attacks ?? []) {
-      let dmg = potentialDamage(a, opp);
-      if (!dmg) continue;
-      const weak = (target.weaknesses ?? []).some((w) => (e.card.types ?? []).includes(w.type));
-      const res = (target.resistances ?? []).some((r) => (e.card.types ?? []).includes(r.type));
-      dmg = (dmg + boost) * (weak ? 2 : 1) - (res ? 30 : 0);
-      if (dmg > worst.dmg) worst = { dmg, by: e.card.name, attack: a.name, note: weak ? ' (fraqueza ×2)' : '' };
+      const r = damageVs(a, e.card, target, { deck: opp, oppTaken: 3, bonus: boost });
+      if (r.dmg > worst.dmg) worst = { dmg: r.dmg, by: e.card.name, attack: a.name, note: r.notes.includes('fraqueza') ? ' (fraqueza ×2)' : '' };
     }
   }
   return worst;
@@ -142,9 +125,11 @@ export function evaluateFit(card, used, reasons, meBase, opp, db, opt = null) {
 
   // Tempo de energização: quantas ligações para o ataque que dá o valor (1 ligação manual por turno)
   if (card.category === 'Pokemon') {
-    const valueAtk = (card.attacks ?? []).filter((a) => attackDamage(a) > 0 || used.some((t) => t.source === 'attack' && t.name === a.name))
+    // O ataque que dá o valor: o da troca de nocaute, se houver; senão o de maior dano pagável
+    const koAtk = reasons.find((r) => r.kind === 'KO_TRADE')?.attackName;
+    const valueAtk = (koAtk && (card.attacks ?? []).find((a) => a.name === koAtk)) ?? (card.attacks ?? []).filter((a) => attackDamage(a) > 0 || used.some((t) => t.source === 'attack' && t.name === a.name))
       .filter((a) => canPayCost(a.cost, me)).sort((a, b) => attackDamage(b) - attackDamage(a))[0];
-    const attackMatters = used.some((t) => t.source === 'attack') || reasons.some((r) => ['WEAKNESS', 'COMBO_DMG', 'BENCH_PUNISH', 'PRIZE_RACE'].includes(r.kind));
+    const attackMatters = used.some((t) => t.source === 'attack') || reasons.some((r) => ['WEAKNESS', 'COMBO_DMG', 'BENCH_PUNISH', 'PRIZE_RACE', 'KO_TRADE'].includes(r.kind));
     if (valueAtk && attackMatters) {
       const n = (valueAtk.cost ?? []).length;
       // aceleração do deck que serve para esta carta (ex.: Toxtricity liga {D} em Pokémon {D})
@@ -156,7 +141,7 @@ export function evaluateFit(card, used, reasons, meBase, opp, db, opt = null) {
       const turns = Math.max(1, Math.ceil(n / (accel ? 2 : 1)));
       let f2 = { 1: 1, 2: 0.9, 3: 0.68 }[turns] ?? 0.5;
       // Se o valor principal é uma habilidade (funciona sem energia), o ataque é bônus: pesa pela metade
-      if (used.some((t) => t.source === 'ability') && reasons[0] && !['WEAKNESS', 'COMBO_DMG'].includes(reasons[0].kind)) f2 = (1 + f2) / 2;
+      if (used.some((t) => t.source === 'ability') && reasons[0] && !['WEAKNESS', 'COMBO_DMG', 'KO_TRADE'].includes(reasons[0].kind)) f2 = (1 + f2) / 2;
       add('peso', f2, `${turns >= 3 ? '✗' : turns === 2 ? '⚠' : '✓'} "${valueAtk.name}" custa ${n} energia${n > 1 ? 's' : ''}: ~${turns} turno${turns > 1 ? 's' : ''} para energizar${accel ? ` (com ajuda do ${accel.card.name})` : ''}.`);
     }
   }

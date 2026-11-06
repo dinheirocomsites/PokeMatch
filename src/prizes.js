@@ -3,7 +3,8 @@
 // melhor alvo que consegue; o oponente responde nocauteando o seu atacante.
 // O dano depende do estado (prêmios já pegos, Pokémon ferido, envenenado…).
 import { attackDamage, extractTags, matches } from './tags.js';
-import { potentialDamage, multiplier } from './fit.js';
+import { potentialDamage } from './fit.js';
+import { damageVs } from './damage.js';
 
 const SYM = { Grass: 'G', Fire: 'R', Water: 'W', Lightning: 'L', Psychic: 'P', Fighting: 'F', Darkness: 'D', Metal: 'M' };
 const canPay = (cost, types) => (cost ?? []).every((t) => t === 'Colorless' || types.has(t));
@@ -32,27 +33,15 @@ function myEngine(me) {
 
 // Dano do meu ataque num alvo, dado o estado do jogo
 function myDamage(card, attack, target, state, me, eng) {
-  const d = String(attack.damage ?? '');
-  const n = parseInt(d, 10) || 0;
-  const eff = attack.effect ?? '';
-  let dmg;
-  const notes = [];
-  if (/[×x]$/.test(d)) {
-    if (/for each prize card your opponent has taken/i.test(eff)) { dmg = n * state.oppTaken; notes.push(`${n}×${state.oppTaken} prêmios`); }
-    else dmg = n * multiplier(eff, me);
-  } else if (d.endsWith('+')) {
-    const more = +(eff.match(/(\d+) more damage/i)?.[1] ?? 0);
-    if (/if this pok[eé]mon has any damage counters/i.test(eff)) { dmg = n + (eng.selfDamage ? more : 0); if (eng.selfDamage) notes.push('ferido'); }
-    else if (/for each/i.test(eff)) dmg = n + more * multiplier(eff, me);
-    else dmg = n + more / 2;
-  } else dmg = attackDamage(attack);
-  if (!dmg) return { dmg: 0, notes };
   const ps = eng.poisonSwitch;
-  if (ps && eng.poisonBoost && (card.types ?? []).some((t) => SYM[t] === ps.sym) && !ps.except.includes(card.name)) { dmg += eng.poisonBoost; notes.push(`+${eng.poisonBoost} envenenado`); }
-  if ((target.weaknesses ?? []).some((w) => (card.types ?? []).includes(w.type))) { dmg *= 2; notes.push('fraqueza'); }
-  if ((target.resistances ?? []).some((r) => (card.types ?? []).includes(r.type))) dmg -= 30;
-  if (eng.passive) { dmg += eng.passive; notes.push(`+${eng.passive} ${eng.passiveBy}`); }
-  return { dmg, notes };
+  const poisoned = ps && eng.poisonBoost && (card.types ?? []).some((t) => SYM[t] === ps.sym) && !ps.except.includes(card.name);
+  const r = damageVs(attack, card, target, {
+    deck: me, oppTaken: state.oppTaken, selfDamaged: eng.selfDamage, ...(me.pressure ?? {}),
+    bonus: poisoned ? eng.poisonBoost : 0, bonusNote: poisoned ? `+${eng.poisonBoost} envenenado` : '',
+  });
+  if (!r.dmg) return r;
+  if (eng.passive) { r.dmg += eng.passive; r.notes.push(`+${eng.passive} ${eng.passiveBy}`); }
+  return r;
 }
 
 // Maior dano do oponente num Pokémon meu
@@ -61,11 +50,8 @@ function oppBest(target, opp, oppLeft) {
   for (const e of opp.threat) {
     if (!oppLeft.get(e.card.name) || e.feas < 0.3) continue;
     for (const a of e.card.attacks ?? []) {
-      let dmg = potentialDamage(a, opp);
-      if (!dmg) continue;
-      if ((target.weaknesses ?? []).some((w) => (e.card.types ?? []).includes(w.type))) dmg *= 2;
-      if ((target.resistances ?? []).some((r) => (e.card.types ?? []).includes(r.type))) dmg -= 30;
-      if (dmg > best.dmg) best = { dmg, by: e.card.name, weak: (target.weaknesses ?? []).some((w) => (e.card.types ?? []).includes(w.type)) };
+      const r = damageVs(a, e.card, target, { deck: opp, oppTaken: 3 });
+      if (r.dmg > best.dmg) best = { dmg: r.dmg, by: e.card.name, weak: r.notes.includes('fraqueza') };
     }
   }
   return best;
@@ -87,12 +73,8 @@ function oppChoose(target, opp, oppLeft, hitsTaken) {
     let dmg = 0;
     let weak = false;
     for (const a of e.card.attacks ?? []) {
-      let d = potentialDamage(a, opp);
-      if (!d) continue;
-      const w = (target.weaknesses ?? []).some((x) => (e.card.types ?? []).includes(x.type));
-      if (w) d *= 2;
-      if ((target.resistances ?? []).some((r) => (e.card.types ?? []).includes(r.type))) d -= 30;
-      if (d > dmg) { dmg = d; weak = w; }
+      const r = damageVs(a, e.card, target, { deck: opp, oppTaken: 3 });
+      if (r.dmg > dmg) { dmg = r.dmg; weak = r.notes.includes('fraqueza'); }
     }
     if (dmg) opts.push({ card: e.card, dmg, weak, ko: dmg + hitsTaken >= target.hp });
   }
@@ -126,7 +108,7 @@ export function simulateRace(me, opp, { extraAttackers = [], denial = null, ener
 
   const income = 1 + (eng.accel ? 1 : 0); // energia por turno: 1 manual + aceleração
   const SETUP_BANK = 3; // energia montada antes do primeiro ataque
-  const killsMain = new Set(me.mainAttacker ? opp.threat.filter((e) => e.feas >= 0.3 && (e.card.attacks ?? []).some((a) => { let d = potentialDamage(a, opp); if ((me.mainAttacker.weaknesses ?? []).some((w) => (e.card.types ?? []).includes(w.type))) d *= 2; return d >= me.mainAttacker.hp - 20; })).map((e) => e.card.name) : []);
+  const killsMain = new Set(me.mainAttacker ? opp.threat.filter((e) => e.feas >= 0.3 && (e.card.attacks ?? []).some((a) => damageVs(a, e.card, me.mainAttacker, { deck: opp, oppTaken: 3 }).dmg >= me.mainAttacker.hp - 20)).map((e) => e.card.name) : []);
   let best = null;
   const finals = [];
   const memo = new Map();

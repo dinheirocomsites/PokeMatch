@@ -78,7 +78,13 @@ export function profileDeck(parsed) {
   const backup = mainAttacker?.evolveFrom ?? (mainAttacker ? mainAttacker.name : null);
   const board = { pieces: [...new Set(benchEngine)], backup, benchNeeded: new Set(benchEngine).size + (backup ? 1 : 0) };
 
+  // O que este deck coloca no oponente (para ataques "por contador"/"por condição")
+  const counterSrc = entries.map((e) => e.card.text.match(/move up to (\d+) damage counters from 1 of your pok[eé]mon to 1 of your opponent/i)?.[1] ?? e.card.text.match(/put (\d+) damage counters on (?:1 of )?your opponent/i)?.[1]).filter(Boolean).map(Number);
+  const conditions = new Set(entries.flatMap((e) => [...e.card.text.matchAll(/opponent.s active pok[eé]mon is now (\w+)/gi)].map((m) => m[1].toLowerCase())));
+  const pressure = { targetCounters: counterSrc.length ? Math.max(...counterSrc) : 0, oppConditions: conditions.size ? 1 : 0 };
+
   return {
+    pressure,
     board,
     total: parsed.total,
     counts: {

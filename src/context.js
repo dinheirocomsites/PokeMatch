@@ -56,7 +56,7 @@ export function readContext(text, me, opp, db) {
 // Em qual "caminho" uma sugestão se encaixa
 export function clusterOf(s) {
   const k = s.reasons[0]?.kind;
-  if (k === 'PRIZE_RACE' || k === 'PRIZE_DENIAL') return 'premios';
+  if (k === 'PRIZE_RACE' || k === 'PRIZE_DENIAL' || k === 'KO_TRADE') return 'premios';
   if (['WALL_SELF', 'WALL_TEAM', 'WALL_CHOSEN', 'REDUCE', 'BENCH_WALL'].includes(k)) return 'protecao';
   if (['ABILITY_LOCK', 'ITEM_LOCK', 'SUPPORTER_LOCK', 'HAND_DISRUPT', 'ENERGY_DISRUPT', 'STADIUM_HATE', 'STADIUM_REPLACE', 'TOOL_HATE', 'SPECIAL_ENERGY_HATE'].includes(k)) return 'disrupcao';
   return 'dano';

@@ -36,5 +36,16 @@ A chave da API **nunca** vai para o site. O estrategista precisa de um servidor:
 - **Site público (próximo passo)**: uma função de servidor (Lovable/Supabase Edge Function, Cloudflare Worker…)
   que chama `runStrategist`; o site aponta para ela em `window.POKEMATCH_STRATEGIST_URL`.
 
+## Revisão das sugestões do motor e modo automático
+- **Revisão**: a ficha traz o **texto das 6 primeiras techs** sugeridas pelo motor e pede para a IA conferir cada uma
+  neste matchup (de quem é a energia/o alvo que a carta conta, se as listas têm o que ela pede). Se a IA discorda, ela
+  precisa citar o trecho exato da carta; o motor confere a citação no texto **daquela versão** da carta, e só então a
+  sugestão ganha o aviso "⚠ O estrategista discorda" no card (`verification.flags`). Caso que motivou: Diancie sugerida no
+  espelho do Sharpedo ("para cada Energia Especial do oponente" contra um deck sem Energia Especial).
+- **Rodar sempre**: caixinha "Rodar o estrategista junto em toda análise", ao lado do botão. É escolha de cada navegador
+  e vem **desligada** (cada leitura nova custa na chave do dono do site). O motor aparece na hora; a leitura chega depois.
+- **Leitura guardada**: mesmas listas + mesma dor = mesma ficha → o navegador reaproveita a leitura (últimas 8), sem
+  custo; o botão "Pedir leitura nova" força outra. Nada disso muda o servidor (prompt e esquema iguais).
+
 ## Custo
 ~US$ 0,05 a 0,15 por leitura com Claude Opus 5.5 (depende do tamanho das listas). O motor sozinho continua grátis.

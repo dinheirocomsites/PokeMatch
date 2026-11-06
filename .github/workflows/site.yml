@@ -31,14 +31,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Instala as dependências (SDK da Anthropic e esbuild, usadas nos testes)
+        run: npm install --no-audit --no-fund
       - name: Atualiza a base de cartas (TCGdex)
         if: github.event_name != 'push'
         run: npm run sync
       - name: Lê efeitos novos com a IA (só com o segredo ANTHROPIC_API_KEY)
         if: github.event_name != 'push' && env.ANTHROPIC_API_KEY != ''
-        run: |
-          npm install --no-audit --no-fund
-          node scripts/llm-classify.js --max 400
+        run: node scripts/llm-classify.js --max 400
       # Salva ANTES dos testes: o que já foi pago à API nunca se perde (mesmo se um teste falhar depois)
       - name: Salva a base atualizada no repositório
         if: always() && github.event_name != 'push'

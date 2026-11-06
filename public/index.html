@@ -202,6 +202,10 @@
     <h2 class="section-title">🩺 Diagnóstico <small>por que o seu deck perde este matchup</small></h2>
     <div class="diag" id="diag"></div>
 
+    <h2 class="section-title">🧠 Estrategista <small>beta · a IA lê o matchup e o motor confere cada afirmação</small></h2>
+    <div class="diag" id="strat"><button class="go" id="stratGo" style="font-size:15px;padding:10px 16px">🧠 Pedir a leitura do estrategista</button>
+      <div id="stratOut" style="margin-top:10px"></div></div>
+
     <h2 class="section-title">🧭 Caminhos para virar o matchup <small>agrupados pelo tipo de solução</small></h2>
     <div class="clusters" id="clusters"></div>
 
@@ -314,6 +318,37 @@ async function runAnalysis(payload) {
   const r = localEngine.analyze(payload.mine, payload.opp, localEngine.db, { limit: 8, context: payload.context.slice(0, 2000) });
   return { res: { ok: true }, data: localEngine.toJson(r, localEngine.db) };
 }
+
+// Estrategista: precisa de um servidor com a chave da API (npm start com ANTHROPIC_API_KEY, ou a função do Lovable/Supabase).
+// No site estático, defina window.POKEMATCH_STRATEGIST_URL com o endereço da função.
+const STRAT_URL = window.POKEMATCH_STRATEGIST_URL || (!window.TF_STATIC ? '/api/strategist' : '');
+function renderStrategy(o) {
+  const icon = { ok: '✅', erro: '❌', '?': '❔' };
+  const s = o.strategy, v = o.verification;
+  return `<div style="line-height:1.5">
+    <p><b>Plano do oponente:</b> ${esc(s.opponent_plan.summary_pt)}</p>
+    <p><b>O seu problema:</b> ${esc(s.my_problem.summary_pt)} <i>${esc(s.my_problem.mechanism_pt)}</i></p>
+    <h3 style="margin:10px 0 4px">Afirmações conferidas pelo motor <small>(${v.summary.confirmed}/${v.summary.claims} confirmadas${v.summary.refuted ? `, ${v.summary.refuted} derrubadas` : ''})</small></h3>
+    <ul style="margin:0;padding-left:18px">${v.claims.map((c) => `<li>${icon[c.status]} ${esc(c.text_pt)} <small style="opacity:.75">— ${esc(c.check)}</small></li>`).join('')}</ul>
+    <h3 style="margin:10px 0 4px">Techs da IA</h3>
+    <ul style="margin:0;padding-left:18px">${v.techs.map((t) => `<li>${icon[t.status]} <b>${esc(t.card)}</b> — ${esc(t.why_pt)} <small style="opacity:.75">— ${esc(t.check)}</small></li>`).join('')}</ul>
+    ${s.play_tips_pt.length ? `<h3 style="margin:10px 0 4px">Como jogar</h3><ul style="margin:0;padding-left:18px">${s.play_tips_pt.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+    ${s.disagreements_pt.length ? `<h3 style="margin:10px 0 4px">Onde a IA discorda do motor</h3><ul style="margin:0;padding-left:18px">${s.disagreements_pt.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+    ${s.uncertainty_pt ? `<p style="opacity:.8"><b>Incerteza:</b> ${esc(s.uncertainty_pt)}</p>` : ''}
+    <p style="opacity:.6;font-size:12px">Só as afirmações ✅ foram confirmadas pelas contas do motor. Custo desta leitura: ~US$ ${o.usage.usd.toFixed(3)} (${esc(o.model)}).</p></div>`;
+}
+document.addEventListener('click', async (ev) => {
+  if (ev.target?.id !== 'stratGo') return;
+  const out = $('#stratOut');
+  if (!STRAT_URL) { out.innerHTML = '<p>O estrategista precisa de um servidor com a chave da API (a chave nunca fica no site). Ele ainda não está ligado nesta versão — veja docs/ESTRATEGISTA.md.</p>'; return; }
+  ev.target.disabled = true; out.innerHTML = '<p>🧠 Lendo o matchup (leva uns 20–60 s)…</p>';
+  try {
+    const res = await fetch(STRAT_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ mine: $('#mine').value, opp: $('#opp').value, context: $('#ctx').value }) });
+    const data = await res.json();
+    out.innerHTML = res.ok ? renderStrategy(data) : `<p>⚠ ${esc(data.error ?? 'erro')}</p>`;
+  } catch (e) { out.innerHTML = `<p>⚠ ${esc(e.message)}</p>`; }
+  ev.target.disabled = false;
+});
 
 function status(el, deck) {
   if (deck.errors.length) { el.className = 'status err'; el.innerHTML = '⚠ ' + deck.errors.map(esc).join('<br>⚠ '); }

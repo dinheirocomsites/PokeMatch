@@ -1,0 +1,31 @@
+# Avaliação do estrategista (IA lê o matchup, motor confere). Só roda quando disparado à mão (Actions → Run workflow).
+# Usa o segredo ANTHROPIC_API_KEY; custo típico: poucos centavos de dólar por caso.
+name: Estrategista (avaliação)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - name: Roda os casos
+        run: node scripts/strategist-eval.js
+      - name: Salva o relatório
+        if: always()
+        run: |
+          git config user.name "pokematch-bot"
+          git config user.email "actions@users.noreply.github.com"
+          if [ -f docs/estrategista-avaliacao.md ]; then git add docs/estrategista-avaliacao.md; fi
+          git diff --cached --quiet || git commit -m "Avaliação do estrategista ($(date -u +%F))"
+          git push

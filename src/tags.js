@@ -291,6 +291,22 @@ export function extractTags(card) {
       if (/energy can.t be attached from your opponent.s hand to the defending|if they attach an energy card from their hand to the defending pok[eé]mon, their turn ends|pok[eé]mon that have \d+ or less energy attached can.t attack|whenever (they|your opponent) attach(es)? an energy card from (their|the) hand[^.]*(put|place) \d+ damage counters/i.test(s)) tags.push({ ...base, kind: 'ATTACH_LOCK' });
     }
   }
+  // Efeitos lidos pela IA (rodada 7), já conferidos pelo validador: só entram onde a regra não leu nada daquele tipo
+  for (const it of card.llm ?? []) {
+    const source = (card.abilities ?? []).some((a) => a.name === it.block) ? 'ability' : (card.attacks ?? []).some((a) => a.name === it.block) ? 'attack' : 'trainer';
+    const atk = source === 'attack' ? card.attacks.find((a) => a.name === it.block) : null;
+    for (const e of it.effects ?? []) {
+      if (e.kind === 'NONE' || tags.some((t) => t.kind === e.kind && t.name === it.block)) continue;
+      const t = { source, name: it.block, cost: atk?.cost ?? [], cond: e.cond ?? [], kind: e.kind, via: 'ia', summary: it.summary };
+      if (e.amount) t.amount = e.amount;
+      if (e.status) t.status = e.status;
+      if (e.kind === 'HEAL') t.scope = e.scope === 'all' ? 'all' : 'one';
+      if (e.kind === 'PLACE_COUNTERS') t.where = e.scope === 'bench' ? 'benched pokémon' : e.scope === 'active' ? 'active pokémon' : 'pokémon';
+      if (e.kind === 'DRAWBACK') t.what = 'other';
+      if (['EXTRA_DMG', 'REDUCE', 'WALL_SELF', 'ABILITY_LOCK'].includes(e.kind)) { const sel = e.target ? parseSelector(e.target) : {}; t.sel = sel.unknown ? {} : sel; }
+      tags.push(t);
+    }
+  }
   // Estádios sempre "removem" o estádio do oponente ao serem jogados
   if (card.trainerType === 'Stadium' && !tags.some((t) => t.kind === 'STADIUM_HATE')) {
     tags.push({ source: 'trainer', name: card.name, kind: 'STADIUM_REPLACE', cond: [] });

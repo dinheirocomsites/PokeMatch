@@ -1,5 +1,6 @@
 // Base de cartas: normalização, campos derivados e índices (sem dependências de Node).
 import { setTraits, ownerOf } from './tags.js';
+import { indexByCard } from './llm-effects.js';
 export const BASIC_ENERGY = ['Grass', 'Fire', 'Water', 'Lightning', 'Psychic', 'Fighting', 'Darkness', 'Metal'].map((t) => `${t} Energy`);
 
 export function normName(s) {
@@ -52,7 +53,9 @@ function enrich(c0) {
 export function buildDb(raw) {
   // Subtipos Tera/Ancient/Future vindos da Pokémon TCG API (o TCGdex não informa)
   if (raw.traits) setTraits(raw.traits);
-  const cards = raw.cards.map(enrich);
+  // Efeitos lidos pela IA na sincronização (data/llm-effects.json), já conferidos pelo validador
+  const llm = indexByCard(raw.llm);
+  const cards = raw.cards.map((c) => { const e = enrich(c); if (llm[e.name]) e.llm = llm[e.name]; return e; });
   const byId = new Map();
   const bySetNum = new Map(); // "TWM-84" -> card
   const byName = new Map(); // nome normalizado -> [impressões]

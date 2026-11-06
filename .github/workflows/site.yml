@@ -1,6 +1,8 @@
 # Publica o PokeMatch no GitHub Pages.
 # - A cada push na main: roda os testes, gera o site estático e publica.
 # - Todo dia às 06:17 (UTC): baixa as cartas atualizadas do TCGdex e republica.
+# - Camada de IA: se o segredo ANTHROPIC_API_KEY existir, na sincronização (diária ou manual) o Claude lê
+#   as frases que as regras ainda não entendem; o motor confere cada resposta. Só frases novas são enviadas.
 name: Site
 
 on:
@@ -22,6 +24,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -30,6 +34,11 @@ jobs:
       - name: Atualiza a base de cartas (TCGdex)
         if: github.event_name != 'push'
         run: npm run sync
+      - name: Lê efeitos novos com a IA (só com o segredo ANTHROPIC_API_KEY)
+        if: github.event_name != 'push' && env.ANTHROPIC_API_KEY != ''
+        run: |
+          npm install --no-audit --no-fund
+          node scripts/llm-classify.js --max 400
       - name: Testes
         run: npm test
       - name: Salva a base atualizada no repositório
@@ -38,6 +47,7 @@ jobs:
           git config user.name "pokematch-bot"
           git config user.email "actions@users.noreply.github.com"
           git add data/cards.json
+          if [ -f data/llm-effects.json ]; then git add data/llm-effects.json; fi
           git diff --cached --quiet || git commit -m "Atualiza base de cartas ($(date -u +%F))"
           git push
       - name: Gera o site estático

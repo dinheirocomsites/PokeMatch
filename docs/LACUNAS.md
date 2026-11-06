@@ -9,7 +9,20 @@
 | Rodada 3 (Pokémon de Treinador: N, Lupo/Hop, Equipe Rocket…) | 58% | 65% | 62 |
 | Rodada 4 (simulador realista + eixos novos de diagnóstico) | 58% | 66% | 72 |
 | Rodada 5 (régua nova + leitor genérico de condições de dano) | 79% lido · 69% usado · 8% testado | 100% | 84 |
-| Rodada 6 (famílias que mudam o cálculo + buscas na simulação de mão) | **87% lido · 80% usado · 13% testado** | **100%** | **96** |
+| Rodada 6 (famílias que mudam o cálculo + buscas na simulação de mão) | 87% lido · 80% usado · 13% testado | 100% | 96 |
+| Rodada 7 (camada de IA pronta; aguardando a chave para rodar) | 87% lido · 80% usado (regras) — IA ainda não rodou | 100% | **101** |
+
+### Rodada 7: camada de IA (pronta, aguardando a chave)
+**Como funciona**
+1. `npm run classify` (ou o passo do GitHub Actions) pega as frases que as regras não entendem (hoje 360) e manda ao Claude (Opus 5.5) em lotes, com o texto inteiro da carta para contexto.
+2. O Claude responde em **saída estruturada**: só pode usar os tipos de efeito que o motor sabe usar (dano extra, redução, cura, contadores, condição, travas, retaliação, evolução, prêmios…) ou "sem efeito tático", sempre com um resumo em português.
+3. **O motor confere cada resposta** (`src/llm-effects.js`): o tipo precisa aparecer no texto da carta, o número precisa existir no texto (dano ou contadores ×10), condição especial precisa bater, moeda no texto vira condição "moeda". O que não passa fica **rejeitado com o motivo** e não entra no cálculo.
+4. O resultado vai para `data/llm-effects.json` (cache): cada frase é paga **uma vez**; nas próximas sincronizações só vão as frases de cartas novas.
+5. As sugestões que usam um efeito lido pela IA dizem isso: "(efeito lido pela IA e conferido pelo motor)". A auditoria mostra quantas frases vieram da IA.
+
+**Segurança e custo**: a chave nunca vai para o site nem para o código — fica num **segredo do GitHub** (`ANTHROPIC_API_KEY`). Sem a chave, o passo não roda e o site segue só com as regras. Custo estimado da primeira leitura: **~US$ 2,40** (`npm run classify:dry` mostra a estimativa antes de gastar).
+
+**Para ligar**: no GitHub, PokeMatch → Settings → Secrets and variables → Actions → New repository secret → nome `ANTHROPIC_API_KEY`, valor = sua chave da API do Claude. Depois: Actions → Site → Run workflow.
 
 ### Coberto na rodada 6
 Das 578 frases que sobravam, 408 apareciam em **uma carta só**. Em vez de uma regra por carta, a rodada atacou **famílias** e só contou como "usado" o que entra num cálculo:

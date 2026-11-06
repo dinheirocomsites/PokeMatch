@@ -1,7 +1,7 @@
 {
   "name": "pokematch",
   "version": "0.1.0",
-  "description": "Sugere tech cards para o seu deck de Pok\u00e9mon TCG contra um deck espec\u00edfico",
+  "description": "Sugere tech cards para o seu deck de Pokémon TCG contra um deck específico",
   "type": "module",
   "scripts": {
     "sync": "NODE_USE_ENV_PROXY=1 node --no-warnings scripts/sync-cards.js",
@@ -10,10 +10,13 @@
     "build": "node scripts/build-static.js",
     "audit": "node scripts/audit-damage.js",
     "build:single": "node scripts/build-single.js",
-    "audit:coverage": "node scripts/audit-coverage.js"
+    "audit:coverage": "node scripts/audit-coverage.js",
+    "classify": "node scripts/llm-classify.js",
+    "classify:dry": "node scripts/llm-classify.js --dry-run"
   },
   "license": "MIT",
   "devDependencies": {
+    "@anthropic-ai/sdk": "^1.6.0",
     "esbuild": "^0.24.2"
   }
 }

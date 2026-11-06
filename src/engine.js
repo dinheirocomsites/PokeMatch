@@ -371,7 +371,7 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
     const used = [];
     for (const t of extractTags(card)) {
       const v = tagValue(t, opp, me, ctx);
-      if (v && v.value >= 3) { reasons.push({ ...v, kind: t.kind }); used.push(t); }
+      if (v && v.value >= 3) { reasons.push({ ...v, kind: t.kind, why: t.via === 'ia' ? `${v.why} (efeito lido pela IA e conferido pelo motor)` : v.why }); used.push(t); }
     }
     const w = weaknessValue(card, opp, me);
     if (w) reasons.push(w);

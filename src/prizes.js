@@ -220,7 +220,7 @@ function oppChoose(target, opp, oppLeft, hitsTaken, extraWalls = [], ctx = {}) {
       return applySpread(sp, ctx.bench, bd, [...(ctx.benchLost ?? [])]).reduce((n, b) => n + b.prizeValue, 0);
     };
     for (const a of atks) {
-      const r = damageVs(a, e.card, target, { deck: opp, oppTaken: 3, weaknessOverride: ctx.wo, reduction: reductionOn(target, e.card) });
+      const r = damageVs(a, e.card, target, { deck: opp, defDeck: ctx.defDeck, oppTaken: 3, weaknessOverride: ctx.wo, reduction: reductionOn(target, e.card) });
       const dmg = Math.max(0, r.dmg + (r.dmg ? (ctx.takesMore ?? 0) : 0) - (r.counters ? 0 : (ctx.shield ?? 0)));
       const bp = benchPrizes(a);
       const value = (dmg + hitsTaken >= hp ? target.prizeValue : 0) + bp; // prêmios que esse ataque tira neste turno
@@ -285,7 +285,7 @@ export function simulateRace(me, opp, { extraAttackers = [], denial = null, ener
   // Quem está no Ativo dele no seu 1º ataque: um Básico que trava Itens com ataque barato (ex.: Budew),
   // se ele tiver; senão quem mata o seu atacante principal entre os que já estão prontos (Básico/Estágio 1)
   const lockOpener = opp.entries.find((e) => e.card.category === 'Pokemon' && e.card.stage === 'Basic' && (e.card.attacks ?? []).some((a) => (a.cost ?? []).length <= 1 && /can.t play any item cards/i.test(a.effect ?? '')))?.card.name;
-  const opener = lockOpener ?? (me.mainAttacker && oppChoose(me.mainAttacker, opp, oppLeft0, 0, [], { oppTurn: 1 })?.card.name)
+  const opener = lockOpener ?? (me.mainAttacker && oppChoose(me.mainAttacker, opp, oppLeft0, 0, [], { oppTurn: 1, defDeck: me })?.card.name)
     ?? [...opp.threat].filter((e) => e.feas >= 0.3 && (e.card.attacks ?? []).length && e.card.stage !== 'Stage2').sort((a, b) => b.threat - a.threat)[0]?.card.name
     ?? opp.entries.find((e) => e.card.category === 'Pokemon' && e.card.stage === 'Basic')?.card.name ?? opp.entries.find((e) => e.card.category === 'Pokemon')?.card.name;
   // No banco dele (alcançável com Boss): Pokémon com habilidade que funciona no banco + os que já atacaram
@@ -307,7 +307,7 @@ export function simulateRace(me, opp, { extraAttackers = [], denial = null, ener
   if (dis.ruins) for (const b of myBench) if (b.stage === 'Basic' && !(b.types ?? []).includes(dis.ruins.notType)) benchDmg0[b.name] = dis.ruins.dmg;
   const income = 1 + (eng.accel ? 1 : 0); // energia por turno: 1 manual + aceleração
   const SETUP_BANK = dis.earlyLock ? 2 : 3; // trava de Itens no 1º turno = setup menor
-  const killsMain = new Set(me.mainAttacker ? opp.threat.filter((e) => e.feas >= 0.3 && (e.card.attacks ?? []).some((a) => damageVs(a, e.card, me.mainAttacker, { deck: opp, oppTaken: 3, weaknessOverride: oppWO }).dmg >= me.mainAttacker.hp - 20)).map((e) => e.card.name) : []);
+  const killsMain = new Set(me.mainAttacker ? opp.threat.filter((e) => e.feas >= 0.3 && (e.card.attacks ?? []).some((a) => damageVs(a, e.card, me.mainAttacker, { deck: opp, defDeck: me, oppTaken: 3, weaknessOverride: oppWO }).dmg >= me.mainAttacker.hp - 20)).map((e) => e.card.name) : []);
   const effHp = (t, st) => t.hp + (oppCape && st.capeLeft && t.name === capeOn ? oppCape.amount : 0) - (st.oppDmg?.[t.name] ?? 0);
   // Tempo de evolução: se o seu atacante é Estágio 1/2, ele só ataca no seu 2º turno → o oponente ataca antes,
   // no Básico que vai evoluir (o dano fica no Pokémon depois de evoluir). Atacante Básico: supõe que você vai 2º.
@@ -329,7 +329,7 @@ export function simulateRace(me, opp, { extraAttackers = [], denial = null, ener
         if ((a.cost ?? []).length > 2) continue; // 1º/2º turno dele: no máximo 2 energias
         // começo de jogo: tabuleiro quase vazio → ataque variável conta só o dano base (sem "por Pokémon no banco")
         const earlyAtk = /[×+]$/.test(String(a.damage ?? '')) ? { ...a, damage: String(parseInt(a.damage, 10) || 0), effect: '' } : a;
-        const r = damageVs(earlyAtk, e.card, starter, { deck: opp, oppTaken: 0, weaknessOverride: oppWO });
+        const r = damageVs(earlyAtk, e.card, starter, { deck: opp, defDeck: me, oppTaken: 0, weaknessOverride: oppWO });
         const sp = spreadOf(a);
         const bd = {};
         const benchKOs = sp ? applySpread(sp, early, bd, []) : [];
@@ -349,7 +349,18 @@ export function simulateRace(me, opp, { extraAttackers = [], denial = null, ener
   let best = null;
   const finals = [];
   const memo = new Map();
+  // Fecha uma linha de jogo (fim normal, limite de turnos, travado, ou nenhum atacante consegue jogar)
+  function finish(state, steps, depth) {
+    // Vence quem fecha primeiro; entre vitórias, prefere margem MAS cobra recursos (Boss e energia)
+    const cost = state.gustsUsed * 4 + state.energySpent * 1.5;
+    const score = state.myTaken >= 6 ? 1000 - depth * 20 + (6 - state.oppTaken) * 5 - cost : state.oppTaken >= 6 ? state.myTaken * 10 - 500 - cost : state.myTaken * 10 - state.oppTaken * 10 - 100 - cost;
+    const res = { score, steps, win: state.myTaken >= 6, myTaken: state.myTaken, oppTaken: state.oppTaken, turns: depth, gustsUsed: state.gustsUsed, energySpent: state.energySpent, ...(state.noMove ? { noMove: true } : {}) };
+    finals.push(res);
+    if (!best || score > best.score) best = res;
+  }
+  let calls = 0;
   function rec(stateIn, steps, depth, parentKey = null) {
+    const myCall = ++calls;
     let state = stateIn;
     const key = `${JSON.stringify(state.oppDmg)}|${state.tempo}|${JSON.stringify(state.benchDmg)}|${state.oppCooldown}|${state.capeLeft}|${state.myCapeLeft}|${state.hammer}|${state.stampLeft}|${state.stamped}|${state.active?.cool}|${state.active?.needEnergy}|${state.oppGusts}|${(state.benchLost ?? []).join(',')}|${state.bank}|${state.gustsUsed}|${state.energySpent}|${state.myTaken}|${state.oppTaken}|${state.active?.card.name}|${state.active?.dmgTaken}|${[...state.shown].sort()}|${state.oppActive}|${state.gusts}|${[...state.myLeft.values()]}|${[...state.oppLeft.values()]}|${state.denialLeft}`;
     // Fim de jogo vem antes da poda: um estado igual ao anterior (ex.: ele ficou sem Pokémon) ainda precisa fechar o jogo
@@ -361,15 +372,7 @@ export function simulateRace(me, opp, { extraAttackers = [], denial = null, ener
       if (memo.has(key) && memo.get(key) <= depth) return;
       memo.set(key, depth);
     }
-    if (state.myTaken >= 6 || state.oppTaken >= 6 || depth >= maxTurns || stalled) {
-      // Vence quem fecha primeiro; entre vitórias, prefere margem MAS cobra recursos (Boss e energia)
-      const cost = state.gustsUsed * 4 + state.energySpent * 1.5;
-      const score = state.myTaken >= 6 ? 1000 - depth * 20 + (6 - state.oppTaken) * 5 - cost : state.oppTaken >= 6 ? state.myTaken * 10 - 500 - cost : state.myTaken * 10 - state.oppTaken * 10 - 100 - cost;
-      const res = { score, steps, win: state.myTaken >= 6, myTaken: state.myTaken, oppTaken: state.oppTaken, turns: depth, gustsUsed: state.gustsUsed, energySpent: state.energySpent };
-      finals.push(res);
-      if (!best || score > best.score) best = res;
-      return;
-    }
+    if (state.myTaken >= 6 || state.oppTaken >= 6 || depth >= maxTurns || stalled) return finish(state, steps, depth);
     const choices = state.active ? [state.active.att, ...pool.filter((p) => p !== state.active.att)] : pool;
     for (const att of choices) {
       if (!state.myLeft.get(att.card.name)) continue;
@@ -384,7 +387,7 @@ export function simulateRace(me, opp, { extraAttackers = [], denial = null, ener
         let r = null;
         for (const a of att.atks) {
           if (!payable(a)) continue;
-          const x = myDamage(att.card, a, t, state, meX, eng, { weaknessOverride: myWO, reduction: reductionOn(t, att.card) });
+          const x = myDamage(att.card, a, t, state, meX, eng, { defDeck: opp, weaknessOverride: myWO, reduction: reductionOn(t, att.card) });
           const chk = x.dmg ? checkupDamage(a, att.card, t, meX) : { dmg: 0 };
           const sturdy = !(state.oppDmg?.[t.name]) && tagsOf(t).some((tg) => tg.kind === 'SURVIVE_FULL');
           if (x.dmg && !sturdy && x.dmg + chk.dmg >= effHp(t, state) && (!r || (a.cost ?? []).length < (r.a.cost ?? []).length || x.dmg > r.r.dmg)) r = { a, r: x, chk: x.dmg >= effHp(t, state) ? null : chk };
@@ -396,7 +399,7 @@ export function simulateRace(me, opp, { extraAttackers = [], denial = null, ener
         let r = null;
         for (const a of att.atks) {
           if (!payable(a)) continue;
-          const x = myDamage(att.card, a, t, state, meX, eng, { weaknessOverride: myWO, reduction: reductionOn(t, att.card) });
+          const x = myDamage(att.card, a, t, state, meX, eng, { defDeck: opp, weaknessOverride: myWO, reduction: reductionOn(t, att.card) });
           const chk = x.dmg ? checkupDamage(a, att.card, t, meX) : { dmg: 0 };
           if (x.dmg + chk.dmg > 0 && (!r || x.dmg + chk.dmg > r.r.dmg + (r.chk?.dmg ?? 0))) r = { a, r: x, chk };
         }
@@ -414,7 +417,7 @@ export function simulateRace(me, opp, { extraAttackers = [], denial = null, ener
         for (const t of targets) {
           if (!state.oppLeft.get(t.name) || t.name === state.oppActive || !(benchy.has(t.name) || state.shown.has(t.name))) continue;
           for (const a of att.atks.filter((x) => pullsIn(x) && payable(x))) {
-            const x = myDamage(att.card, a, t, state, meX, eng, { weaknessOverride: myWO, reduction: reductionOn(t, att.card) });
+            const x = myDamage(att.card, a, t, state, meX, eng, { defDeck: opp, weaknessOverride: myWO, reduction: reductionOn(t, att.card) });
             if (x.dmg >= effHp(t, state) && (!g || t.prizeValue > g.t.prizeValue)) g = { t, a, r: x, gust: false, pulled: true };
           }
         }
@@ -490,7 +493,7 @@ export function simulateRace(me, opp, { extraAttackers = [], denial = null, ener
         // Seu ataque trava o Pokémon que sobreviveu a ele ("the Defending Pokémon can't attack"): ele não ataca agora
         const locked = myDb.lockDefender && pick?.chip ? pick.t.name : null;
         if (locked) step.locked = locked;
-        const hit = oppChoose(att.card, opp, oppLeft, prevHits, used ? attackWalls(att.card, used.name) : [], { cooldown: [state.oppCooldown, locked].filter(Boolean), wo: oppWO, hpBonus: myHpBonus, takesMore: myDb.takesMore, shield: myDb.shield, oppTurn: depth + 1 + tempo, bench: myBench.filter((b) => b.name !== att.card.name), benchDmg: state.benchDmg, benchLost: state.benchLost });
+        const hit = oppChoose(att.card, opp, oppLeft, prevHits, used ? attackWalls(att.card, used.name) : [], { defDeck: meX, cooldown: [state.oppCooldown, locked].filter(Boolean), wo: oppWO, hpBonus: myHpBonus, takesMore: myDb.takesMore, shield: myDb.shield, oppTurn: depth + 1 + tempo, bench: myBench.filter((b) => b.name !== att.card.name), benchDmg: state.benchDmg, benchLost: state.benchLost });
         if (myDb.shield) step.shield = myDb.shield;
         let oppTaken = state.oppTaken + preTaken;
         let active = null;
@@ -516,7 +519,7 @@ export function simulateRace(me, opp, { extraAttackers = [], denial = null, ener
             let g = null;
             for (const b of myBench) {
               if (benchLost.includes(b.name) || b.name === att.card.name) continue;
-              const h = oppChoose(b, opp, oppLeft, benchDmg[b.name] ?? 0, [], { cooldown: state.oppCooldown, wo: oppWO, oppTurn: depth + 1 + tempo });
+              const h = oppChoose(b, opp, oppLeft, benchDmg[b.name] ?? 0, [], { defDeck: meX, cooldown: state.oppCooldown, wo: oppWO, oppTurn: depth + 1 + tempo });
               if (h?.ko && (!g || b.prizeValue > g.b.prizeValue)) g = { b, h };
             }
             if (g) {
@@ -562,6 +565,9 @@ export function simulateRace(me, opp, { extraAttackers = [], denial = null, ener
         rec({ myTaken, oppTaken, myLeft, oppLeft, oppDmg, tempo, active, oppActive: hit?.card.name ?? state.oppActive, gusts: gustsLeft, denialLeft, shown, gustsUsed, energySpent, bank: nextBank, oppGusts: state.oppGusts, benchLost, benchDmg, oppCooldown, capeLeft, myCapeLeft, hammer, stampLeft, stamped }, [...steps, step], depth + 1, key);
       }
     }
+    // Nenhum atacante conseguiu jogar a partir daqui (sem atacante pagável, sem energia…): a linha fecha como está.
+    // Antes isto não registrava nada e, sem nenhuma linha, a análise inteira quebrava.
+    if (calls === myCall) finish({ ...state, noMove: true }, steps, depth);
   }
   const myLeft = new Map(pool.map((p) => [p.card.name, p.count]));
   rec({ myTaken: 0, oppTaken: 0, myLeft, oppLeft: oppLeft0, oppDmg: {}, tempo: 0, active: null, oppActive: opener, gusts, denialLeft: denial ? (denial.uses ?? 1) : 0, shown: new Set([opener]), gustsUsed: 0, energySpent: 0, bank: SETUP_BANK, oppGusts: oppGusts0, benchLost: [], benchDmg: benchDmg0, oppCooldown: null, capeLeft: !!oppCape, myCapeLeft: !!myCape, hammer: dis.hammerBudget, stampLeft: dis.stampLeft, stamped: false }, [], 0);

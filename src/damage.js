@@ -87,6 +87,55 @@ export function condProb(cond, attacker, target, ctx = {}) {
   return null;
 }
 
+// "Para cada Energia …": toda contagem tem um LADO (este Pokémon / os seus / os do oponente / os dois Ativos)
+// e um TIPO (Especial, Básica, {X}). Erro que isto evita: Diffuse Reflection ("for each Special Energy attached to
+// all of your opponent's Pokémon") contar 3 Energias Especiais num oponente que só joga Energia básica (240 de dano
+// que na mesa é 0). Conta no deck do lado certo (ctx.defDeck = deck de quem defende). Devolve null quando não se aplica
+// ou quando o deck daquele lado é desconhecido (aí vale a estimativa antiga).
+function energyEach(e, deck, ctx) {
+  if (/flip (a coin|\d+ coins) for each/i.test(e)) return null; // moedas: tratadas adiante
+  const count = (d, kind, T) => {
+    if (!d?.counts) return null;
+    if (/special/i.test(kind ?? '')) return d.counts.specialEnergy ?? 0;
+    if (T) return eOf(d, T) + (/basic/i.test(kind ?? '') ? 0 : (d.anyEnergy ?? 0));
+    if (/basic/i.test(kind ?? '')) return d.counts.basicEnergy ?? 0;
+    return d.counts.energy ?? 0;
+  };
+  // na pilha de descarte: só zera quando o lado não tem esse tipo de energia
+  const dp = e.match(/for each (basic |special )?(\{([a-z])\} )?energy cards? (?:that is )?in (your opponent's|your) discard pile/i);
+  if (dp) {
+    const n = count(/opponent/i.test(dp[4]) ? ctx.defDeck : deck, dp[1], dp[3] ? SYMK[dp[3].toUpperCase()] : null);
+    return n === 0 ? 0 : null;
+  }
+  const m = e.match(/for each (type of )?(basic |special )?(\{([a-z])\} )?energy(?: cards?)? attached to (this pok[eé]mon|(?:all of )?your opponent's active pok[eé]mon|all of your opponent's pok[eé]mon|(?:all of )?your (?:[\w.' ]+?'s )?pok[eé]mon|both active pok[eé]mon|all pok[eé]mon)/i);
+  if (!m) return null;
+  const [, typeOf, kind, , sym, who] = m;
+  const T = sym ? SYMK[sym.toUpperCase()] : null;
+  const special = /special/i.test(kind ?? '');
+  // tipos diferentes de Energia básica (Sylveon ex): quantos tipos o deck joga, até 4
+  if (typeOf) {
+    const types = new Set(ents(deck).filter((x) => x.card.isBasicEnergy).map((x) => x.card.name));
+    return deck?.entries ? Math.min(4, types.size) : null;
+  }
+  // um lado: quantas dessas energias costumam estar ligadas (base = estimativa antiga)
+  const side = (d, base, theirs) => {
+    let n = count(d, kind, T);
+    if (n === null) return null;
+    // do seu lado, a energia {X} pode vir no pacote da própria tech (energia nova que o motor testa junto)
+    if (!theirs && T && n === 0 && !special && (ctx.energyTypes ?? d.energyTypes)?.has?.(T)) n = 1;
+    if (n === 0) return 0;
+    if (special) return Math.min(base, n >= 8 ? 3 : n >= 4 ? 2 : 1); // Especial: poucas cópias, poucas na mesa
+    if (T && theirs) { const all = d.counts.energy || n; return Math.max(1, Math.round(base * Math.min(1, n / all))); } // ele liga o que o deck dele tem
+    return base;
+  };
+  if (/^this pok/i.test(who)) return side(deck, special ? 1 : 3, false);
+  if (/opponent's active/i.test(who)) return side(ctx.defDeck, special ? 2 : 3, true);
+  if (/opponent's/i.test(who)) return side(ctx.defDeck, 3, true);
+  if (/^both active/i.test(who)) { const a = side(deck, 2, false), b = side(ctx.defDeck, 3, true); return a === null || b === null ? null : a + b; }
+  if (/^all pok/i.test(who)) { const a = side(deck, 1.5, false), b = side(ctx.defDeck, 1.5, true); return a === null || b === null ? null : a + b; }
+  return side(deck, 3, false); // os seus Pokémon (inclusive "your Iono's Pokémon")
+}
+
 // Quantas vezes um "for each" costuma contar, no contexto do deck que ataca
 export function multiplier(effect, deck, defenderBench = 5, ctx = {}) {
   const maxInPlay = deck?.bigBench ? 9 : 6;
@@ -101,6 +150,8 @@ export function multiplier(effect, deck, defenderBench = 5, ctx = {}) {
   if (/for each item card in your opponent's discard pile/i.test(e)) return 4;
   if (/for each pok[eé]mon tool attached to all pok[eé]mon/i.test(e)) return Math.min(3, ((deck?.counts?.tool ?? 0) > 0 ? 1 : 0) + 1);
   if (/for each special energy card attached to this pok[eé]mon/i.test(e)) return (deck?.counts?.specialEnergy ?? 0) > 0 ? 1 : 0;
+  const ee = energyEach(e, deck, ctx);
+  if (ee !== null) return ee;
   if (/for each supporter card that has "team rocket" in its name in your discard pile/i.test(e)) return Math.min(4, cnt(deck, (c) => c.trainerType === 'Supporter' && /team rocket/i.test(c.name)) / 2);
   if (/for each ancient card in your discard pile/i.test(e)) return 4;
   if ((m = e.match(/for each (.+?) card in your discard pile/i))) return Math.min(3, cnt(deck, (c) => c.name === m[1].trim()));

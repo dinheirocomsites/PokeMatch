@@ -63,7 +63,7 @@ export function verifyStrategy(s, { me, opp, r, db }) {
     const target = findIn(me, c.target);
     if (!target) return { ...c, status: '?', check: `o alvo ${c.target} não está na sua lista` };
     const sp = spreadOf(attack);
-    const dmgActive = damageVs(attack, card, target, { deck: opp, oppTaken: 3 }).dmg;
+    const dmgActive = damageVs(attack, card, target, { deck: opp, defDeck: me, oppTaken: 3 }).dmg;
     const dmg = Math.max(dmgActive, sp ? sp.amount : 0); // no banco não tem fraqueza
     const ko = dmg >= target.hp;
     return { ...c, status: !canPay ? 'erro' : ko ? 'ok' : 'erro', damage: Math.round(dmg), hp: target.hp, check: !canPay ? `não paga ${cost(attack.cost)}` : `${Math.round(dmg)} de dano${sp ? ` (${sp.withActive ? 'em vários Pokémon' : 'no banco'})` : ''} contra ${target.hp} HP → ${ko ? 'nocauteia' : 'NÃO nocauteia'}` };

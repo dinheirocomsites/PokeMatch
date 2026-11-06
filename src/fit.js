@@ -39,7 +39,7 @@ export function potentialDamage(attack, deck) {
 }
 
 // Maior dano que os atacantes listados conseguem causar em "target"
-function worstHit(target, attackers, opp) {
+function worstHit(target, attackers, opp, me = null) {
   let worst = { dmg: 0, by: null, note: '' };
   const boosts = opp.tagsByCard.flatMap(({ tags }) => tags.filter((t) => t.kind === 'EXTRA_DMG' && !t.onlyFor && !t.ownerFor && !t.typeFor && matches(t.sel, target)).map((t) => t.amount));
   const boost = Math.max(0, ...boosts);
@@ -48,7 +48,7 @@ function worstHit(target, attackers, opp) {
   for (const e of attackers) {
     if (e.feas !== undefined && e.feas < 0.3) continue; // não consegue energizar esse ataque
     for (const a of e.card.attacks ?? []) {
-      const r = damageVs(a, e.card, target, { deck: opp, oppTaken: 3, bonus: boost + ownerBoost(e.card) });
+      const r = damageVs(a, e.card, target, { deck: opp, defDeck: me, oppTaken: 3, bonus: boost + ownerBoost(e.card) });
       if (r.dmg > worst.dmg) worst = { dmg: r.dmg, by: e.card.name, attack: a.name, note: r.notes.includes('fraqueza') ? ' (fraqueza ×2)' : '' };
     }
   }
@@ -85,7 +85,7 @@ export function evaluateFit(card, used, reasons, meBase, opp, db, opt = null) {
       const need = [...new Set(attackTags.flatMap((t) => t.cost ?? []).filter((x) => x !== 'Colorless'))].map(typePt);
       add('recursos', 0.25, `✗ O efeito vem de um ataque que precisa de energia ${need.join('/')} — seu deck não tem.`);
     } else if (koAttack && !canPayCost(koAttack.cost, me)) {
-      const need = [...new Set(koAttack.cost.filter((x) => x !== 'Colorless' && !me.energyTypes.has(x)))].map(typePt);
+      const need = [...new Set((koAttack.cost ?? []).filter((x) => x !== 'Colorless' && !me.energyTypes.has(x)))].map(typePt);
       add('recursos', 0.3, `✗ "${koAttack.name}" (o ataque que dá o valor) precisa de energia ${need.join('/')} — o pacote não consegue pagar.`);
     } else if (canAttack) { if (!opt?.energy) add('recursos', 1, `✓ ${koAttack ? `"${koAttack.name}" sai` : 'Consegue atacar'} com as energias do seu deck.`); }
     else if (reasons.some((r) => r.kind === 'COPY_SOURCE')) {
@@ -259,7 +259,7 @@ export function evaluateFit(card, used, reasons, meBase, opp, db, opt = null) {
     if (isWall) {
       const wall = used.find((t) => t.kind === 'WALL_SELF');
       const through = opp.threat.filter((e) => (e.card.attacks ?? []).length && e.feas >= 0.3 && !matches(wall.sel, e.card));
-      const w = worstHit(card, through, opp);
+      const w = worstHit(card, through, opp, me);
       if (!through.length) add('risco', 1, '✓ Nenhum atacante do oponente passa pela muralha.');
       else if (w.dmg >= card.hp) add('risco', 0.4, `✗ ${w.by} passa pela muralha e causa até ~${fmt(w.dmg)}${w.note} com "${w.attack}" — nocauteia ${card.name} (${card.hp} HP) de uma vez.`);
       else if (w.dmg * 2 >= card.hp) add('risco', 0.85, `⚠ ${w.by} passa pela muralha (~${fmt(w.dmg)}${w.note}): derruba ${card.name} em 2 ataques.`);
@@ -267,7 +267,7 @@ export function evaluateFit(card, used, reasons, meBase, opp, db, opt = null) {
       const gust = opp.entries.filter((e) => /switch in 1 of your opponent.s benched/i.test(e.card.text)).reduce((s, e) => s + e.count, 0);
       if (gust) add('risco', clamp(1 - gust * 0.04, 0.8), `• O oponente tem ${gust} carta(s) tipo Boss's Orders para contornar a muralha.`);
     } else {
-      const w = worstHit(card, opp.threat, opp);
+      const w = worstHit(card, opp.threat, opp, me);
       if (w.dmg >= card.hp) add('risco', 0.9, `• Cai em 1 ataque para ${w.by} (~${fmt(w.dmg)}).`);
     }
     if (card.isMega) add('risco', 0.75, '⚠ Mega ex: entrega 3 prêmios.');

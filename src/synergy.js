@@ -41,8 +41,8 @@ function bestPrevo(card, me, energyTypes, db) {
       let s = dmg / 30 + (a.cost?.length === 1 ? 1 : 0);
       if (/damage to 1 of your benched/i.test(a.effect ?? '') && wantsDamaged) {
         s += 2;
-        notes.push(`"${a.name}" (${a.cost.length} energia, ${dmg} de dano) também coloca dano no seu banco — ativa o "${me.mainAttacker.attacks.find((x) => /damage counters/i.test(x.effect ?? ''))?.name ?? 'bônus'}" do ${me.mainAttacker.name}`);
-      } else if (dmg) notes.push(`"${a.name}": ${dmg} de dano por ${a.cost.length} energia`);
+        notes.push(`"${a.name}" (${(a.cost ?? []).length} energia, ${dmg} de dano) também coloca dano no seu banco — ativa o "${me.mainAttacker.attacks.find((x) => /damage counters/i.test(x.effect ?? ''))?.name ?? 'bônus'}" do ${me.mainAttacker.name}`);
+      } else if (dmg) notes.push(`"${a.name}": ${dmg} de dano por ${(a.cost ?? []).length} energia`);
       score += s;
     }
     if (!best || score > best.score) best = { card: v, score, notes };
@@ -106,7 +106,7 @@ export function realDamage(card, me, opp, energyTypes, combo) {
   for (const e of opp.threat) {
     let best = null;
     for (const a of atks) {
-      const r = damageVs(a, card, e.card, { deck: me, oppTaken: 3, selfDamaged, bonus: combo.boost, ...me.pressure });
+      const r = damageVs(a, card, e.card, { deck: me, defDeck: opp, energyTypes, oppTaken: 3, selfDamaged, bonus: combo.boost, ...me.pressure });
       if (!best || r.dmg > best.dmg) best = { ...r, attack: a };
     }
     const total = best.dmg + combo.passive;

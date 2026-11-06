@@ -315,7 +315,7 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
   const keyTargets = opp.threat.filter((e) => e.feas >= 0.3 && (e.card.attacks ?? []).some((a) => attackDamage(a)));
   const keyThreat = keyTargets.reduce((s, e) => s + e.threat, 0) || 1;
   const mainKillers = new Set();
-  if (me.mainAttacker) for (const e of keyTargets) if ((e.card.attacks ?? []).some((a) => damageVs(a, e.card, me.mainAttacker, { deck: opp, oppTaken: 3 }).dmg >= me.mainAttacker.hp - 20)) mainKillers.add(e.card.name);
+  if (me.mainAttacker) for (const e of keyTargets) if ((e.card.attacks ?? []).some((a) => damageVs(a, e.card, me.mainAttacker, { deck: opp, defDeck: me, oppTaken: 3 }).dmg >= me.mainAttacker.hp - 20)) mainKillers.add(e.card.name);
   const koTradeValue = (card) => {
     if (card.category !== 'Pokemon') return null;
     let best = null;
@@ -329,7 +329,7 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
       let share = 0;
       for (const e of keyTargets) {
         if (e.card.prizeValue <= card.prizeValue) continue; // só troca favorável
-        const r = damageVs(a, card, e.card, { deck: me, oppTaken: 3, ...me.pressure });
+        const r = damageVs(a, card, e.card, { deck: me, defDeck: opp, oppTaken: 3, ...me.pressure });
         if (r.dmg >= e.card.hp) { kos.push({ name: e.card.name, dmg: r.dmg, notes: r.notes }); share += e.threat / keyThreat; }
       }
       if (!kos.length) continue;
@@ -367,8 +367,8 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
         const newKos = [];
         let share = 0, gain = 0;
         for (const t of tgts) {
-          const now = Math.max(0, ...(cp.card.attacks ?? []).map((x) => damageVs(x, cp.card, t.card, { deck: me, oppTaken: 3, ...me.pressure }).dmg));
-          const r = damageVs(virt, cp.card, t.card, { deck: me, oppTaken: 3, ...me.pressure });
+          const now = Math.max(0, ...(cp.card.attacks ?? []).map((x) => damageVs(x, cp.card, t.card, { deck: me, defDeck: opp, oppTaken: 3, ...me.pressure }).dmg));
+          const r = damageVs(virt, cp.card, t.card, { deck: me, defDeck: opp, oppTaken: 3, ...me.pressure });
           if (r.dmg >= t.card.hp && now < t.card.hp) { newKos.push({ name: t.card.name, dmg: r.dmg }); share += t.threat / tot; }
           if (t.card.name === opp.mainAttacker?.name) gain = r.dmg - now;
         }
@@ -377,7 +377,7 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
       }
     }
     if (!best || best.value < 8) return null;
-    const cost = best.copy.cost.map((x) => `{${{ Darkness: 'D', Fire: 'R', Water: 'W', Grass: 'G', Lightning: 'L', Psychic: 'P', Fighting: 'F', Metal: 'M', Colorless: 'C' }[x] ?? x}}`).join('');
+    const cost = (best.copy.cost ?? []).map((x) => `{${{ Darkness: 'D', Fire: 'R', Water: 'W', Grass: 'G', Lightning: 'L', Psychic: 'P', Fighting: 'F', Metal: 'M', Colorless: 'C' }[x] ?? x}}`).join('');
     return {
       kind: 'COPY_SOURCE', value: best.value, attackName: best.a.name, copier: best.cp.card.name, koNames: best.newKos.map((k) => k.name),
       why: `"${best.copy.name}" do seu ${best.cp.card.name} copia "${best.a.name}" (${best.a.damage}) pagando só ${cost}${best.newKos.length ? `: nocauteia ${best.newKos.map((k) => `${k.name} (${Math.round(k.dmg)})`).join(', ')} — hoje o ${best.cp.card.name} não nocauteia` : `: +${Math.round(best.gain)} de dano no ${opp.mainAttacker?.name}`}. O ${card.name} não precisa de energia: só fica no banco.`,
@@ -511,7 +511,7 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
     for (const e of opp.threat) {
       if (e.feas < 0.3) continue;
       const weak = (main.weaknesses ?? []).some((w) => (e.card.types ?? []).includes(w.type));
-      const dmg = Math.max(0, ...(e.card.attacks ?? []).map((a) => damageVs(a, e.card, main, { deck: opp, oppTaken: 3 }).dmg));
+      const dmg = Math.max(0, ...(e.card.attacks ?? []).map((a) => damageVs(a, e.card, main, { deck: opp, defDeck: me, oppTaken: 3 }).dmg));
       if (dmg >= main.hp - hurt) killers.push({ name: e.card.name, dmg: Math.round(dmg), weak, prize: e.card.prizeValue });
     }
   }
@@ -536,7 +536,7 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
       const myHpDown = me.tagsByCard.flatMap(({ entry, tags }) => tags.filter((t) => t.kind === 'HP_DOWN' && matches(t.sel, oppMain)).map((t) => ({ by: entry.card.name, amount: t.amount })));
       const hpCut = Math.max(0, ...myHpDown.map((x) => x.amount));
       const hp = oppMain.hp - hpCut;
-      const alone = damageVs(atk, main, oppMain, { deck: me, oppTaken: 2, selfDamaged }).dmg;
+      const alone = damageVs(atk, main, oppMain, { deck: me, defDeck: opp, oppTaken: 2, selfDamaged }).dmg;
       const combo = synergyCombos(main, me);
       const pieces = [];
       if (combo.boost) pieces.push({ name: combo.boostBy, amount: combo.boost });
@@ -576,7 +576,7 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
       // Se quem mata o seu atacante é outro Pokémon, nocautear este alvo é um problema secundário
       const secondary = killers.length && !killerNames.includes(koGap.target) ? 0.6 : 1;
       const value = (closes ? 40 : 18 + 10 * piecesSaved) * perTurn * secondary;
-      c.reasons.unshift({ kind: 'KO_GAP', value, why: `Ajuda a nocautear ${koGap.target} todo turno: +${amt} faz o ${main.name} chegar a ${koGap.alone + amt}${closes ? ` — fecha os ${koGap.hp} HP SEM depender de ${koGap.minSet.map((p) => p.name).join(' + ')}` : ` (precisa de ${koGap.hp})`}.${persistent ? ' Fica em jogo: vale todo turno sem gastar recurso.' : c.card.trainerType === 'Supporter' ? ' Mas é Supporter: para valer todo turno você gasta o Supporter do turno (sem Boss/Lillie\'s nesse turno).' : ' É Item: uma cópia por turno, e trava de Itens bloqueia.'}` });
+      c.reasons.unshift({ kind: 'KO_GAP', value, why: `Ajuda a nocautear ${koGap.target} todo turno: +${amt} faz o ${main.name} chegar a ${koGap.alone + amt}${closes ? (koGap.minSet ? ` — fecha os ${koGap.hp} HP SEM depender de ${koGap.minSet.map((p) => p.name).join(' + ')}` : ` — fecha os ${koGap.hp} HP, que nem com tudo montado o seu deck alcançava`) : ` (precisa de ${koGap.hp})`}.${persistent ? ' Fica em jogo: vale todo turno sem gastar recurso.' : c.card.trainerType === 'Supporter' ? ' Mas é Supporter: para valer todo turno você gasta o Supporter do turno (sem Boss/Lillie\'s nesse turno).' : ' É Item: uma cópia por turno, e trava de Itens bloqueia.'}` });
       c.impact = Math.round(clamp(c.reasons.reduce((s2, x, i) => s2 + x.value * (i ? 0.4 : 1), 0), 0, 100));
       c.score = Math.round(c.impact * (c.fit / 100));
     }
@@ -660,7 +660,7 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
       const sp = spreadOf(atk);
       const hit = Math.max(0, ...victims.map(() => 0));
       void hit;
-      const amount = sp?.amount ?? damageVs(atk, attacker, me.mainAttacker ?? victims[0], { deck: opp, oppTaken: 3 }).dmg;
+      const amount = sp?.amount ?? damageVs(atk, attacker, me.mainAttacker ?? victims[0], { deck: opp, defDeck: me, oppTaken: 3 }).dmg;
       const dead = victims.filter((v) => v.hp <= (sp ? sp.amount : amount) && (!sp?.exOnly || v.isEx));
       return { sp, amount, dead, n: sp ? sp.count + (sp.withActive ? 1 : 0) : 1, where: sp && !sp.withActive ? `${sp.exOnly ? 'Pokémon ex ' : ''}do seu banco` : 'Pokémon seus' };
     };

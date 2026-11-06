@@ -152,7 +152,7 @@ export function diagnoseDisruption(me, opp) {
       for (const f of fast) for (const a of f.card.attacks ?? []) {
         const cost = (a.cost ?? []).length;
         if (cost > 2) continue;
-        const r = damageVs(early(a), f.card, s2.card, { deck: opp, oppTaken: 0 });
+        const r = damageVs(early(a), f.card, s2.card, { deck: opp, defDeck: me, oppTaken: 0 });
         // peso do tempo: 1 energia = já no 1º turno dele; 2 energias = 2º turno; Estágio 1 = 2º turno
         const w = (cost <= 1 ? 1 : 0.5) * (f.card.stage === 'Basic' ? 1 : 0.6);
         if (r.dmg >= s2.card.hp && w > best.w) best = { dmg: r.dmg, w, by: f.card.name, cost };
@@ -175,7 +175,7 @@ export function diagnoseDisruption(me, opp) {
   const heals = oppTags.filter((t) => t.kind === 'HEAL' && t.source !== 'attack' && (t.amount ?? 0) >= 30);
   if (heals.length && me.mainAttacker && opp.mainAttacker) {
     const selfDamaged = me.entries.some((e) => /place \d+ damage counters on that pok[eé]mon|also does \d+ damage to itself|damage to 1 of your benched/i.test(e.card.text ?? ''));
-    const mine = Math.max(0, ...(me.mainAttacker.attacks ?? []).map((a) => damageVs(a, me.mainAttacker, opp.mainAttacker, { deck: me, oppTaken: 3, selfDamaged, ...(me.pressure ?? {}) }).dmg));
+    const mine = Math.max(0, ...(me.mainAttacker.attacks ?? []).map((a) => damageVs(a, me.mainAttacker, opp.mainAttacker, { deck: me, defDeck: opp, oppTaken: 3, selfDamaged, ...(me.pressure ?? {}) }).dmg));
     const twoHits = mine < opp.mainAttacker.hp;
     const copies = [...new Map(heals.map((t) => [t.card.name, t.count])).values()].reduce((s2, n) => s2 + n, 0);
     const sev = clamp(copies / 6) * (twoHits ? 1 : 0.25);

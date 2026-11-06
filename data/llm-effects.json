@@ -1,0 +1,5336 @@
+{
+ "model": "claude-opus-5-5",
+ "items": {
+  "18d8eye": {
+   "card": "Pinsir",
+   "block": "Slow Crunch",
+   "sentence": "At the end of your opponent's next turn, the Defending Pokémon will be Knocked Out.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "PLACE_COUNTERS",
+     "why": "o texto não fala de contadores no oponente"
+    }
+   ],
+   "summary_pt": "Nocauteia o Pokémon Defensor no fim do próximo turno do oponente, a menos que ele saia do Ativo.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "e1b38b": {
+   "card": "Ledian",
+   "block": "Glittering Star Pattern",
+   "sentence": "When you play this Pokémon from your hand to evolve 1 of your Pokémon during your turn, you may switch in 1 of your opponent's Benched Pokémon that has 90 HP or less remaining to the Active Spot.",
+   "effects": [
+    {
+     "kind": "FORCE_SWITCH",
+     "cond": [],
+     "target": "Benched Pokémon with 90 HP or less",
+     "scope": "bench"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Ao evoluir, puxa um Pokémon do banco do oponente com 90 HP ou menos restantes para o Ativo.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1u2wlh3": {
+   "card": "Ariados",
+   "block": "Big Net",
+   "sentence": "Your opponent's Active Evolution Pokémon's Retreat Cost is {C} more.",
+   "effects": [
+    {
+     "kind": "TRAP",
+     "cond": [],
+     "target": "Evolution Pokémon",
+     "scope": "active"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Aumenta em {C} o custo de recuo do Pokémon Evolução Ativo do oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1gpg64m": {
+   "card": "Shiftry",
+   "block": "Expelling Tornado",
+   "sentence": "Choose 3 of your opponent's Benched Pokémon.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Escolhe 3 Pokémon do banco do oponente; os demais serão embaralhados no deck.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1hykr8v": {
+   "card": "Shiftry",
+   "block": "Expelling Tornado",
+   "sentence": "If you do, shuffle all of your opponent's Benched Pokémon that you didn't choose, and all cards attached to those Pokémon, into their deck.",
+   "effects": [
+    {
+     "kind": "BOUNCE_OPP",
+     "cond": [],
+     "scope": "bench"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Embaralha no deck do oponente todos os Pokémon do banco dele que não foram escolhidos, com as cartas ligadas.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "ccp4jw": {
+   "card": "Shiftry",
+   "block": "Reversing Gust",
+   "sentence": "If heads, choose 1 of your opponent's Pokémon.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "BOUNCE_OPP",
+     "why": "o texto não fala de tira Pokémon dele de jogo"
+    }
+   ],
+   "summary_pt": "Com cara na moeda, escolhe um Pokémon do oponente para embaralhar no deck dele com as cartas ligadas.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1b8rp3": {
+   "card": "Decidueye",
+   "block": "Power Shot",
+   "sentence": "Discard a Basic {G} Energy card from your hand.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "DRAWBACK",
+     "why": "o texto não fala de desvantagem do próprio ataque"
+    }
+   ],
+   "summary_pt": "Exige descartar uma Energia {G} Básica da mão, senão o ataque não faz nada.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "eh7x4h": {
+   "card": "Cradily",
+   "block": "Selective Slime",
+   "sentence": "If heads, choose Burned, Confused, or Poisoned.",
+   "effects": [
+    {
+     "kind": "STATUS",
+     "cond": [
+      "coin"
+     ],
+     "status": "burned",
+     "scope": "active"
+    },
+    {
+     "kind": "STATUS",
+     "cond": [
+      "coin"
+     ],
+     "status": "confused",
+     "scope": "active"
+    },
+    {
+     "kind": "STATUS",
+     "cond": [
+      "coin"
+     ],
+     "status": "poisoned",
+     "scope": "active"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Com cara na moeda, deixa o Ativo do oponente Queimado, Confuso ou Envenenado, à escolha.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "ks7yfh": {
+   "card": "Lilligant",
+   "block": "Sunny Day",
+   "sentence": "Attacks used by your {G} Pokémon and {R} Pokémon do 20 more damage to your opponent's Active Pokémon  .",
+   "effects": [
+    {
+     "kind": "EXTRA_DMG",
+     "cond": [],
+     "amount": 20,
+     "target": "{G} Pokémon and {R} Pokémon",
+     "scope": "active"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Ataques dos seus Pokémon {G} e {R} causam 20 de dano a mais no Ativo do oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "14af6x": {
+   "card": "Whimsicott",
+   "block": "Wafting Heal",
+   "sentence": "If you healed any damage in this way, discard all Energy from that Pokémon.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "DRAWBACK",
+     "why": "o texto não fala de desvantagem do próprio ataque"
+    }
+   ],
+   "summary_pt": "Se curou, descarta todas as Energias do Pokémon curado.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1su5dp5": {
+   "card": "Illumise",
+   "block": "Slowing Perfume",
+   "sentence": "Shuffle 1 of your opponent's Benched Pokémon and all attached cards into their deck.",
+   "effects": [
+    {
+     "kind": "BOUNCE_OPP",
+     "cond": [],
+     "scope": "bench"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Embaralha um Pokémon do banco do oponente e as cartas ligadas no deck dele.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "byf0yz": {
+   "card": "Illumise",
+   "block": "Supereffective Pheromones",
+   "sentence": "If you have Volbeat in play, apply Weakness for both Active Pokémon as ×3.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "EXTRA_DMG",
+     "why": "o texto não fala de dano extra"
+    }
+   ],
+   "summary_pt": "Com Volbeat em jogo, a Fraqueza dos dois Ativos passa a ser ×3, aumentando o dano.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "efbwit": {
+   "card": "Phantump",
+   "block": "Spiteful Evolution",
+   "sentence": "Choose a card in your hand that evolves from this Pokémon and put it onto this Pokémon to evolve it.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Permite evoluir este Pokémon diretamente pela habilidade; acelera o próprio jogo.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "er167u": {
+   "card": "Phantump",
+   "block": "Spiteful Evolution",
+   "sentence": "If you do, place 2 damage counters on the Pokémon you evolved in this way.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "DRAWBACK",
+     "why": "o texto não fala de desvantagem do próprio ataque"
+    }
+   ],
+   "summary_pt": "Coloca 2 contadores de dano no próprio Pokémon evoluído.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "f0msuz": {
+   "card": "Kingdra ex",
+   "block": "King's Order",
+   "sentence": "Put up to 3 {W} Pokémon from your discard pile onto your Bench.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Coloca até 3 Pokémon {W} do seu descarte no banco; recuperação de recursos.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "12eoarl": {
+   "card": "Revavroom ex",
+   "block": "Shattering Speed",
+   "sentence": "Discard this Pokémon and all attached cards.",
+   "effects": [
+    {
+     "kind": "DRAWBACK",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Descarta este Pokémon e todas as cartas ligadas a ele.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "69u9w": {
+   "card": "Ninetales",
+   "block": "Nine-Tailed Transfer",
+   "sentence": "Move all damage counters from 1 of your Benched Pokémon to your opponent's Active Pokémon.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "PLACE_COUNTERS",
+     "why": "faltou o número"
+    },
+    {
+     "kind": "HEAL",
+     "why": "o texto não fala de cura"
+    }
+   ],
+   "summary_pt": "Move todos os contadores de dano de um Pokémon do seu banco para o Ativo do oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1iunuac": {
+   "card": "Slowpoke",
+   "block": "All-You-Can-Yeet",
+   "sentence": "You may discard any number of cards from your hand.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Permite descartar cartas da própria mão; não afeta o oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "18qskzz": {
+   "card": "Slowpoke",
+   "block": "Dopey Face",
+   "sentence": "This Pokémon can't be Confused.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Este Pokémon não pode ficar Confuso.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1apbpjd": {
+   "card": "Duskull",
+   "block": "Come and Get You",
+   "sentence": "Put up to 3 Duskull from your discard pile onto your Bench.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Coloca até 3 Duskull do descarte no banco; apenas montagem de campo.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1wgey2g": {
+   "card": "Paldean Tauros",
+   "block": "Blocking Stomp",
+   "sentence": "If the Defending Pokémon is a Basic Pokémon, it can't attack during your opponent's next turn.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "STATUS",
+     "why": "o texto não fala de condição especial"
+    }
+   ],
+   "summary_pt": "Se o Defensor for Básico, ele não pode atacar no próximo turno do oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1o8x5un": {
+   "card": "Ho-Oh",
+   "block": "Flames of Revival",
+   "sentence": "Put up to 3 Basic Pokémon from your discard pile onto your Bench.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Coloca até 3 Pokémon Básicos do descarte no banco; apenas recuperação.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1rbiftp": {
+   "card": "Cresselia",
+   "block": "Crescent Purge",
+   "sentence": "You may turn 1 of your face-down Prize cards face up.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "EXTRA_DMG",
+     "why": "o texto não fala de dano extra"
+    }
+   ],
+   "summary_pt": "Pode virar um prêmio para cima para dar 80 de dano a mais.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1bqb6j6": {
+   "card": "Victini",
+   "block": "Victory Cheer",
+   "sentence": "Attacks used by your Evolution {R} Pokémon do 10 more damage to your opponent's Active Pokémon  .",
+   "effects": [
+    {
+     "kind": "EXTRA_DMG",
+     "cond": [],
+     "amount": 10,
+     "target": "Evolution {R} Pokémon",
+     "scope": "active"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Ataques dos seus Pokémon Evolução {R} causam 10 de dano a mais no Ativo do oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1e1i711": {
+   "card": "Sinistcha",
+   "block": "Spill the Tea",
+   "sentence": "Discard up to 3 {G} Energy cards from your Pokémon.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "DRAWBACK",
+     "why": "o texto não fala de desvantagem do próprio ataque"
+    }
+   ],
+   "summary_pt": "Descarta até 3 Energias {G} dos seus Pokémon para aumentar o dano do ataque.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1j6jrhd": {
+   "card": "Sinistcha",
+   "block": "Matcha Spin",
+   "sentence": "If you have 6 or more Pokémon that have the Hide 'n' Sneak Ability in your discard pile, place 4 damage counters on each of your opponent's Pokémon.",
+   "effects": [
+    {
+     "kind": "PLACE_COUNTERS",
+     "cond": [],
+     "amount": 40,
+     "scope": "all"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Com 6+ Pokémon com Hide 'n' Sneak no descarte, coloca 4 contadores em cada Pokémon do oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "94y690": {
+   "card": "Sylveon",
+   "block": "Mystical Return",
+   "sentence": "If heads, choose 1 of your opponent's Benched Pokémon.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "BOUNCE_OPP",
+     "why": "o texto não fala de tira Pokémon dele de jogo"
+    }
+   ],
+   "summary_pt": "Se sair cara, escolhe 1 Pokémon do banco do oponente para embaralhar no baralho dele.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "nry13a": {
+   "card": "Salazzle",
+   "block": "Sudden Scorching",
+   "sentence": "If this Pokémon evolved from Salandit during this turn, your opponent discards 2 more cards.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "HAND_DISRUPT",
+     "why": "o texto não fala de mexe na mão do oponente"
+    }
+   ],
+   "summary_pt": "Se evoluiu de Salandit neste turno, o oponente descarta mais 2 cartas da mão.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "rfbnpf": {
+   "card": "Glaceon",
+   "block": "Permeating Chill",
+   "sentence": "At the end of your opponent's next turn, put 9 damage counters on the Defending Pokémon.",
+   "effects": [
+    {
+     "kind": "PLACE_COUNTERS",
+     "cond": [],
+     "amount": 90,
+     "target": "Defending Pokémon",
+     "scope": "active"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "No fim do próximo turno do oponente, coloca 9 contadores no Pokémon Defensor.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "184vyac": {
+   "card": "Iron Leaves ex",
+   "block": "Rapid Vernier",
+   "sentence": "When you play this Pokémon from your hand onto your Bench during your turn, you may switch it with your Active Pokémon.",
+   "effects": [
+    {
+     "kind": "SWITCH",
+     "cond": [
+      "bench"
+     ]
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Ao ser colocado no banco a partir da mão, pode trocar de lugar com o seu Ativo.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1d9bxra": {
+   "card": "Turtonator",
+   "block": "Shell Spikes",
+   "sentence": "If this Pokémon is in the Active Spot and is damaged by an attack from your opponent's Pokémon  , discard an Energy from the Attacking Pokémon.",
+   "effects": [
+    {
+     "kind": "ENERGY_DISRUPT",
+     "cond": [
+      "active"
+     ],
+     "target": "Attacking Pokémon",
+     "scope": "active"
+    }
+   ],
+   "rejected": [
+    {
+     "kind": "RETALIATE",
+     "why": "faltou o número"
+    }
+   ],
+   "summary_pt": "Se estiver no Ativo e sofrer dano de ataque, descarta uma Energia do Pokémon atacante.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "kmbouv": {
+   "card": "Glaceon ex",
+   "block": "Euclase",
+   "sentence": "Knock Out 1 of your opponent's Pokémon that has exactly 6 damage counters on it.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "EXTRA_DMG",
+     "why": "o texto não fala de dano extra"
+    }
+   ],
+   "summary_pt": "Nocauteia 1 Pokémon do oponente que tenha exatamente 6 contadores de dano.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "11wh7v9": {
+   "card": "Wellspring Mask Ogerpon ex",
+   "block": "Torrential Pump",
+   "sentence": "You may shuffle 3 Energy attached to this Pokémon into your deck.",
+   "effects": [
+    {
+     "kind": "DRAWBACK",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Pode embaralhar 3 Energias deste Pokémon no baralho para causar dano ao banco.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1ddlbj1": {
+   "card": "Magcargo ex",
+   "block": "Ground Burn",
+   "sentence": "Discard the top card of each player's deck.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Descarta a carta do topo do baralho de cada jogador, para calcular dano extra.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "2bgcuz": {
+   "card": "Crobat",
+   "block": "Nighttime Maneuvers",
+   "sentence": "Shuffle your deck, then put that card on top of it.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Embaralha o baralho e coloca a carta buscada no topo; apenas preparação própria.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1jk33xj": {
+   "card": "Jolteon ex",
+   "block": "Flashing Spear",
+   "sentence": "You may discard up to 2 Basic Energy from your Benched Pokémon.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "DRAWBACK",
+     "why": "o texto não fala de desvantagem do próprio ataque"
+    }
+   ],
+   "summary_pt": "Pode descartar até 2 Energias Básicas do próprio banco para aumentar o dano.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "hj29wx": {
+   "card": "Lapras ex",
+   "block": "Larimar Rain",
+   "sentence": "Look at the top 20 cards of your deck and attach any number of Energy cards you find there to your Pokémon in any way you like.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Busca Energias nas 20 cartas do topo e as liga aos seus Pokémon; aceleração própria.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "n9cp7r": {
+   "card": "Inkay",
+   "block": "Mischievous Tentacles",
+   "sentence": "Look at the top card of your opponent's deck.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Olha a carta do topo do baralho do oponente; apenas informação.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "ikmwad": {
+   "card": "Inkay",
+   "block": "Mischievous Tentacles",
+   "sentence": "You may have your opponent shuffle their deck.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Pode fazer o oponente embaralhar o baralho; leve manipulação sem efeito tático modelado.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1kngl1i": {
+   "card": "Azumarill",
+   "block": "Glistening Bubbles",
+   "sentence": "If you have any Tera Pokémon in play, this Pokémon can use the Double-Edge attack for {P}.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Com Pokémon Tera em jogo, usa Double-Edge por apenas {P}; reduz custo.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "xdkbj": {
+   "card": "Yveltal",
+   "block": "Corrosive Winds",
+   "sentence": "Put 2 damage counters on each of your opponent's Pokémon that has any damage counters on it.",
+   "effects": [
+    {
+     "kind": "PLACE_COUNTERS",
+     "cond": [],
+     "amount": 20,
+     "scope": "all"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Coloca 2 contadores em cada Pokémon do oponente que já tenha dano.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "cbju5i": {
+   "card": "Ceruledge",
+   "block": "Infernal Slash",
+   "sentence": "Discard 4 Basic {R} Energy cards from your hand.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "DRAWBACK",
+     "why": "o texto não fala de desvantagem do próprio ataque"
+    }
+   ],
+   "summary_pt": "Precisa descartar 4 Energias {R} Básicas da mão para o ataque funcionar.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "9qmq28": {
+   "card": "Scovillain ex",
+   "block": "Double Type",
+   "sentence": "As long as this Pokémon is in play, it is {G} and {R} type.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Este Pokémon é dos tipos {G} e {R} enquanto em jogo; afeta fraquezas.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "rlpjqz": {
+   "card": "Gouging Fire ex",
+   "block": "Blaze Blitz",
+   "sentence": "This Pokémon can't use Blaze Blitz again until it leaves the Active Spot.",
+   "effects": [
+    {
+     "kind": "DRAWBACK",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Não pode usar Blaze Blitz de novo até sair do Ativo.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1oujy05": {
+   "card": "Chi-Yu",
+   "block": "Scorching Earth",
+   "sentence": "If your opponent has a Stadium in play, discard it.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Descarta o Estádio do oponente em jogo.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "c1wit8": {
+   "card": "Chi-Yu",
+   "block": "Scorching Earth",
+   "sentence": "If you do, your opponent can't play any Stadium cards from their hand during their next turn.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Oponente não pode jogar Estádios no próximo turno; trava não modelada.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "w4a607": {
+   "card": "Genesect",
+   "block": "ACE Nullifier",
+   "sentence": "If this Pokémon has a Pokémon Tool attached, your opponent can't play any ACE SPEC cards from their hand.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "ITEM_LOCK",
+     "why": "o texto não fala de trava Itens"
+    }
+   ],
+   "summary_pt": "Com Ferramenta ligada, o oponente não pode jogar cartas ACE SPEC da mão.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1ln5c9r": {
+   "card": "Sylveon ex",
+   "block": "Angelite",
+   "sentence": "Choose 2 of your opponent's Benched Pokémon.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "BOUNCE_OPP",
+     "why": "o texto não fala de tira Pokémon dele de jogo"
+    }
+   ],
+   "summary_pt": "Escolhe 2 Pokémon do banco do oponente para embaralhar no baralho dele.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1g9rjyo": {
+   "card": "Sylveon ex",
+   "block": "Angelite",
+   "sentence": "Shuffle those Pokémon and all attached cards into your opponent's deck.",
+   "effects": [
+    {
+     "kind": "BOUNCE_OPP",
+     "cond": [],
+     "target": "Benched Pokémon",
+     "scope": "bench"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Embaralha esses Pokémon e cartas ligadas no baralho do oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1pp3z98": {
+   "card": "Sylveon ex",
+   "block": "Angelite",
+   "sentence": "If 1 of your Pokémon used Angelite during your last turn, this attack can't be used.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "DRAWBACK",
+     "why": "o texto não fala de desvantagem do próprio ataque"
+    }
+   ],
+   "summary_pt": "Não pode usar Angelite se foi usado no seu último turno.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1avxsoq": {
+   "card": "Feraligatr",
+   "block": "Torrential Heart",
+   "sentence": "Once during your turn, you may put 5 damage counters on this Pokémon.",
+   "effects": [
+    {
+     "kind": "DRAWBACK",
+     "cond": [],
+     "target": "this Pokémon",
+     "scope": "one"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Uma vez por turno, coloca 5 contadores de dano (50) no próprio Feraligatr.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "rdwr2x": {
+   "card": "Feraligatr",
+   "block": "Torrential Heart",
+   "sentence": "If you do, during this turn, attacks used by this Pokémon do 120 more damage to your opponent's Active Pokémon  .",
+   "effects": [
+    {
+     "kind": "EXTRA_DMG",
+     "cond": [],
+     "amount": 120,
+     "scope": "active"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Se usou a habilidade, os ataques causam 120 de dano a mais no Ativo do oponente neste turno.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "14f273b": {
+   "card": "Copperajah",
+   "block": "Massive Body",
+   "sentence": "As long as this Pokémon is in the Active Spot, your opponent can't play any Stadium cards from their hand.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": [
+      "active"
+     ]
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Enquanto estiver no Ativo, o oponente não pode jogar Estádios da mão.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "192g9ps": {
+   "card": "Flutter Mane",
+   "block": "Perplexing Transfer",
+   "sentence": "Move all damage counters from 1 of your Benched Ancient Pokémon to your opponent's Active Pokémon.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "PLACE_COUNTERS",
+     "why": "faltou o número"
+    },
+    {
+     "kind": "HEAL",
+     "why": "o texto não fala de cura"
+    }
+   ],
+   "summary_pt": "Move todos os contadores de dano de um Pokémon Ancient do seu banco para o Ativo do oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "shyw9b": {
+   "card": "Veluza ex",
+   "block": "Purging Strike",
+   "sentence": "You may discard your hand.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "DRAWBACK",
+     "why": "o texto não fala de desvantagem do próprio ataque"
+    }
+   ],
+   "summary_pt": "Pode descartar a própria mão para ganhar dano extra.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "12dit7u": {
+   "card": "Fezandipiti",
+   "block": "Adrena-Pheromone",
+   "sentence": "If this Pokémon has any {D} Energy attached and is damaged by an attack, flip a coin.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": [
+      "coin"
+     ]
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Se tiver Energia {D} e for danificado por ataque, joga uma moeda (condição para prevenir o dano).",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "ux0khb": {
+   "card": "Fezandipiti",
+   "block": "Adrena-Pheromone",
+   "sentence": "If heads, prevent that damage.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "WALL_SELF",
+     "why": "o texto não fala de proteção total"
+    }
+   ],
+   "summary_pt": "Se cara, previne todo o dano do ataque recebido.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "aycovl": {
+   "card": "Jynx",
+   "block": "Intense Kiss",
+   "sentence": "At the end of your opponent's next turn, discard the Defending Pokémon and all attached cards.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "BOUNCE_OPP",
+     "why": "o texto não fala de tira Pokémon dele de jogo"
+    }
+   ],
+   "summary_pt": "No fim do próximo turno do oponente, descarta o Pokémon Defensor e todas as cartas ligadas.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "166fbkf": {
+   "card": "Haxorus",
+   "block": "Axe Blast",
+   "sentence": "If your opponent's Active Pokémon is a Basic Pokémon, it is Knocked Out.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "EXTRA_DMG",
+     "why": "o texto não fala de dano extra"
+    }
+   ],
+   "summary_pt": "Nocauteia direto o Ativo do oponente se ele for Básico.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "j9wgb2": {
+   "card": "Kyurem",
+   "block": "Plasma Bane",
+   "sentence": "If your opponent has any cards in their discard pile that have \"Colress\" in the name, this Pokémon can use the Trifrost attack for {C}.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Se o oponente tiver carta Colress no descarte, Trifrost custa só {C}.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "zecb4n": {
+   "card": "Kyurem",
+   "block": "Trifrost",
+   "sentence": "This attack does 110 damage to 3 of your opponent's Pokémon.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "EXTRA_DMG",
+     "why": "o texto não fala de dano extra"
+    }
+   ],
+   "summary_pt": "Causa 110 de dano em 3 Pokémon do oponente, incluindo o banco.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "12poloc": {
+   "card": "Electivire",
+   "block": "Unleash Lightning",
+   "sentence": "During your next turn, your Pokémon can't attack.",
+   "effects": [
+    {
+     "kind": "DRAWBACK",
+     "cond": [],
+     "target": "your Pokémon",
+     "scope": "all"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "No seu próximo turno, nenhum dos seus Pokémon pode atacar.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "59fkwf": {
+   "card": "Black Kyurem ex",
+   "block": "Ice Age",
+   "sentence": "If your opponent's Active Pokémon is a {N} Pokémon, it is now Paralyzed.",
+   "effects": [
+    {
+     "kind": "STATUS",
+     "cond": [],
+     "status": "paralyzed",
+     "target": "{N} Pokémon",
+     "scope": "active"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Paralisa o Ativo do oponente se ele for Pokémon {N}.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "18yln5s": {
+   "card": "Milotic",
+   "block": "Mentally Calm",
+   "sentence": "Your opponent's Pokémon in play and all attached cards can't be put into your opponent's hand.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Impede que os Pokémon do oponente em jogo e cartas ligadas voltem para a mão dele.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "159yine": {
+   "card": "Pikachu",
+   "block": "Overwriting Bolt",
+   "sentence": "The Defending Pokémon's Weakness is now {L} until the end of your next turn.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "EXTRA_DMG",
+     "why": "o texto não fala de dano extra"
+    }
+   ],
+   "summary_pt": "Muda a fraqueza do Defensor para {L} até o fim do seu próximo turno, permitindo dano dobrado.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "973x6k": {
+   "card": "Furfrou",
+   "block": "Hand Trim",
+   "sentence": "Discard random cards from your opponent's hand until they have 5 cards in their hand.",
+   "effects": [
+    {
+     "kind": "HAND_DISRUPT",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Descarta cartas aleatórias da mão do oponente até ele ficar com 5.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "mb4o2o": {
+   "card": "Quaquaval",
+   "block": "Up-Tempo",
+   "sentence": "You must put a card from your hand on the bottom of your deck in order to use this Ability.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Custo da habilidade: colocar uma carta da mão no fundo do baralho.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "18x5oei": {
+   "card": "Froslass",
+   "block": "Freezing Shroud",
+   "sentence": "During Pokémon Checkup, put 1 damage counter on each Pokémon that has an Ability  , except any Froslass.",
+   "effects": [
+    {
+     "kind": "PLACE_COUNTERS",
+     "cond": [],
+     "amount": 10,
+     "target": "Pokémon that has an Ability",
+     "scope": "all"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "A cada Checkup, coloca 1 contador de dano em cada Pokémon com Habilidade, dos dois lados, exceto Froslass.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1629c5o": {
+   "card": "Academy at Night",
+   "block": "Academy at Night",
+   "sentence": "Once during each player's turn, that player may put a card from their hand on top of their deck.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Cada jogador pode, uma vez por turno, colocar uma carta da mão no topo do baralho.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "k9yebm": {
+   "card": "Great Tusk",
+   "block": "Land Collapse",
+   "sentence": "If you played an Ancient Supporter card from your hand during this turn, discard 3 more cards in this way.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Se jogou Supporter Ancient no turno, descarta mais 3 cartas do topo do baralho do oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "j15xmj": {
+   "card": "Janine's Secret Art",
+   "block": "Janine's Secret Art",
+   "sentence": "Choose up to 2 of your {D} Pokémon.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Escolhe até 2 Pokémon {D} para receber energia do baralho.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "17ho8if": {
+   "card": "Wugtrio ex",
+   "block": "Tricolor Pump",
+   "sentence": "Discard up to 3 Energy cards from your hand.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "DRAWBACK",
+     "why": "o texto não fala de desvantagem do próprio ataque"
+    }
+   ],
+   "summary_pt": "Descarta até 3 Energias da própria mão para escalar o dano.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "11k9gz7": {
+   "card": "Neutralization Zone",
+   "block": "Neutralization Zone",
+   "sentence": "This card can't be put into your hand or deck from the discard pile.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Esta carta não pode voltar do descarte para a mão ou baralho.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1clq9jm": {
+   "card": "Drifloon",
+   "block": "Pull",
+   "sentence": "If heads, switch 1 of your opponent's Benched Pokémon with their Active Pokémon.",
+   "effects": [
+    {
+     "kind": "FORCE_SWITCH",
+     "cond": [
+      "coin"
+     ],
+     "scope": "active"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Se cara, troca um Pokémon do banco do oponente com o Ativo dele.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "11khji9": {
+   "card": "Palafin ex",
+   "block": "Hero's Spirit",
+   "sentence": "Put this Pokémon into play only with the effect of Palafin's Zero to Hero Ability.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Só entra em jogo pela habilidade Zero to Hero de Palafin.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "eypbok": {
+   "card": "Rotom",
+   "block": "Crushing Pulse",
+   "sentence": "Discard all Item cards and Pokémon Tool cards you find there.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "HAND_DISRUPT",
+     "why": "o texto não fala de mexe na mão do oponente"
+    }
+   ],
+   "summary_pt": "Descarta todos os Itens e Ferramentas da mão do oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "bcxh52": {
+   "card": "Iron Thorns",
+   "block": "Destructo-Press",
+   "sentence": "Reveal the top 5 cards of your deck.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Apenas revela cartas do próprio deck; sem efeito tático direto.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "an2nuz": {
+   "card": "Poké Vital A",
+   "block": "Poké Vital A",
+   "sentence": "This card can't be put into your hand or deck from the discard pile.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Restrição de reciclagem da própria carta; sem efeito tático no matchup.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "178729v": {
+   "card": "Mr. Mime",
+   "block": "Look-Alike Show",
+   "sentence": "You may use the effect of a Supporter card you find there as the effect of this attack.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Copia o efeito de um Supporter da mão do oponente sem descartá-lo; efeito variável.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "f5lyku": {
+   "card": "Xerosic's Machinations",
+   "block": "Xerosic's Machinations",
+   "sentence": "Your opponent discards cards from their hand until they have 3 cards in their hand.",
+   "effects": [
+    {
+     "kind": "HAND_DISRUPT",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "O oponente descarta até ficar com 3 cartas na mão.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "mj2jub": {
+   "card": "Zapdos",
+   "block": "Flash-Pop Flapping",
+   "sentence": "Once during your turn, if you have Moltres and Articuno in play, you may use this Ability.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Condição de uso da habilidade; sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1xnah1a": {
+   "card": "Dachsbun ex",
+   "block": "Time to Chow Down",
+   "sentence": "If you healed any damage in this way, discard all Energy from those Pokémon.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "DRAWBACK",
+     "why": "o texto não fala de desvantagem do próprio ataque"
+    }
+   ],
+   "summary_pt": "Se curar, descarta todas as Energias dos Pokémon curados.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1lw38fu": {
+   "card": "Luxray ex",
+   "block": "Piercing Gaze",
+   "sentence": "Discard a card you find there.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "HAND_DISRUPT",
+     "why": "o texto não fala de mexe na mão do oponente"
+    }
+   ],
+   "summary_pt": "Descarta uma carta da mão do oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1aavlqd": {
+   "card": "Mimikyu ex",
+   "block": "Mischievous Hands",
+   "sentence": "Choose 2 of your opponent's Pokémon and put 3 damage counters on each of them.",
+   "effects": [
+    {
+     "kind": "PLACE_COUNTERS",
+     "cond": [],
+     "amount": 30
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Coloca 3 contadores de dano em 2 Pokémon do oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1hw2ewb": {
+   "card": "Miraidon",
+   "block": "C.O.D.E.: Protect",
+   "sentence": "If this Pokémon is no longer your Active Pokémon, this effect ends.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Apenas define quando o efeito do ataque termina; sem efeito próprio.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "w7r8t5": {
+   "card": "Miraidon",
+   "block": "Photon Cord",
+   "sentence": "If this Pokémon is in the Active Spot and is Knocked Out by damage from an attack from your opponent's Pokémon, move up to 2 Basic {L} Energy cards from this Pokémon to 1 of your Benched Pokémon.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Ao ser nocauteado no Ativo, move Energias para o banco; sem efeito tático listado.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "u5rkk3": {
+   "card": "Archaludon",
+   "block": "Metal Bridge",
+   "sentence": "All of your Pokémon that have {M} Energy attached have no Retreat Cost.",
+   "effects": [
+    {
+     "kind": "SWITCH",
+     "cond": [],
+     "target": "Pokémon that have {M} Energy attached",
+     "scope": "all"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Pokémon com Energia {M} ficam sem custo de recuo.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1ygymg1": {
+   "card": "Heliolisk",
+   "block": "Frilled Generator",
+   "sentence": "Once during your turn, if you played Canari from your hand this turn, you may use this Ability.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Condição de uso da habilidade; sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1d015w7": {
+   "card": "Morpeko",
+   "block": "Snack Seek",
+   "sentence": "Once during your turn, you may look at the top card of your deck.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Olha o topo do deck; sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1g7ogdi": {
+   "card": "Drakloak",
+   "block": "Recon Directive",
+   "sentence": "Once during your turn, you may look at the top 2 cards of your deck and put 1 of them into your hand.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Busca de carta do topo do deck; sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "18gdibq": {
+   "card": "Drakloak",
+   "block": "Recon Directive",
+   "sentence": "Put the other card on the bottom of your deck.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Coloca a outra carta no fundo do deck; sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "15uijl4": {
+   "card": "Reuniclus",
+   "block": "Summoning Gate",
+   "sentence": "You may put any number of Pokémon you find there onto your Bench.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Coloca Pokémon no próprio banco; sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1i455oc": {
+   "card": "Togekiss",
+   "block": "Wonder Kiss",
+   "sentence": "When your opponent's Active Pokémon is Knocked Out, flip a coin.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": [
+      "coin"
+     ]
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Gatilho da moeda após nocaute; o efeito vem na frase seguinte.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "185lfx4": {
+   "card": "Togekiss",
+   "block": "Wonder Kiss",
+   "sentence": "If heads, take 1 more Prize card.",
+   "effects": [
+    {
+     "kind": "PRIZE_DENIAL",
+     "cond": [
+      "coin",
+      "afterKO"
+     ],
+     "amount": 1,
+     "scope": "active"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Se der cara após nocautear o Ativo, pega 1 prêmio a mais.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "14knvz1": {
+   "card": "Togekiss",
+   "block": "Wonder Kiss",
+   "sentence": "The effect of Wonder Kiss doesn't stack.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "O efeito não acumula; sem efeito tático próprio.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "kmtree": {
+   "card": "Eevee ex",
+   "block": "Rainbow DNA",
+   "sentence": "This Pokémon can evolve into any Pokémon ex that evolves from Eevee if you play it from your hand onto this Pokémon.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Permite evoluir em qualquer Pokémon ex de Eevee; sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1atj2xs": {
+   "card": "Ribombee",
+   "block": "Plentiful Pollen",
+   "sentence": "During your next turn, if the Defending Pokémon is Knocked Out, take 2 more Prize cards.",
+   "effects": [
+    {
+     "kind": "PRIZE_DENIAL",
+     "cond": [
+      "afterKO"
+     ],
+     "amount": 2,
+     "target": "Defending Pokémon",
+     "scope": "active"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Se o Pokémon Defensor for nocauteado no próximo turno, pega 2 prêmios a mais.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "f5dehe": {
+   "card": "Hoothoot",
+   "block": "Insomnia",
+   "sentence": "This Pokémon can't be Asleep.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Imunidade própria a Adormecido; sem efeito tático no oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "o0s8ad": {
+   "card": "Latios",
+   "block": "Lustrous Assist",
+   "sentence": "Once during your turn, when your Mega Latias ex moves from your Bench to the Active Spot, you may use this Ability.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Condição de uso da habilidade; sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "15kdozb": {
+   "card": "Uxie",
+   "block": "Painful Memories",
+   "sentence": "Put 2 damage counters on each of your opponent's Pokémon.",
+   "effects": [
+    {
+     "kind": "PLACE_COUNTERS",
+     "cond": [],
+     "amount": 20,
+     "scope": "all"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Coloca 2 contadores de dano em cada Pokémon do oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1lj89cj": {
+   "card": "Iron Valiant",
+   "block": "Calculation",
+   "sentence": "Look at the top 4 cards of your deck and put them back in any order.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Apenas reorganiza o topo do próprio deck; sem efeito tático na análise.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "wf9y1q": {
+   "card": "Abra",
+   "block": "Teleporter",
+   "sentence": "Once during your turn, if this Pokémon is in the Active Spot, you may shuffle it and all attached cards into your deck.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "SWITCH",
+     "why": "o texto não fala de troca / recuo"
+    }
+   ],
+   "summary_pt": "Abra sai do Ativo embaralhando-se no deck, funcionando como uma fuga ou troca.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "ft6dqb": {
+   "card": "Miltank",
+   "block": "Moomoo Rolling",
+   "sentence": "You can use this attack only if this Pokémon used Rollout during your last turn.",
+   "effects": [
+    {
+     "kind": "DRAWBACK",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "O ataque só pode ser usado se Rollout foi usado no turno anterior, o que é uma restrição de uso.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "11nj4ah": {
+   "card": "Iron Crown ex",
+   "block": "Cobalt Command",
+   "sentence": "Attacks used by your Future Pokémon, except any Iron Crown ex, do 20 more damage to your opponent's Active Pokémon  .",
+   "effects": [
+    {
+     "kind": "EXTRA_DMG",
+     "cond": [],
+     "amount": 20,
+     "target": "Future Pokémon",
+     "scope": "active"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Os ataques dos seus Pokémon Future causam 20 de dano a mais no Ativo do oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "lllmxi": {
+   "card": "Alakazam",
+   "block": "Strange Hacking",
+   "sentence": "You may move any number of damage counters from your opponent's Pokémon to their other Pokémon in any way you like.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "PLACE_COUNTERS",
+     "why": "faltou o número"
+    }
+   ],
+   "summary_pt": "Redistribui os contadores de dano entre os Pokémon do oponente para preparar nocautes.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1080t9z": {
+   "card": "Cofagrigus",
+   "block": "Law of the Underworld",
+   "sentence": "Put 6 damage counters on each Pokémon that has an Ability  .",
+   "effects": [
+    {
+     "kind": "PLACE_COUNTERS",
+     "cond": [],
+     "amount": 60,
+     "target": "Pokémon that has an Ability",
+     "scope": "all"
+    }
+   ],
+   "rejected": [
+    {
+     "kind": "DRAWBACK",
+     "why": "o texto não fala de desvantagem do próprio ataque"
+    }
+   ],
+   "summary_pt": "Coloca 6 contadores em cada Pokémon com Habilidade, inclusive nos seus.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1jb9hqj": {
+   "card": "Cofagrigus",
+   "block": "Extended Damagriiigus",
+   "sentence": "Move all damage counters from 1 of your Benched Pokémon to 1 of your opponent's Pokémon.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "PLACE_COUNTERS",
+     "why": "faltou o número"
+    },
+    {
+     "kind": "HEAL",
+     "why": "o texto não fala de cura"
+    }
+   ],
+   "summary_pt": "Move todos os contadores de um Pokémon do seu banco para um Pokémon do oponente, curando o seu.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1yh3o3f": {
+   "card": "Relicanth",
+   "block": "Memory Dive",
+   "sentence": "Each of your evolved Pokémon can use any attack from its previous Evolutions.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Pokémon evoluídos podem usar ataques das evoluções anteriores; sem efeito tático mapeável.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "yxdarn": {
+   "card": "Chimecho",
+   "block": "Homeward Chime",
+   "sentence": "Shuffle 1 of your Benched Pokémon and all attached cards into your deck.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Embaralha um Pokémon do seu próprio banco de volta no deck; sem efeito no oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1ke90w2": {
+   "card": "Fan Rotom",
+   "block": "Fan Call",
+   "sentence": "You can't use more than 1 Fan Call Ability during your turn.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Limita o uso de Fan Call a uma vez por turno; sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1qjft8t": {
+   "card": "Dedenne",
+   "block": "Tail Generator",
+   "sentence": "Choose Basic {L} Energy cards from your discard pile up to the amount of Energy attached to all of your opponent's Pokémon and attach them to your {L} Pokémon in any way you like.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Acelera energia {L} do descarte com base na energia do oponente; sem efeito tático mapeável.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "x50v3d": {
+   "card": "Metang",
+   "block": "Metal Maker",
+   "sentence": "Once during your turn, you may look at the top 4 cards of your deck and attach any number of Basic {M} Energy cards you find there to your Pokémon in any way you like.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Liga energias {M} do topo do deck; é aceleração de energia, sem efeito mapeável.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "lcnggn": {
+   "card": "Metang",
+   "block": "Metal Maker",
+   "sentence": "Shuffle the other cards and put them on the bottom of your deck.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Devolve as cartas restantes ao fundo do deck; sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1h0v36t": {
+   "card": "Palossand ex",
+   "block": "Barite Jail",
+   "sentence": "Put damage counters on each of your opponent's Benched Pokémon until its remaining HP is 100.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "PLACE_COUNTERS",
+     "why": "faltou o número"
+    }
+   ],
+   "summary_pt": "Coloca contadores em todo o banco do oponente até deixar cada um com 100 de HP.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "se7kkb": {
+   "card": "Pangoro",
+   "block": "Torment",
+   "sentence": "Choose 1 of your opponent's Active Pokémon's attacks.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Escolhe um ataque do Ativo do oponente para o bloqueio seguinte; sozinho não tem efeito.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1oyong0": {
+   "card": "Pangoro",
+   "block": "Torment",
+   "sentence": "During your opponent's next turn, that Pokémon can't use that attack.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Bloqueia um ataque do Ativo do oponente no próximo turno; não há categoria específica para isso.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "ifaroz": {
+   "card": "Area Zero Underdepths",
+   "block": "Area Zero Underdepths",
+   "sentence": "Each player who has any Tera Pokémon in play can have up to 8 Pokémon on their Bench.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Amplia o banco para 8 Pokémon com Tera em jogo; sem efeito tático mapeável.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "13ftub1": {
+   "card": "Area Zero Underdepths",
+   "block": "Area Zero Underdepths",
+   "sentence": "If a player no longer has any Tera Pokémon in play, that player discards Pokémon from their Bench until they have 5.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Quem perde os Pokémon Tera reduz o banco para 5; efeito situacional sem categoria.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1h0hf7x": {
+   "card": "Area Zero Underdepths",
+   "block": "Area Zero Underdepths",
+   "sentence": "When this card leaves play, both players discard Pokémon from their Bench until they have 5, and the player who played this card discards first.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "BOUNCE_OPP",
+     "why": "o texto não fala de tira Pokémon dele de jogo"
+    }
+   ],
+   "summary_pt": "Quando o estádio sai, os jogadores descartam Pokémon do banco até ficarem com 5, o que pode tirar Pokémon do oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "ajjm1y": {
+   "card": "Briar",
+   "block": "Briar",
+   "sentence": "During this turn, if your opponent's Active Pokémon is Knocked Out by damage from an attack used by your Tera Pokémon, take 1 more Prize card.",
+   "effects": [
+    {
+     "kind": "PRIZE_DENIAL",
+     "cond": [
+      "afterKO"
+     ],
+     "amount": 1,
+     "target": "Tera Pokémon",
+     "scope": "active"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Pega 1 prêmio a mais se um Pokémon Tera nocautear o Ativo do oponente neste turno.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "159jvg5": {
+   "card": "Annihilape",
+   "block": "Destined Fight",
+   "sentence": "Both Active Pokémon are Knocked Out.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "EXTRA_DMG",
+     "why": "o texto não fala de dano extra"
+    },
+    {
+     "kind": "DRAWBACK",
+     "why": "o texto não fala de desvantagem do próprio ataque"
+    }
+   ],
+   "summary_pt": "Nocauteia o Ativo do oponente, mas também o seu próprio Ativo.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "jghn2w": {
+   "card": "Annihilape",
+   "block": "Lose Cool",
+   "sentence": "If this Pokémon has 2 or more damage counters on it, attacks used by this Pokémon do 120 more damage to your opponent's Active Pokémon  .",
+   "effects": [
+    {
+     "kind": "EXTRA_DMG",
+     "cond": [],
+     "amount": 120,
+     "scope": "active"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Com 2 ou mais contadores, causa 120 de dano a mais no Ativo do oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1usur1o": {
+   "card": "Klinklang",
+   "block": "Emergency Rotation",
+   "sentence": "Once during your turn, if this Pokémon is in your hand and your opponent has any Stage 2 Pokémon in play, you may put this Pokémon onto your Bench.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Entra no banco direto da mão se o oponente tiver Stage 2; sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1f3911i": {
+   "card": "Bug Catching Set",
+   "block": "Bug Catching Set",
+   "sentence": "You may reveal up to 2 in any combination of {G} Pokémon and Basic {G} Energy cards you find there and put them into your hand.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Busca Pokémon {G} e energias {G} para a mão; sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "19jqbg4": {
+   "card": "Gengar ex",
+   "block": "Fainting Spell",
+   "sentence": "If this Pokémon is Knocked Out by damage from an attack from your opponent's Pokémon, flip a coin.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "RETALIATE",
+     "why": "o texto não fala de retaliação"
+    }
+   ],
+   "summary_pt": "Se for nocauteado por ataque, joga moeda e, com cara, nocauteia o atacante.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "185v1g1": {
+   "card": "Gengar ex",
+   "block": "Fainting Spell",
+   "sentence": "If heads, the Attacking Pokémon is Knocked Out.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "RETALIATE",
+     "why": "faltou o número"
+    }
+   ],
+   "summary_pt": "Se sair cara, o Pokémon atacante que nocauteou Gengar ex também é nocauteado.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1p4v36p": {
+   "card": "Melmetal",
+   "block": "Reforged Axe",
+   "sentence": "Before doing damage, discard all Pokémon Tools from this Pokémon.",
+   "effects": [
+    {
+     "kind": "DRAWBACK",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Descarta todas as Ferramentas do próprio Melmetal antes de causar dano.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "s3q9ld": {
+   "card": "Conkeldurr",
+   "block": "Gutsy Swing",
+   "sentence": "If this Pokémon is affected by a Special Condition, ignore all Energy in this attack's cost.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Ataque sem custo de energia se Conkeldurr estiver com condição especial; sem efeito tático no oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1u9lj1a": {
+   "card": "Crispin",
+   "block": "Crispin",
+   "sentence": "Attach the other to 1 of your Pokémon.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Liga uma energia básica a um Pokémon próprio; aceleração, sem efeito tático na análise.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "12a8z3s": {
+   "card": "Explorer's Guidance",
+   "block": "Explorer's Guidance",
+   "sentence": "Look at the top 6 cards of your deck and put 2 of them into your hand.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Busca 2 cartas entre as 6 do topo; consistência, sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "dt0l1a": {
+   "card": "Sableye",
+   "block": "Damage Collection",
+   "sentence": "You may move any number of damage counters from your opponent's Benched Pokémon to their Active Pokémon.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "PLACE_COUNTERS",
+     "why": "faltou o número"
+    }
+   ],
+   "summary_pt": "Move contadores de dano do banco do oponente para o Ativo dele, concentrando dano.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1m1hwls": {
+   "card": "Glimmora",
+   "block": "Corrosive Shards",
+   "sentence": "During your opponent's next turn, Energy cards can't be attached from your opponent's hand to that Pokémon.",
+   "effects": [
+    {
+     "kind": "ATTACH_LOCK",
+     "cond": [],
+     "scope": "active"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "No próximo turno do oponente, ele não pode ligar energias da mão ao Pokémon afetado.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "3kouvx": {
+   "card": "Ampharos",
+   "block": "Synchro Pulse",
+   "sentence": "If you have the same number of cards in your hand as your opponent, attacks used by this Pokémon do 80 more damage to your opponent's Active Pokémon  .",
+   "effects": [
+    {
+     "kind": "EXTRA_DMG",
+     "cond": [],
+     "amount": 80,
+     "scope": "active"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Com mãos de mesmo tamanho, os ataques de Ampharos causam 80 a mais no Ativo do oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "t7ls4h": {
+   "card": "Landorus",
+   "block": "Fist of Focus",
+   "sentence": "Attach an Energy card from your discard pile to this Pokémon.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Liga uma energia do descarte ao próprio Landorus; aceleração, sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "9rqovx": {
+   "card": "Haban Berry",
+   "block": "Haban Berry",
+   "sentence": "If the Pokémon this card is attached to is damaged by an attack from your opponent's {N} Pokémon, it takes 60 less damage  , and discard this card.",
+   "effects": [
+    {
+     "kind": "REDUCE",
+     "cond": [],
+     "amount": 60,
+     "target": "{N} Pokémon",
+     "scope": "one"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Reduz em 60 o dano de um ataque de Pokémon {N} uma vez, depois é descartada.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1y6b29a": {
+   "card": "Scizor ex",
+   "block": "Cross Breaker",
+   "sentence": "Discard up to 2 {M} Energy from this Pokémon.",
+   "effects": [
+    {
+     "kind": "DRAWBACK",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Descarta até 2 energias {M} do próprio Scizor ex para causar dano.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "wqgq5t": {
+   "card": "Tauros",
+   "block": "Target Together",
+   "sentence": "Choose 1 of your opponent's Pokémon and flip a coin for each of your Pokémon in play that has \"Tauros\" in its name.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": [
+      "coin"
+     ]
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Escolhe um Pokémon do oponente e joga moedas por cada Tauros em jogo; preparação do dano.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "viacm7": {
+   "card": "Tauros",
+   "block": "Target Together",
+   "sentence": "This attack does 50 damage to the chosen Pokémon for each heads.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "EXTRA_DMG",
+     "why": "o texto não fala de dano extra"
+    }
+   ],
+   "summary_pt": "Causa 50 de dano por cara a qualquer Pokémon do oponente, incluindo o banco.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "5qh3rj": {
+   "card": "Kieran",
+   "block": "Kieran",
+   "sentence": "Choose 1:",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Apenas introduz a escolha entre os modos da carta; sem efeito próprio.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1p27vu7": {
+   "card": "Ogre's Mask",
+   "block": "Ogre's Mask",
+   "sentence": "Choose a Pokémon ex in your discard pile that has \"Ogerpon\" in its name, and switch it with 1 of your Pokémon ex in play that has \"Ogerpon\" in its name.",
+   "effects": [
+    {
+     "kind": "SWITCH",
+     "cond": [],
+     "target": "Ogerpon Pokémon ex",
+     "scope": "one"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Troca um Ogerpon ex em jogo por outro do descarte, mantendo energias e dano.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "2ebnzi": {
+   "card": "Tatsugiri",
+   "block": "Attract Customers",
+   "sentence": "Once during your turn, if this Pokémon is in the Active Spot, you may look at the top 6 cards of your deck, reveal a Supporter card you find there, and put it into your hand.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Uma vez por turno, no Ativo, busca um Supporter entre as 6 do topo; consistência.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "15xnrq0": {
+   "card": "Iron Treads",
+   "block": "Dual Core",
+   "sentence": "As long as this Pokémon has a Future Booster Energy Capsule attached, it is {F} and {M} type.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Com a Cápsula, Iron Treads passa a ser tipo {F} e {M}; sem efeito tático direto.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "o7k7dg": {
+   "card": "Bouffalant",
+   "block": "Curly Wall",
+   "sentence": "The effect of Curly Wall doesn't stack.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Limita a redução de Curly Wall a uma aplicação; sem efeito tático próprio.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "796zga": {
+   "card": "Hydreigon ex",
+   "block": "Greedy Eater",
+   "sentence": "If your opponent's Basic Pokémon is Knocked Out by damage from an attack used by this Pokémon, take 1 more Prize card.",
+   "effects": [
+    {
+     "kind": "PRIZE_DENIAL",
+     "cond": [
+      "afterKO"
+     ],
+     "amount": 1,
+     "target": "Basic Pokémon"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Ao nocautear um Pokémon Básico do oponente com ataque, pega 1 prêmio a mais.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1kkl791": {
+   "card": "Grafaiai",
+   "block": "Mischievous Painting",
+   "sentence": "Attach up to 3 Energy cards from your opponent's discard pile to their Pokémon in any way you like.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Liga até 3 energias do descarte do oponente aos Pokémon dele, geralmente para aumentar dano por energia.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "mnw43d": {
+   "card": "Grafaiai",
+   "block": "Miraculous Paint",
+   "sentence": "If heads, choose a Special Condition.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "STATUS",
+     "why": "condição especial não bate com o texto"
+    }
+   ],
+   "summary_pt": "Com cara, escolhe a condição especial a aplicar no Ativo do oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "18oaxzp": {
+   "card": "Snorlax",
+   "block": "But First, Food",
+   "sentence": "Attach an Energy card from your hand to this Pokémon.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Liga uma energia da mão ao próprio Snorlax; aceleração, sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "17z8wf1": {
+   "card": "Raging Bolt ex",
+   "block": "Bellowing Thunder",
+   "sentence": "You may discard any amount of Basic Energy from your Pokémon.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "DRAWBACK",
+     "why": "o texto não fala de desvantagem do próprio ataque"
+    }
+   ],
+   "summary_pt": "Descarta energias básicas próprias para aumentar o dano do ataque.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1q9l7uu": {
+   "card": "Tropius",
+   "block": "Fruit Bearing",
+   "sentence": "Discard a card from your hand.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "DRAWBACK",
+     "why": "o texto não fala de desvantagem do próprio ataque"
+    }
+   ],
+   "summary_pt": "Descarta uma carta da própria mão como custo.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "uhskov": {
+   "card": "Tropius",
+   "block": "Fruity Aroma",
+   "sentence": "Look at the top 6 cards of your deck, and you may reveal any number of Pokémon you find there and put them into your hand.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Busca Pokémon entre as 6 cartas do topo; consistência, sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "14azeww": {
+   "card": "Lickitung",
+   "block": "Tongue Pull",
+   "sentence": "Put up to 2 Basic Pokémon you find there onto your opponent's Bench.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "HAND_DISRUPT",
+     "why": "o texto não fala de mexe na mão do oponente"
+    }
+   ],
+   "summary_pt": "Revela a mão do oponente e coloca até 2 Pokémon Básicos dela no Banco dele, tirando cartas da mão.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "hv3dm9": {
+   "card": "Roto-Stick",
+   "block": "Roto-Stick",
+   "sentence": "You may reveal any number of Supporter cards you find there and put them into your hand.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Busca Supporters no topo do próprio deck; sem efeito tático sobre o oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "2pe595": {
+   "card": "Scoop Up Cyclone",
+   "block": "Scoop Up Cyclone",
+   "sentence": "Put 1 of your Pokémon and all attached cards into your hand.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "SWITCH",
+     "why": "o texto não fala de troca / recuo"
+    }
+   ],
+   "summary_pt": "Devolve um Pokémon seu e as cartas ligadas a ele para a mão, o que pode tirá-lo do Ativo.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "14pighi": {
+   "card": "Klefki",
+   "block": "Stick 'n' Draw",
+   "sentence": "Discard a card from your hand.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "DRAWBACK",
+     "why": "o texto não fala de desvantagem do próprio ataque"
+    }
+   ],
+   "summary_pt": "Você descarta uma carta da própria mão como custo do ataque.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "4mve3s": {
+   "card": "Klefki",
+   "block": "Memory Lock",
+   "sentence": "Choose 1 of your opponent's Active Pokémon's attacks.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": [],
+     "scope": "active"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Escolhe um ataque do Ativo do oponente; é só a preparação do bloqueio de ataque.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "so61gv": {
+   "card": "Klefki",
+   "block": "Memory Lock",
+   "sentence": "During your opponent's next turn, that Pokémon can't use that attack.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": [],
+     "scope": "active"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Impede que o Ativo do oponente use o ataque escolhido no próximo turno; bloqueio de ataque sem categoria própria.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1txb6f9": {
+   "card": "Pecharunt",
+   "block": "Toxic Subjugation",
+   "sentence": "As long as this Pokémon is in the Active Spot, put 5 more damage counters on your opponent's Poisoned Pokémon during Pokémon Checkup.",
+   "effects": [
+    {
+     "kind": "PLACE_COUNTERS",
+     "cond": [
+      "active"
+     ],
+     "amount": 50,
+     "target": "Poisoned Pokémon",
+     "scope": "all"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Com Pecharunt no Ativo, Pokémon Envenenados do oponente recebem 5 contadores extras no Checkup.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "ef0e6b": {
+   "card": "Archaludon ex",
+   "block": "Metal Defender",
+   "sentence": "During your opponent's next turn, this Pokémon has no Weakness.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "REDUCE",
+     "why": "o texto não fala de redução de dano"
+    }
+   ],
+   "summary_pt": "Durante o próximo turno do oponente, este Pokémon fica sem Fraqueza.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "185atjd": {
+   "card": "Gholdengo",
+   "block": "Celebration",
+   "sentence": "If you have exactly 30 cards in your hand, take 2 Prize cards.",
+   "effects": [
+    {
+     "kind": "PRIZE_DENIAL",
+     "cond": [],
+     "amount": 2
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Com exatamente 30 cartas na mão, você pega 2 cartas de Prêmio.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "13wyqj4": {
+   "card": "Gholdengo",
+   "block": "Celebration",
+   "sentence": "If you do, shuffle your hand into your deck.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "DRAWBACK",
+     "why": "o texto não fala de desvantagem do próprio ataque"
+    }
+   ],
+   "summary_pt": "Depois de pegar os prêmios, você embaralha a mão no deck.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1f3ciov": {
+   "card": "Alolan Exeggutor ex",
+   "block": "Swinging Sphene",
+   "sentence": "If heads, Knock Out your opponent's Active Basic Pokémon.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "EXTRA_DMG",
+     "why": "o texto não fala de dano extra"
+    }
+   ],
+   "summary_pt": "Se der cara, nocauteia direto o Pokémon Básico Ativo do oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1t3aokg": {
+   "card": "Alolan Exeggutor ex",
+   "block": "Swinging Sphene",
+   "sentence": "If tails, Knock Out 1 of your opponent's Benched Basic Pokémon.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "EXTRA_DMG",
+     "why": "o texto não fala de dano extra"
+    }
+   ],
+   "summary_pt": "Se der coroa, nocauteia um Pokémon Básico no Banco do oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "xae7nc": {
+   "card": "Grand Tree",
+   "block": "Grand Tree",
+   "sentence": "Once during each player's turn, that player may search their deck for a Stage 1 Pokémon that evolves from 1 of their Basic Pokémon and put it onto that Pokémon to evolve it.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Permite evoluir rapidamente para Estágio 1 a partir do deck; é aceleração própria, sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "102guci": {
+   "card": "Grand Tree",
+   "block": "Grand Tree",
+   "sentence": "If that Pokémon was evolved in this way, that player may search their deck for a Stage 2 Pokémon that evolves from that Pokémon and put it onto that Pokémon to evolve it.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Continua a evolução até o Estágio 2; é aceleração própria, sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1wthhry": {
+   "card": "Gravity Gemstone",
+   "block": "Gravity Gemstone",
+   "sentence": "As long as the Pokémon this card is attached to is in the Active Spot, the Retreat Cost of both Active Pokémon is {C} more.",
+   "effects": [
+    {
+     "kind": "TRAP",
+     "cond": [
+      "active"
+     ],
+     "scope": "active"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Enquanto o portador estiver no Ativo, os dois Ativos pagam {C} a mais para recuar.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1jttcgt": {
+   "card": "Ambipom",
+   "block": "Wicked Tail",
+   "sentence": "When you play this Pokémon from your hand to evolve 1 of your Pokémon during your turn, you may flip 2 coins.",
+   "effects": [
+    {
+     "kind": "HAND_DISRUPT",
+     "cond": [
+      "coin"
+     ]
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Ao evoluir, joga 2 moedas; cada cara embaralha uma carta aleatória da mão do oponente no deck dele.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "r7kjqq": {
+   "card": "Kofu",
+   "block": "Kofu",
+   "sentence": "Put 2 cards from your hand on the bottom of your deck in any order.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Coloca 2 cartas da própria mão no fundo do deck para comprar; sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "evpekj": {
+   "card": "Ducklett",
+   "block": "Firefighting",
+   "sentence": "Discard a {R} Energy from your opponent's Active Pokémon.",
+   "effects": [
+    {
+     "kind": "ENERGY_DISRUPT",
+     "cond": [],
+     "target": "{R} Energy",
+     "scope": "active"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Descarta uma Energia {R} do Ativo do oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "qgx1j5": {
+   "card": "Occa Berry",
+   "block": "Occa Berry",
+   "sentence": "If the Pokémon this card is attached to is damaged by an attack from your opponent's {R} Pokémon, it takes 60 less damage  , and discard this card.",
+   "effects": [
+    {
+     "kind": "REDUCE",
+     "cond": [],
+     "amount": 60,
+     "target": "{R} Pokémon",
+     "scope": "one"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Reduz em 60 o dano de um ataque de Pokémon {R} e depois é descartada.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "oz6l6z": {
+   "card": "Payapa Berry",
+   "block": "Payapa Berry",
+   "sentence": "If the Pokémon this card is attached to is damaged by an attack from your opponent's {P} Pokémon, it takes 60 less damage  , and discard this card.",
+   "effects": [
+    {
+     "kind": "REDUCE",
+     "cond": [],
+     "amount": 60,
+     "target": "{P} Pokémon",
+     "scope": "one"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Reduz em 60 o dano de um ataque de Pokémon {P} e depois é descartada.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "itizgx": {
+   "card": "Accompanying Flute",
+   "block": "Accompanying Flute",
+   "sentence": "You may choose any number of Basic Pokémon you find there and put those Pokémon onto their Bench.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": [],
+     "target": "Basic Pokémon",
+     "scope": "bench"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Coloca Pokémon Básicos do deck do oponente no Banco dele; não se encaixa em nenhuma categoria.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "7ey0i5": {
+   "card": "Accompanying Flute",
+   "block": "Accompanying Flute",
+   "sentence": "Your opponent shuffles the other cards back into their deck.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "O oponente embaralha as cartas restantes no deck; sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "15f13qt": {
+   "card": "Tatsugiri ex",
+   "block": "Cinnabar Lure",
+   "sentence": "You may put any number of Pokémon you find there onto your Bench.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Coloca Pokémon do próprio deck no seu Banco; é preparação de campo, sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "qi0ejd": {
+   "card": "Tyme",
+   "block": "Tyme",
+   "sentence": "Tell your opponent the name of a Pokémon in your hand and put that Pokémon face down in front of you.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Esconde um Pokémon da mão para o oponente adivinhar o HP; é só a mecânica da compra.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "lod2b7": {
+   "card": "Tyme",
+   "block": "Tyme",
+   "sentence": "Your opponent guesses that Pokémon's HP, and then you reveal it.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "O oponente tenta adivinhar o HP e o Pokémon é revelado; sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1s4dmoo": {
+   "card": "Caretaker",
+   "block": "Caretaker",
+   "sentence": "If you drew any cards in this way and if Community Center is in play, shuffle this Caretaker into your deck instead of discarding it.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Embaralha o Caretaker de volta no deck se houver Community Center; sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "8z1zhg": {
+   "card": "Slaking ex",
+   "block": "Born to Slack",
+   "sentence": "If your opponent has no Pokémon ex or Pokémon V in play, this Pokémon can't attack.",
+   "effects": [
+    {
+     "kind": "DRAWBACK",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Slaking ex não pode atacar se o oponente não tiver Pokémon ex ou V em jogo.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1huc3qj": {
+   "card": "Handheld Fan",
+   "block": "Handheld Fan",
+   "sentence": "If the Pokémon this card is attached to is in the Active Spot and is damaged by an attack from your opponent's Pokémon  , move an Energy from the Attacking Pokémon to 1 of your opponent's Benched Pokémon.",
+   "effects": [
+    {
+     "kind": "ENERGY_DISRUPT",
+     "cond": [
+      "active"
+     ],
+     "scope": "active"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Ao ser danificado no Ativo, move uma Energia do atacante para o banco do oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "lvi03s": {
+   "card": "Paradise Resort",
+   "block": "Paradise Resort",
+   "sentence": "The Retreat Cost of each Psyduck in play   is {C} less.",
+   "effects": [
+    {
+     "kind": "SWITCH",
+     "cond": [],
+     "target": "Psyduck",
+     "scope": "all"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Reduz em {C} o custo de recuo de cada Psyduck em jogo.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "17ap6ji": {
+   "card": "Hand Trimmer",
+   "block": "Hand Trimmer",
+   "sentence": "Each player discards cards from their hand until they have 5 cards in their hand.",
+   "effects": [
+    {
+     "kind": "HAND_DISRUPT",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Cada jogador descarta até ficar com 5 cartas na mão.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "fn0cu4": {
+   "card": "Hand Trimmer",
+   "block": "Hand Trimmer",
+   "sentence": "Your opponent discards first.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Define que o oponente descarta primeiro; sem efeito tático próprio.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1hebcv": {
+   "card": "Hassel",
+   "block": "Hassel",
+   "sentence": "Look at the top 8 cards of your deck and put up to 3 of them into your hand.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Busca até 3 cartas entre as 8 do topo; apenas consistência.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1gpdpfo": {
+   "card": "Heavy Baton",
+   "block": "Heavy Baton",
+   "sentence": "If the Pokémon this card is attached to has a Retreat Cost of exactly 4, is in the Active Spot, and is Knocked Out by damage from an attack from your opponent's Pokémon, move up to 3 Basic Energy cards from that Pokémon to your Benched Pokémon in any way you like.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Ao ser nocauteado no Ativo, move até 3 Energias básicas para o banco; recuperação de recursos.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "rloiyg": {
+   "card": "Jamming Tower",
+   "block": "Jamming Tower",
+   "sentence": "Pokémon Tools attached to each Pokémon   have no effect.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": [],
+     "target": "Pokémon Tools",
+     "scope": "all"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Ferramentas de todos os Pokémon ficam sem efeito.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1alwary": {
+   "card": "Perilous Jungle",
+   "block": "Perilous Jungle",
+   "sentence": "During Pokémon Checkup, put 2 more damage counters on each Poisoned non-{D} Pokémon  .",
+   "effects": [
+    {
+     "kind": "PLACE_COUNTERS",
+     "cond": [],
+     "amount": 20,
+     "target": "non-{D} Pokémon",
+     "scope": "all"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Coloca 2 contadores extras em cada Pokémon Envenenado não-{D} no Checkup.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1sgyot9": {
+   "card": "Oranguru",
+   "block": "Now You're in My Power",
+   "sentence": "Until the end of your next turn, the Defending Pokémon's Weakness is now {C}.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "EXTRA_DMG",
+     "why": "o texto não fala de dano extra"
+    }
+   ],
+   "summary_pt": "Muda a Fraqueza do Pokémon Defensor para {C}, aumentando o dano recebido.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1glygfn": {
+   "card": "Lucian",
+   "block": "Lucian",
+   "sentence": "Each player shuffles their hand and puts it on the bottom of their deck.",
+   "effects": [
+    {
+     "kind": "HAND_DISRUPT",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Ambos os jogadores colocam a mão no fundo do deck.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1g41qob": {
+   "card": "Lucian",
+   "block": "Lucian",
+   "sentence": "If either player put any cards on the bottom of their deck in this way, each player flips a coin.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": [
+      "coin"
+     ]
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Cada jogador lança moeda para definir quantas cartas compra.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "c0709j": {
+   "card": "Pachirisu",
+   "block": "Crackling Charge",
+   "sentence": "Attach a number of Basic {L} Energy cards up to the number of heads from your discard pile to your Benched Pokémon in any way you like.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": [
+      "coin"
+     ]
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Liga Energias {L} do descarte no banco conforme as caras; aceleração de energia.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "r9qbfr": {
+   "card": "Maushold",
+   "block": "Gnaw Together",
+   "sentence": "Flip a coin for each Maushold you have in play.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": [
+      "coin"
+     ]
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Lança moeda por Maushold em jogo para descartar o topo do deck do oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "17kyj7i": {
+   "card": "Perrin",
+   "block": "Perrin",
+   "sentence": "Reveal up to 2 Pokémon in your hand and put them into your deck.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Troca Pokémon da mão por outros do deck; apenas consistência.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1c4toaw": {
+   "card": "Salvatore",
+   "block": "Salvatore",
+   "sentence": "You can use this card on a Pokémon you put down when you were setting up to play or on a Pokémon that was put into play this turn.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Permite evoluir no primeiro turno ou no turno em que entrou; consistência.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1g8ylwm": {
+   "card": "Babiri Berry",
+   "block": "Babiri Berry",
+   "sentence": "If the Pokémon this card is attached to is damaged by an attack from your opponent's {M} Pokémon, it takes 60 less damage  , and discard this card.",
+   "effects": [
+    {
+     "kind": "REDUCE",
+     "cond": [
+      "once"
+     ],
+     "amount": 60,
+     "target": "{M} Pokémon",
+     "scope": "one"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Reduz em 60 o dano de um ataque de Pokémon {M}, uma vez.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1988frd": {
+   "card": "Survival Brace",
+   "block": "Survival Brace",
+   "sentence": "If the Pokémon this card is attached to has full HP and would be Knocked Out by damage from an attack from your opponent's Pokémon, it is not Knocked Out, and its remaining HP becomes 10.",
+   "effects": [
+    {
+     "kind": "SURVIVE_FULL",
+     "cond": [],
+     "scope": "one"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Com HP cheio, sobrevive a um nocaute ficando com 10 de HP.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1v1xuay": {
+   "card": "Survival Brace",
+   "block": "Survival Brace",
+   "sentence": "Then, discard this card.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "A carta é descartada após o uso; sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1ajxkcc": {
+   "card": "Boomerang Energy",
+   "block": "Boomerang Energy",
+   "sentence": "If this card is discarded by an effect of an attack used by the Pokémon this card is attached to, attach this card from your discard pile to that Pokémon after attacking.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Volta a se ligar ao Pokémon se descartada pelo próprio ataque; anula custo de descarte.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1owgpsg": {
+   "card": "Legacy Energy",
+   "block": "Legacy Energy",
+   "sentence": "This effect of your Legacy Energy can't be applied more than once per game.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "PRIZE_DENIAL",
+     "why": "o texto não fala de muda prêmios"
+    }
+   ],
+   "summary_pt": "Limita a redução de prêmio do Legacy Energy a uma vez por jogo.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "19f0lz5": {
+   "card": "Colbur Berry",
+   "block": "Colbur Berry",
+   "sentence": "If the Pokémon this card is attached to is damaged by an attack from your opponent's {D} Pokémon, it takes 60 less damage  , and discard this card.",
+   "effects": [
+    {
+     "kind": "REDUCE",
+     "cond": [
+      "once"
+     ],
+     "amount": 60,
+     "target": "{D} Pokémon",
+     "scope": "one"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Reduz em 60 o dano de um ataque de Pokémon {D}, uma vez.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1xtccdk": {
+   "card": "Deduction Kit",
+   "block": "Deduction Kit",
+   "sentence": "Look at the top 3 cards of your deck and put them back in any order, or shuffle them and put them on the bottom of your deck.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Reorganiza o topo do próprio deck; apenas consistência.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "ypiqb9": {
+   "card": "Drayton",
+   "block": "Drayton",
+   "sentence": "You may reveal a Pokémon and a Trainer card you find there and put them into your hand.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Pega um Pokémon e um Treinador do topo do deck; apenas consistência.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1w7euks": {
+   "card": "Dusk Ball",
+   "block": "Dusk Ball",
+   "sentence": "Look at the bottom 7 cards of your deck.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Olha as 7 cartas do fundo do próprio deck; é só busca, sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1ymwbl9": {
+   "card": "Dusk Ball",
+   "block": "Dusk Ball",
+   "sentence": "You may reveal a Pokémon you find there and put it into your hand.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Pega um Pokémon do fundo do deck para a mão; é só busca.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "ra4kf2": {
+   "card": "Lisia's Appeal",
+   "block": "Lisia's Appeal",
+   "sentence": "Switch in 1 of your opponent's Benched Basic Pokémon to the Active Spot.",
+   "effects": [
+    {
+     "kind": "FORCE_SWITCH",
+     "cond": [],
+     "target": "Basic Pokémon",
+     "scope": "one"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Puxa um Pokémon Básico do banco do oponente para o Ativo.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "19sgj07": {
+   "card": "Lisia's Appeal",
+   "block": "Lisia's Appeal",
+   "sentence": "If you do, the new Active Pokémon is now Confused.",
+   "effects": [
+    {
+     "kind": "STATUS",
+     "cond": [],
+     "status": "confused",
+     "target": "Basic Pokémon",
+     "scope": "active"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Deixa Confuso o novo Pokémon Ativo do oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "2wrxel": {
+   "card": "Meddling Memo",
+   "block": "Meddling Memo",
+   "sentence": "Your opponent counts the cards in their hand, shuffles those cards, and puts them on the bottom of their deck.",
+   "effects": [
+    {
+     "kind": "HAND_DISRUPT",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "O oponente coloca a mão inteira no fundo do deck.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1bat2na": {
+   "card": "Meddling Memo",
+   "block": "Meddling Memo",
+   "sentence": "If they do, they draw that many cards.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "O oponente compra a mesma quantidade de cartas; apenas completa o embaralhamento da mão.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "ftl6vm": {
+   "card": "Passho Berry",
+   "block": "Passho Berry",
+   "sentence": "If the Pokémon this card is attached to is damaged by an attack from your opponent's {W} Pokémon, it takes 60 less damage  , and discard this card.",
+   "effects": [
+    {
+     "kind": "REDUCE",
+     "cond": [],
+     "amount": 60,
+     "target": "{W} Pokémon",
+     "scope": "one"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Reduz em 60 o dano de um ataque de Pokémon {W} do oponente, uma vez, e a carta é descartada.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1a3bi6x": {
+   "card": "Technical Machine: Fluorite",
+   "block": "Technical Machine: Fluorite",
+   "sentence": "The Pokémon this card is attached to can use the attack on this card.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Permite usar o ataque da TM; não tem efeito tático por si só.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "165vf80": {
+   "card": "Technical Machine: Fluorite",
+   "block": "Technical Machine: Fluorite",
+   "sentence": "If this card is attached to 1 of your Pokémon, discard it at the end of your turn.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "A TM é descartada no fim do turno; é só regra da carta.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "19j6vjo": {
+   "card": "Meganium",
+   "block": "Wild Growth",
+   "sentence": "Each Basic {G} Energy attached to all of your Pokémon provides {G}{G} Energy.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Energia {G} básica passa a valer {G}{G}; é aceleração de energia, sem tipo tático correspondente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1kr7ylf": {
+   "card": "Meganium",
+   "block": "Wild Growth",
+   "sentence": "The effect of Wild Growth doesn't stack.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "O efeito não acumula; é só regra.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "b4ymlq": {
+   "card": "Inteleon",
+   "block": "Bring Down",
+   "sentence": "Choose a Pokémon in play   that has the least HP remaining, except for this Pokémon, and it is Knocked Out.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "PLACE_COUNTERS",
+     "why": "o texto não fala de contadores no oponente"
+    }
+   ],
+   "summary_pt": "Nocauteia o Pokémon em jogo com menos HP restante, que pode ser até um seu.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1z0xd8l": {
+   "card": "Serperior ex",
+   "block": "Regal Cheer",
+   "sentence": "Attacks used by your Pokémon do 20 more damage to your opponent's Active Pokémon  .",
+   "effects": [
+    {
+     "kind": "EXTRA_DMG",
+     "cond": [],
+     "amount": 20,
+     "scope": "active"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Seus ataques causam 20 de dano a mais ao Pokémon Ativo do oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1rsnran": {
+   "card": "Yanmega ex",
+   "block": "Jet Cyclone",
+   "sentence": "Move 3 Energy from this Pokémon to 1 of your Benched Pokémon.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Move 3 Energias para um Pokémon do banco; é só reposicionamento de energia.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "sl2v67": {
+   "card": "Lunatone",
+   "block": "Lunar Cycle",
+   "sentence": "Once during your turn, if you have Solrock in play, you may discard a Basic {F} Energy card from your hand in order to use this Ability.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Define a condição e o custo para usar a habilidade de compra; sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "q2zaio": {
+   "card": "Ludicolo",
+   "block": "Excited Heal",
+   "sentence": "Once during your turn, if you have any {G} Mega Evolution Pokémon ex in play, you may use this Ability.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Define a condição para usar a habilidade; sem efeito tático na frase.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1xuh35h": {
+   "card": "Ludicolo",
+   "block": "Vibrant Dance",
+   "sentence": "All of your Pokémon in play get +40 HP.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "REDUCE",
+     "why": "o texto não fala de redução de dano"
+    }
+   ],
+   "summary_pt": "Todos os seus Pokémon ganham +40 de HP, o que aumenta a resistência (tratado como redução).",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1czicit": {
+   "card": "Ludicolo",
+   "block": "Vibrant Dance",
+   "sentence": "The effect of Vibrant Dance doesn't stack.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "O efeito não acumula; é só regra.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "cdphwz": {
+   "card": "Psyduck",
+   "block": "Damp",
+   "sentence": "Pokémon in play   lose all Abilities that require those Pokémon to be Knocked Out.",
+   "effects": [
+    {
+     "kind": "ABILITY_LOCK",
+     "cond": [],
+     "scope": "all"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Anula habilidades que exigem que o Pokémon seja nocauteado.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1pvmgdz": {
+   "card": "Psyduck",
+   "block": "Damp",
+   "sentence": "Pokémon in play   lose any Ability that requires the Pokémon using it to Knock Out itself.",
+   "effects": [
+    {
+     "kind": "ABILITY_LOCK",
+     "cond": [],
+     "scope": "all"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Anula habilidades em que o Pokémon se nocauteia sozinho.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "jftujd": {
+   "card": "Golduck",
+   "block": "Damp",
+   "sentence": "Pokémon in play   lose all Abilities that require those Pokémon to be Knocked Out.",
+   "effects": [
+    {
+     "kind": "ABILITY_LOCK",
+     "cond": [],
+     "scope": "all"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Anula habilidades que exigem que o Pokémon seja nocauteado.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1vcogix": {
+   "card": "Golduck",
+   "block": "Damp",
+   "sentence": "Pokémon in play   lose any Ability that requires the Pokémon using it to Knock Out itself.",
+   "effects": [
+    {
+     "kind": "ABILITY_LOCK",
+     "cond": [],
+     "scope": "all"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Anula habilidades em que o Pokémon se nocauteia sozinho.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "o34kv0": {
+   "card": "Shuckle",
+   "block": "Fermented Juice",
+   "sentence": "Once during your turn, if this Pokémon has any {G} Energy attached, you may use this Ability.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Define a condição para usar a habilidade de cura; a frase em si não tem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1757y2e": {
+   "card": "Moltres",
+   "block": "Fiery Flapping",
+   "sentence": "Once during your turn, if you have Articuno and Zapdos in play, you may use this Ability.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Define a condição para usar a habilidade; sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "dfpr3s": {
+   "card": "Lurantis",
+   "block": "Petal Blade Dance",
+   "sentence": "Discard 2 Basic {G} Energy cards from your hand.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "DRAWBACK",
+     "why": "o texto não fala de desvantagem do próprio ataque"
+    }
+   ],
+   "summary_pt": "Exige descartar 2 Energias {G} da mão para atacar, um custo para quem usa.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "x9vm8o": {
+   "card": "Team Rocket's Blipbug",
+   "block": "Searching Eyes",
+   "sentence": "Look at 1 of your opponent's face-down Prize cards.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Só permite olhar uma carta de prêmio do oponente, sem efeito tático relevante.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "jahi8u": {
+   "card": "Misty's Psyduck",
+   "block": "Flustered Leap",
+   "sentence": "If you do, discard all cards from this Pokémon and put this Pokémon on top of your deck.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": [
+      "bench"
+     ]
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Psyduck descarta suas cartas ligadas e volta ao topo do deck; é reciclagem própria, sem efeito tático no oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1rh47al": {
+   "card": "Iono's Electrode",
+   "block": "Thump-Thump Boom",
+   "sentence": "This Pokémon does 100 damage to itself.",
+   "effects": [
+    {
+     "kind": "DRAWBACK",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "O ataque causa 100 de dano ao próprio Electrode.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "q6j6dz": {
+   "card": "Iono's Electrode",
+   "block": "Thump-Thump Boom",
+   "sentence": "If heads, your opponent's Active Pokémon is Knocked Out.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "EXTRA_DMG",
+     "why": "o texto não fala de dano extra"
+    }
+   ],
+   "summary_pt": "Se a moeda der cara, o Pokémon Ativo do oponente é nocauteado na hora.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1oseco1": {
+   "card": "N's Vanilluxe",
+   "block": "Snow Coating",
+   "sentence": "Double the number of damage counters on each of your opponent's Pokémon.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "PLACE_COUNTERS",
+     "why": "faltou o número"
+    }
+   ],
+   "summary_pt": "Dobra os contadores de dano em cada Pokémon do oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "nfdai1": {
+   "card": "Huntail",
+   "block": "Diver's Catch",
+   "sentence": "When 1 of your {W} Pokémon is Knocked Out by damage from an attack from your opponent's Pokémon, you may put all Basic {W} Energy attached to that Pokémon into your hand instead of the discard pile.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": [
+      "afterKO"
+     ],
+     "target": "{W} Pokémon"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Recupera Energias {W} básicas para a mão quando um Pokémon {W} é nocauteado; é recuperação de recursos, sem efeito tático direto.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "r24bsh": {
+   "card": "Mega Gengar ex",
+   "block": "Shadowy Concealment",
+   "sentence": "The effect of Shadowy Concealment doesn't stack.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Apenas impede que o efeito se acumule; sem efeito tático próprio.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1a26rwc": {
+   "card": "Banette",
+   "block": "Cursed Words",
+   "sentence": "Your opponent chooses 3 cards from their hand and shuffles those cards into their deck.",
+   "effects": [
+    {
+     "kind": "HAND_DISRUPT",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "O oponente embaralha 3 cartas da mão de volta no deck.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "15yjc4v": {
+   "card": "Garbodor",
+   "block": "Gloomy Garbage",
+   "sentence": "Attacks used by your opponent's Active Pokémon that has a Pokémon Tool attached do 20 less damage  .",
+   "effects": [
+    {
+     "kind": "REDUCE",
+     "cond": [],
+     "amount": 20,
+     "target": "Pokémon with a Pokémon Tool attached",
+     "scope": "active"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Ataques do Ativo do oponente que tem Ferramenta ligada causam 20 de dano a menos.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "a24lrp": {
+   "card": "Shedinja",
+   "block": "Fragile Husk",
+   "sentence": "If this Pokémon is Knocked Out by damage from an attack from your opponent's Pokémon ex, your opponent can't take any Prize cards for it.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "PRIZE_DENIAL",
+     "why": "faltou o número"
+    }
+   ],
+   "summary_pt": "Se Shedinja for nocauteado por um Pokémon ex, o oponente não pega nenhum prêmio por ele.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "124mlr8": {
+   "card": "Seviper",
+   "block": "Excited Power",
+   "sentence": "If you have any {D} Mega Evolution Pokémon ex in play, attacks used by this Pokémon do 120 more damage to your opponent's Active Pokémon  .",
+   "effects": [
+    {
+     "kind": "EXTRA_DMG",
+     "cond": [],
+     "amount": 120,
+     "scope": "active"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Com um Mega Evolution {D} ex em jogo, os ataques de Seviper causam 120 de dano a mais ao Ativo do oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "11vyxms": {
+   "card": "Grumpig",
+   "block": "Energized Steps",
+   "sentence": "Look at the top 4 cards of your deck and attach any number of Basic Energy cards you find there to your Pokémon in any way you like.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Acelera Energias básicas do topo do deck para os próprios Pokémon; é aceleração, sem efeito tático na análise.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1t4gkns": {
+   "card": "N's Sigilyph",
+   "block": "Victory Symbol",
+   "sentence": "If you use this attack when you have exactly 1 Prize card remaining, you win this game.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Vence o jogo se o jogador tiver exatamente 1 prêmio restante; condição de vitória alternativa, fora das categorias.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "10xxtjn": {
+   "card": "Lillie's Ribombee",
+   "block": "Inviting Wink",
+   "sentence": "When you play this Pokémon from your hand to evolve 1 of your Pokémon during your turn, you may have your opponent reveal their hand and you put any number of Basic Pokémon you find there onto their Bench.",
+   "effects": [
+    {
+     "kind": "HAND_DISRUPT",
+     "cond": [],
+     "target": "Basic Pokémon"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Ao evoluir, puxa os Pokémon Básicos da mão do oponente direto para o Banco dele.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1qjglfe": {
+   "card": "Patrat",
+   "block": "Watchful Eye",
+   "sentence": "Damage counters on each Pokémon   can't be moved to other Pokémon.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Impede mover contadores de dano entre Pokémon; não se encaixa nas categorias táticas.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "936pr9": {
+   "card": "Watchog",
+   "block": "Focus Energy",
+   "sentence": "During your next turn, this Pokémon's Hyper Fang attack's base damage is 240.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "EXTRA_DMG",
+     "why": "o texto não fala de dano extra"
+    }
+   ],
+   "summary_pt": "No próximo turno, o dano base de Hyper Fang passa a ser 240.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1as7xrk": {
+   "card": "Team Rocket's Ampharos",
+   "block": "Darkest Impulse",
+   "sentence": "The effect of Darkest Impulse doesn't stack.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Apenas impede que o efeito se acumule; sem efeito tático próprio.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "xifnyy": {
+   "card": "Stoutland",
+   "block": "Odor Sleuth",
+   "sentence": "Put a number of cards up to the number of heads from your discard pile into your hand.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": [
+      "coin"
+     ]
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Recupera cartas do descarte para a mão conforme as caras; é recuperação de recursos, sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "ososw4": {
+   "card": "Team Rocket's Exeggutor",
+   "block": "Tri Kinesis",
+   "sentence": "If all of them are heads, Knock Out 1 of your opponent's Pokémon.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "EXTRA_DMG",
+     "why": "o texto não fala de dano extra"
+    }
+   ],
+   "summary_pt": "Se as 3 moedas derem cara, nocauteia 1 Pokémon do oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "c5btij": {
+   "card": "Team Rocket's Mewtwo ex",
+   "block": "Erasure Ball",
+   "sentence": "You may discard up to 2 Energy from your Benched Pokémon.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "DRAWBACK",
+     "why": "o texto não fala de desvantagem do próprio ataque"
+    }
+   ],
+   "summary_pt": "Descarta até 2 Energias dos próprios Pokémon do Banco como custo para aumentar o dano.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "6qdptf": {
+   "card": "Smeargle",
+   "block": "Energizing Sketch",
+   "sentence": "Attach an amount of Basic Energy up to the number of heads from your discard pile to your Benched Pokémon in any way you like.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": [
+      "coin"
+     ]
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Liga Energias básicas do descarte ao próprio Banco conforme as caras; é aceleração, sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "pxpkcz": {
+   "card": "Linoone",
+   "block": "Excited Dash",
+   "sentence": "Once during your turn, if this Pokémon is on your Bench, and if you have any Mega Evolution Pokémon ex in play, you may use this Ability.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": [
+      "bench"
+     ]
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "É apenas a condição de uso da habilidade (no Banco e com um Mega Evolution ex em jogo); sem efeito próprio.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "59arpe": {
+   "card": "Linoone",
+   "block": "Excited Dash",
+   "sentence": "Switch this Pokémon with your Active Pokémon.",
+   "effects": [
+    {
+     "kind": "SWITCH",
+     "cond": [
+      "bench"
+     ],
+     "scope": "active"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Troca Linoone do Banco com o seu Pokémon Ativo.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1leomf2": {
+   "card": "Garganacl",
+   "block": "Powerful a-Salt",
+   "sentence": "Attacks used by your {F} Pokémon do 30 more damage to your opponent's Active Pokémon  .",
+   "effects": [
+    {
+     "kind": "EXTRA_DMG",
+     "cond": [],
+     "amount": 30,
+     "target": "{F} Pokémon",
+     "scope": "active"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Ataques dos seus Pokémon {F} causam 30 de dano a mais ao Ativo do oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1epminm": {
+   "card": "Pokégear 3.0",
+   "block": "Pokégear 3.0",
+   "sentence": "You may reveal a Supporter card you find there and put it into your hand.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Busca um Supporter no topo do deck; é busca de cartas, sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "371qjl": {
+   "card": "Tool Scrapper",
+   "block": "Tool Scrapper",
+   "sentence": "Choose up to 2 Pokémon Tools attached to Pokémon   and discard them.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Descarta até 2 Ferramentas ligadas a Pokémon; remoção de Ferramentas não se encaixa nas categorias.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1qxh4y3": {
+   "card": "Mega Absol ex",
+   "block": "Terminal Period",
+   "sentence": "If your opponent's Active Pokémon has exactly 6 damage counters on it, that Pokémon is Knocked Out.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "EXTRA_DMG",
+     "why": "o texto não fala de dano extra"
+    }
+   ],
+   "summary_pt": "Nocauteia o Ativo do oponente se ele tiver exatamente 6 contadores de dano.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "187qx3g": {
+   "card": "Ignition Energy",
+   "block": "Ignition Energy",
+   "sentence": "If this card is attached to 1 of your Pokémon, discard it at the end of your turn.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "DRAWBACK",
+     "why": "o texto não fala de desvantagem do próprio ataque"
+    }
+   ],
+   "summary_pt": "A energia é descartada no fim do seu turno, só servindo por um turno.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1jiu0wm": {
+   "card": "Ignition Energy",
+   "block": "Ignition Energy",
+   "sentence": "If this card is attached to an Evolution Pokémon, it provides {C}{C}{C} Energy instead.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Fornece três energias incolores a Pokémon de Evolução; é aceleração de energia, sem efeito tático na análise.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "b7smxf": {
+   "card": "Steven's Carbink",
+   "block": "Stone Palace",
+   "sentence": "The effect of Stone Palace doesn't stack.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Apenas impede acumular o efeito; sem efeito tático próprio.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1q5g99a": {
+   "card": "Spiritomb",
+   "block": "Spiteful Swirl",
+   "sentence": "If your Active {D} Pokémon is damaged by an attack from your opponent's Pokémon  , place 1 damage counter on the Attacking Pokémon.",
+   "effects": [
+    {
+     "kind": "RETALIATE",
+     "cond": [
+      "active"
+     ],
+     "amount": 10,
+     "target": "{D} Pokémon",
+     "scope": "active"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Coloca 1 contador de dano no atacante quando seu Ativo {D} é danificado.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1lckvdm": {
+   "card": "Spiritomb",
+   "block": "Spiritual End",
+   "sentence": "If you have 13 or more Pokémon that have the Hide 'n' Sneak Ability in your discard pile, choose 2 of your opponent's Pokémon and quadruple the number of damage counters on each of them.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "PLACE_COUNTERS",
+     "why": "faltou o número"
+    }
+   ],
+   "summary_pt": "Quadruplica os contadores de dano em 2 Pokémon do oponente se houver 13+ Pokémon com Hide 'n' Sneak no descarte.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "4fbqdd": {
+   "card": "Team Rocket's Mimikyu",
+   "block": "Gemstone Mimicry",
+   "sentence": "Choose 1 of your opponent's Active Tera Pokémon's attacks and use it as this attack.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": [],
+     "target": "Tera Pokémon"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Copia um ataque do Pokémon Tera Ativo do oponente; sem efeito tático classificável.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "19qdx53": {
+   "card": "Dizzying Valley",
+   "block": "Dizzying Valley",
+   "sentence": "Confused Pokémon   don't recover from that Special Condition when they evolve or devolve.",
+   "effects": [
+    {
+     "kind": "STATUS",
+     "cond": [],
+     "status": "confused",
+     "scope": "all"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Pokémon Confusos continuam Confusos mesmo ao evoluir ou desevoluir.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "a3sdbf": {
+   "card": "Grimsley's Move",
+   "block": "Grimsley's Move",
+   "sentence": "Look at the top 7 cards of your deck and put a {D} Pokémon you find there onto your Bench.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Busca um Pokémon {D} no topo do deck para o banco; preparação, sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "8s6szi": {
+   "card": "Grimsley's Move",
+   "block": "Grimsley's Move",
+   "sentence": "Shuffle the other cards and put them on the bottom of your deck.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Embaralha as cartas restantes no fundo do deck; sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "19j0rzv": {
+   "card": "Thievul",
+   "block": "Skill Thief",
+   "sentence": "If you have no cards in your hand, choose an attack from 1 of your opponent's Pokémon in play and use it as this attack.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Com a mão vazia, copia um ataque de um Pokémon do oponente; sem efeito tático classificável.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "dcelaz": {
+   "card": "Mega Mawile ex",
+   "block": "Huge Bite",
+   "sentence": "If your opponent's Active Pokémon already has any damage counters on it, this attack's base damage is 30.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "EXTRA_DMG",
+     "why": "o texto não fala de dano extra"
+    }
+   ],
+   "summary_pt": "O dano base muda para 30 se o Ativo do oponente já tiver contadores de dano.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "10w158k": {
+   "card": "Team Rocket's Tyranitar",
+   "block": "Sand Stream",
+   "sentence": "During Pokémon Checkup, if this Pokémon is in the Active Spot, put 2 damage counters on each of your opponent's Basic Pokémon.",
+   "effects": [
+    {
+     "kind": "PLACE_COUNTERS",
+     "cond": [
+      "active"
+     ],
+     "amount": 20,
+     "target": "Basic Pokémon",
+     "scope": "all"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Na verificação entre turnos, com este Pokémon no Ativo, coloca 2 contadores em cada Pokémon Básico do oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1ky6uny": {
+   "card": "Team Rocket's Dugtrio",
+   "block": "Holes",
+   "sentence": "Whenever your opponent's Active Pokémon moves to the Bench during their turn, place 2 damage counters on that Pokémon.",
+   "effects": [
+    {
+     "kind": "PLACE_COUNTERS",
+     "cond": [],
+     "amount": 20,
+     "scope": "active"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Coloca 2 contadores de dano no Ativo do oponente sempre que ele recua ou é trocado para o banco no turno dele.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1hoi9ep": {
+   "card": "Delibird",
+   "block": "Pleasing Present",
+   "sentence": "Your opponent does this first.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Só define a ordem de ligar energias; sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "16xg7ew": {
+   "card": "Forest of Vitality",
+   "block": "Forest of Vitality",
+   "sentence": "Each player's {G} Pokémon can evolve into {G} Pokémon during the turn they play those Pokémon, except during their first turn.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": [],
+     "target": "{G} Pokémon"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Permite evoluir Pokémon {G} no turno em que entram; aceleração, sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1pib0kg": {
+   "card": "Gumshoos",
+   "block": "Evidence Gathering",
+   "sentence": "Switch a card from your hand with the top card of your deck.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Troca uma carta da mão com o topo do deck; sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1nh68yg": {
+   "card": "Surfing Beach",
+   "block": "Surfing Beach",
+   "sentence": "Once during each player's turn, that player may switch their Active {W} Pokémon with 1 of their Benched {W} Pokémon.",
+   "effects": [
+    {
+     "kind": "SWITCH",
+     "cond": [],
+     "target": "{W} Pokémon",
+     "scope": "active"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Uma vez por turno, cada jogador pode trocar seu Ativo {W} por um {W} do banco.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "2mkao1": {
+   "card": "Salamence ex",
+   "block": "Booming Call",
+   "sentence": "Put up to 3 {N} Pokémon from your discard pile onto your Bench.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Recupera até 3 Pokémon {N} do descarte para o banco; sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1oje14r": {
+   "card": "Team Rocket's Nidorina",
+   "block": "Dark Awakening",
+   "sentence": "Choose up to 2 of your {D} Pokémon.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Escolhe Pokémon {D} para evoluir; sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1t5fqh0": {
+   "card": "Hop's Snorlax",
+   "block": "Extra Helpings",
+   "sentence": "The effect of Extra Helpings doesn't stack.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Apenas impede acumular o efeito; sem efeito tático próprio.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1iqnl82": {
+   "card": "Lt. Surge's Bargain",
+   "block": "Lt. Surge's Bargain",
+   "sentence": "Ask your opponent if each player may take a Prize card.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Pergunta ao oponente se ambos pegam um prêmio; sem efeito sozinho.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "or240a": {
+   "card": "Lt. Surge's Bargain",
+   "block": "Lt. Surge's Bargain",
+   "sentence": "If yes, each player takes a Prize card.",
+   "effects": [
+    {
+     "kind": "PRIZE_DENIAL",
+     "cond": [],
+     "amount": 1
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Se aceito, cada jogador pega 1 carta de prêmio.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1sk91pb": {
+   "card": "Team Rocket's Crobat ex",
+   "block": "Biting Spree",
+   "sentence": "When you play this Pokémon from your hand to evolve 1 of your Pokémon during your turn, you may choose 2 of your opponent's Pokémon and put 2 damage counters on each of them.",
+   "effects": [
+    {
+     "kind": "PLACE_COUNTERS",
+     "cond": [],
+     "amount": 20,
+     "scope": "one"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Ao evoluir, coloca 2 contadores de dano em cada um de 2 Pokémon do oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "17hsthp": {
+   "card": "Team Rocket's Crobat ex",
+   "block": "Assassin's Return",
+   "sentence": "You may put this Pokémon into your hand.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "SWITCH",
+     "why": "o texto não fala de troca / recuo"
+    }
+   ],
+   "summary_pt": "Devolve este Pokémon à mão, saindo do Ativo (descartando as cartas ligadas).",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1bg4hm1": {
+   "card": "Team Rocket's Grimer",
+   "block": "Corrosive Sludge",
+   "sentence": "At the end of your opponent's next turn, discard the Defending Pokémon and all attached cards.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "BOUNCE_OPP",
+     "why": "o texto não fala de tira Pokémon dele de jogo"
+    }
+   ],
+   "summary_pt": "No fim do próximo turno do oponente, descarta o Pokémon Defensor e todas as cartas ligadas a ele.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "d0edxe": {
+   "card": "Premium Power Pro",
+   "block": "Premium Power Pro",
+   "sentence": "During this turn, attacks used by your {F} Pokémon do 30 more damage to your opponent's Active Pokémon  .",
+   "effects": [
+    {
+     "kind": "EXTRA_DMG",
+     "cond": [],
+     "amount": 30,
+     "target": "{F} Pokémon",
+     "scope": "active"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Neste turno, ataques dos seus Pokémon {F} causam 30 de dano a mais no Ativo do oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1rwwls1": {
+   "card": "Rare Candy",
+   "block": "Rare Candy",
+   "sentence": "Choose 1 of your Basic Pokémon in play.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Escolhe um Pokémon Básico seu em jogo; apenas preparação, sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1rh7cpw": {
+   "card": "Rare Candy",
+   "block": "Rare Candy",
+   "sentence": "If you have a Stage 2 card in your hand that evolves from that Pokémon, put that card onto the Basic Pokémon to evolve it, skipping the Stage 1.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Evolui direto do Básico para o Estágio 2, pulando o Estágio 1; aceleração própria, sem efeito tático no oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "fks1bn": {
+   "card": "Team Rocket's Murkrow",
+   "block": "Torment",
+   "sentence": "Choose 1 of your opponent's Active Pokémon's attacks.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Escolhe um ataque do Ativo do oponente; preparação para o bloqueio do ataque.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "16fpdhk": {
+   "card": "Team Rocket's Murkrow",
+   "block": "Torment",
+   "sentence": "During your opponent's next turn, that Pokémon can't use that attack.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "No próximo turno do oponente, o Pokémon dele não pode usar o ataque escolhido; não se encaixa nos tipos disponíveis.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "z217bv": {
+   "card": "Strange Timepiece",
+   "block": "Strange Timepiece",
+   "sentence": "Devolve 1 of your evolved {P} Pokémon by putting any number of Evolution cards on it into your hand.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Desevolui um Pokémon {P} seu, devolvendo as evoluções para a mão; não afeta o oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1fynxrm": {
+   "card": "Noivern",
+   "block": "Tuning Echo",
+   "sentence": "If you have the same number of cards in your hand as your opponent, ignore all Energy in the cost of Frightening Howl used by this Pokémon.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Com mãos de mesmo tamanho, Frightening Howl fica sem custo de energia; redução de custo, sem efeito tático direto.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "mztxpg": {
+   "card": "Wally's Compassion",
+   "block": "Wally's Compassion",
+   "sentence": "If you healed any damage in this way, put all Energy attached to that Pokémon into your hand.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "DRAWBACK",
+     "why": "o texto não fala de desvantagem do próprio ataque"
+    }
+   ],
+   "summary_pt": "Ao curar, devolve todas as energias do Pokémon curado para a mão.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1pt2dq6": {
+   "card": "Zamazenta",
+   "block": "Strong Bash",
+   "sentence": "During your opponent's next turn, if this Pokémon is damaged by an attack  , put damage counters on the Attacking Pokémon equal to the damage done to this Pokémon.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "RETALIATE",
+     "why": "faltou o número"
+    }
+   ],
+   "summary_pt": "No próximo turno do oponente, se este Pokémon receber dano de ataque, coloca contadores iguais no atacante.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "4cfz3g": {
+   "card": "Levincia",
+   "block": "Levincia",
+   "sentence": "Once during each player's turn, that player may put up to 2 Basic {L} Energy cards from their discard pile into their hand.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Cada jogador pode recuperar até 2 Energias {L} Básicas do descarte para a mão; recurso, sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "z8fg3k": {
+   "card": "Team Rocket's Persian ex",
+   "block": "Haughty Order",
+   "sentence": "You may choose an attack from a Pokémon you find there and use it as this attack.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Copia um ataque de Pokémon encontrado no topo do deck do oponente; efeito variável.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1qgvfmn": {
+   "card": "Team Rocket's Persian ex",
+   "block": "Haughty Order",
+   "sentence": "Shuffle the revealed cards into your opponent's deck.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Embaralha as cartas reveladas de volta no deck do oponente; sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "szi9e4": {
+   "card": "Dragonair",
+   "block": "Evolutionary Guidance",
+   "sentence": "Once during your turn, if this Pokémon has any Energy attached, you may use this Ability.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Condição para usar a habilidade uma vez por turno com energia ligada; sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "7kxsi0": {
+   "card": "Team Rocket's Porygon",
+   "block": "Hacking",
+   "sentence": "Discard a card from your hand.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "DRAWBACK",
+     "why": "o texto não fala de desvantagem do próprio ataque"
+    }
+   ],
+   "summary_pt": "Você descarta uma carta da sua mão como custo para o oponente também descartar.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "76960z": {
+   "card": "Redeemable Ticket",
+   "block": "Redeemable Ticket",
+   "sentence": "Count your Prize cards, shuffle them, and put them on the bottom of your deck.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Coloca seus prêmios no fundo do deck; reorganização própria, sem mudar a quantidade.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1ya2zne": {
+   "card": "Redeemable Ticket",
+   "block": "Redeemable Ticket",
+   "sentence": "Then, take that many cards from the top of your deck and put them face down as your Prize cards.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Repõe o mesmo número de prêmios a partir do topo do deck; sem mudar a contagem.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1r332t2": {
+   "card": "Super Potion",
+   "block": "Super Potion",
+   "sentence": "If you healed any damage in this way, discard an Energy from that Pokémon.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "DRAWBACK",
+     "why": "o texto não fala de desvantagem do próprio ataque"
+    }
+   ],
+   "summary_pt": "Ao curar, descarta uma energia do Pokémon curado.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1ace9ua": {
+   "card": "Arven's Greedent",
+   "block": "Greedy Order",
+   "sentence": "When you play this Pokémon from your hand to evolve 1 of your Pokémon during your turn, you may put up to 2 Arven's Sandwich cards from your discard pile into your hand.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Ao evoluir, recupera até 2 Arven's Sandwich do descarte; recurso, sem efeito tático direto.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "hden7": {
+   "card": "Team Rocket's Bother-Bot",
+   "block": "Team Rocket's Bother-Bot",
+   "sentence": "You may have your opponent switch those cards.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "HAND_DISRUPT",
+     "why": "o texto não fala de mexe na mão do oponente"
+    }
+   ],
+   "summary_pt": "Pode trocar uma carta da mão do oponente por um prêmio virado dele.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "mr9q9t": {
+   "card": "Team Rocket's Energy",
+   "block": "Team Rocket's Energy",
+   "sentence": "As long as this card is attached to a Pokémon, it provides 2 in any combination of {P} Energy and {D} Energy.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Fornece 2 energias em qualquer combinação de {P} e {D}; aceleração, sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "q09mmo": {
+   "card": "Mega Delphox ex",
+   "block": "Trick Portal",
+   "sentence": "Look at the top 9 cards of your deck, and you may put any number of Pokémon you find there onto your Bench.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Olha 9 cartas do topo e coloca Pokémon no banco; montagem de campo, sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "pgvo00": {
+   "card": "Decidueye ex",
+   "block": "Sniper's Eye",
+   "sentence": "If your opponent has exactly 4 cards in their hand, ignore all {C} Energy in the costs of attacks used by this Pokémon.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Se o oponente tem exatamente 4 cartas na mão, ignora energias {C} nos custos; redução de custo.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "s8x60n": {
+   "card": "Delphox",
+   "block": "Flaring Magic",
+   "sentence": "Once during your turn, you may discard a Basic {R} Energy card from your hand in order to use this Ability.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Custo da habilidade: descartar uma Energia {R} Básica da mão; sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1gc440j": {
+   "card": "Delphox",
+   "block": "Flaring Magic",
+   "sentence": "Once during your turn, you may discard a Basic Fire Energy card from your hand in order to use this Ability.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Custo da habilidade: descartar uma Energia de Fogo Básica da mão; sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1w30rxb": {
+   "card": "Mega Greninja ex",
+   "block": "Mortal Shuriken",
+   "sentence": "Once during your turn, if this Pokémon is in the Active Spot, you may discard a Basic {W} Energy card from your hand in order to use this Ability.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": [
+      "active"
+     ]
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Condição de uso: uma vez por turno, no Ativo, descartando uma Energia {W} básica da mão; o efeito em si está em outra frase.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "lalgzh": {
+   "card": "Aurorus",
+   "block": "Tundra Wall",
+   "sentence": "The effect of Tundra Wall doesn't stack.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Regra de acúmulo: o efeito de Tundra Wall não se soma.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "bzvab6": {
+   "card": "Mega Chandelure ex",
+   "block": "Binding Flame",
+   "sentence": "Your opponent's Active Pokémon's Retreat Cost is {C} more.",
+   "effects": [
+    {
+     "kind": "TRAP",
+     "cond": [],
+     "scope": "active"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Aumenta em {C} o custo de recuo do Ativo do oponente, dificultando a fuga.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "v4yyvq": {
+   "card": "Mega Zygarde ex",
+   "block": "Nullifying Zero",
+   "sentence": "For each of your opponent's Pokémon, flip a coin.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": [
+      "coin"
+     ]
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Lança uma moeda para cada Pokémon do oponente; o dano vem na frase seguinte.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "y3vl9w": {
+   "card": "Mega Zygarde ex",
+   "block": "Nullifying Zero",
+   "sentence": "If heads, this attack does 150 damage to that Pokémon.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "EXTRA_DMG",
+     "why": "o texto não fala de dano extra"
+    }
+   ],
+   "summary_pt": "Cada cara causa 150 de dano ao Pokémon correspondente do oponente, inclusive no banco.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1thy5rb": {
+   "card": "Mega Darkrai ex",
+   "block": "Abyss Eye",
+   "sentence": "If your opponent's Active Pokémon is affected by a Special Condition, it is Knocked Out.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "EXTRA_DMG",
+     "why": "o texto não fala de dano extra"
+    }
+   ],
+   "summary_pt": "Nocauteia o Ativo do oponente se ele estiver com uma Condição Especial.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1bjqar8": {
+   "card": "Gengar",
+   "block": "Infinite Shadow",
+   "sentence": "If this Pokémon is Knocked Out by damage from an attack from your opponent's Pokémon, put it into your hand instead of the discard pile.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": [
+      "afterKO"
+     ]
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Ao ser nocauteado por ataque, volta para a mão em vez de ir para o descarte.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "15n2s5u": {
+   "card": "Yveltal ex",
+   "block": "Soul Destroyer",
+   "sentence": "Knock Out each of your opponent's Pokémon that has 50 HP or less remaining.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "EXTRA_DMG",
+     "why": "o texto não fala de dano extra"
+    }
+   ],
+   "summary_pt": "Nocauteia todos os Pokémon do oponente com 50 de HP restante ou menos.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1qs6548": {
+   "card": "Meowth ex",
+   "block": "Last-Ditch Catch",
+   "sentence": "Once during your turn, when you play this Pokémon from your hand onto your Bench, you may use this Ability.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": [
+      "bench"
+     ]
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Condição de ativação ao baixar o Pokémon no banco; é busca de Supporter, sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "gxegw2": {
+   "card": "Meowth ex",
+   "block": "Last-Ditch Catch",
+   "sentence": "You can't use more than 1 Ability that has \"Last-Ditch\" in its name each turn.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Limita o uso a uma habilidade \"Last-Ditch\" por turno; é uma regra de uso.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1bbv1fv": {
+   "card": "Cobalion ex",
+   "block": "Metal Road",
+   "sentence": "Once during your turn, when this Pokémon moves from your Bench to the Active Spot, you may use this Ability.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Ativa quando o Pokémon passa do banco ao Ativo; move energia, sem efeito tático direto.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1fig6iq": {
+   "card": "Mega Dragalge ex",
+   "block": "Pernicious Poison",
+   "sentence": "During Pokémon Checkup, place 16 damage counters on that Pokémon instead of 1.",
+   "effects": [
+    {
+     "kind": "PLACE_COUNTERS",
+     "cond": [],
+     "amount": 160,
+     "scope": "active"
+    }
+   ],
+   "rejected": [
+    {
+     "kind": "STATUS",
+     "why": "o texto não fala de condição especial"
+    }
+   ],
+   "summary_pt": "O veneno coloca 16 contadores (160 de dano) por checkup no Ativo do oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "yju10": {
+   "card": "Goodra",
+   "block": "Slimy Sliding",
+   "sentence": "When your opponent's Active Pokémon retreats, your opponent flips a coin.",
+   "effects": [
+    {
+     "kind": "TRAP",
+     "cond": [
+      "coin"
+     ],
+     "scope": "active"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Quando o Ativo do oponente recua, ele lança uma moeda.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "19koaxs": {
+   "card": "Goodra",
+   "block": "Slimy Sliding",
+   "sentence": "If tails, Energy for its Retreat Cost is not discarded, and they don't switch Pokémon.",
+   "effects": [
+    {
+     "kind": "TRAP",
+     "cond": [
+      "coin"
+     ],
+     "scope": "active"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Se sair coroa, o recuo do oponente falha e o Pokémon fica no Ativo.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "xupa3g": {
+   "card": "Goodra",
+   "block": "Slimy Sliding",
+   "sentence": "The effect of Slimy Sliding doesn't stack.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Regra de acúmulo: o efeito não se soma.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1l5uk22": {
+   "card": "Silvally",
+   "block": "Call a Buddy",
+   "sentence": "Once during your turn, if you have no cards in your hand, you may use this Ability.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Condição de uso: mão vazia, uma vez por turno; busca Supporter.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1a7jl3p": {
+   "card": "Core Memory",
+   "block": "Core Memory",
+   "sentence": "The Mega Zygarde ex this card is attached to can use the attack on this card.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Dá ao Mega Zygarde ex acesso ao ataque Geobuster.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1z0s5we": {
+   "card": "Backtrack Badge",
+   "block": "Backtrack Badge",
+   "sentence": "Once during your turn, after you flip any coins for an attack of the {C} Pokémon this card is attached to, you may ignore all results of those coin flips and begin flipping those coins again.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": [
+      "coin"
+     ]
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Permite relançar as moedas de um ataque uma vez por turno.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "13zls2v": {
+   "card": "Fossil Quarry",
+   "block": "Fossil Quarry",
+   "sentence": "Once during each player's turn, that player may search their deck for up to 2 Item cards that have \"Antique\" in their name and put them onto their Bench.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Busca até 2 Itens \"Antique\" e os coloca no banco; é aceleração de jogo.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "110ipma": {
+   "card": "Gladion's Final Battle",
+   "block": "Gladion's Final Battle",
+   "sentence": "During this turn, attacks used by your Pokémon that don't have a Rule Box do 80 more damage to your opponent's Active Pokémon  .",
+   "effects": [
+    {
+     "kind": "EXTRA_DMG",
+     "cond": [],
+     "amount": 80,
+     "target": "Pokémon that don't have a Rule Box",
+     "scope": "active"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Neste turno, Pokémon sem Rule Box causam 80 de dano a mais ao Ativo do oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1e8nma8": {
+   "card": "Lumiose City",
+   "block": "Lumiose City",
+   "sentence": "Once during each player's turn, that player may search their deck for a Basic Pokémon and put it onto their Bench.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Cada jogador pode buscar um Pokémon Básico para o banco uma vez por turno.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "12ozcio": {
+   "card": "Lumiose City",
+   "block": "Lumiose City",
+   "sentence": "If a player searches their deck in this way, their turn ends.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "DRAWBACK",
+     "why": "o texto não fala de desvantagem do próprio ataque"
+    }
+   ],
+   "summary_pt": "Usar a busca do estádio encerra o turno do jogador.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "12vcgpz": {
+   "card": "Great Haul Net",
+   "block": "Great Haul Net",
+   "sentence": "Choose 1 or both:",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Instrução de escolha das opções; sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1bs1c2i": {
+   "card": "Naveen",
+   "block": "Naveen",
+   "sentence": "Before drawing cards, you may discard any number of cards from your hand.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Permite descartar cartas da própria mão antes de comprar; sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1kanztu": {
+   "card": "Roxie's Performance",
+   "block": "Roxie's Performance",
+   "sentence": "During your opponent's next turn, their Poisoned Pokémon can't retreat.",
+   "effects": [
+    {
+     "kind": "TRAP",
+     "cond": [],
+     "target": "Poisoned Pokémon",
+     "scope": "active"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "No próximo turno do oponente, seus Pokémon Envenenados não podem recuar.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "19k4m0f": {
+   "card": "Tremendous Bomb",
+   "block": "Tremendous Bomb",
+   "sentence": "If the Pokémon this card is attached to isn't a Mega Evolution Pokémon ex, is in the Active Spot, and takes 240 or more damage from an attack from your opponent's Mega Evolution Pokémon ex  , place 12 damage counters on the Attacking Pokémon.",
+   "effects": [
+    {
+     "kind": "RETALIATE",
+     "cond": [
+      "active"
+     ],
+     "amount": 120,
+     "target": "Mega Evolution Pokémon ex",
+     "scope": "one"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Se o Pokémon Ativo com esta ferramenta, que não seja Mega Evolução ex, sofrer 240 ou mais de dano de um Mega Evolução Pokémon ex do oponente, coloca 12 contadores (120 de dano) no atacante.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "17nls3e": {
+   "card": "Tremendous Bomb",
+   "block": "Tremendous Bomb",
+   "sentence": "If you placed any damage counters in this way, discard this card.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "A ferramenta é descartada depois de ativar. É só custo de uso único, sem efeito tático próprio.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "c697ho": {
+   "card": "Transformation Tome",
+   "block": "Transformation Tome",
+   "sentence": "You must play 2 Transformation Tome cards at once.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Exige jogar 2 cópias juntas. É só custo de jogar a carta, sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "f9hvd3": {
+   "card": "Transformation Tome",
+   "block": "Transformation Tome",
+   "sentence": "Choose a Basic Pokémon in your discard pile and switch it with 1 of your Basic Pokémon in play.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": [],
+     "target": "Basic Pokémon"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Troca um Pokémon Básico seu em jogo por um Básico do seu descarte, mantendo cartas ligadas e dano. É uma manobra de recursos própria, sem efeito sobre o oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1ib51qo": {
+   "card": "Voltaic Lightning Energy",
+   "block": "Voltaic Lightning Energy",
+   "sentence": "Attacks used by the {L} Pokémon this card is attached to do 20 more damage to your opponent's Active Pokémon  .",
+   "effects": [
+    {
+     "kind": "EXTRA_DMG",
+     "cond": [],
+     "amount": 20,
+     "target": "{L} Pokémon",
+     "scope": "active"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Os ataques do Pokémon {L} com esta energia causam 20 de dano a mais no Pokémon Ativo do oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1yen23j": {
+   "card": "Tarragon",
+   "block": "Tarragon",
+   "sentence": "Put up to 4 in any combination of {F} Pokémon and Basic {F} Energy cards from your discard pile into your hand.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": [],
+     "target": "{F} Pokémon"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Recupera até 4 Pokémon {F} ou Energias {F} básicas do descarte para a mão. É recuperação de recursos, sem efeito tático de matchup.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1lxqblu": {
+   "card": "Nitro Fire Energy",
+   "block": "Nitro Fire Energy",
+   "sentence": "If this card is discarded by an effect of an attack used by the {R} Pokémon this card is attached to, put this card into your hand after attack damage and effects.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": [],
+     "target": "{R} Pokémon"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Se esta energia for descartada pelo ataque de um Pokémon {R}, ela volta para a mão. Apenas reaproveita a energia, sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "2q2a7c": {
+   "card": "Carbink",
+   "block": "Double Type",
+   "sentence": "As long as this Pokémon is in play, it is {F} and {P} type.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Carbink é dos tipos {F} e {P} enquanto estiver em jogo. Muda só o tipo, sem efeito tático direto.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "1geogni": {
+   "card": "Unown",
+   "block": "Mysterious Signal",
+   "sentence": "If your opponent's Pokémon is Knocked Out by damage from this attack, take 1 more Prize card.",
+   "effects": [
+    {
+     "kind": "PRIZE_DENIAL",
+     "cond": [
+      "afterKO"
+     ],
+     "amount": 1,
+     "scope": "one"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Se o ataque nocautear um Pokémon do oponente, você pega 1 carta de prêmio a mais.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  },
+  "15j0128": {
+   "card": "Lugia",
+   "block": "Elemental Blast",
+   "sentence": "Discard a {R} Energy, a {W} Energy, and a {L} Energy from this Pokémon.",
+   "effects": [
+    {
+     "kind": "DRAWBACK",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Lugia precisa descartar uma Energia {R}, uma {W} e uma {L} de si mesmo ao atacar.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-06"
+  }
+ }
+}

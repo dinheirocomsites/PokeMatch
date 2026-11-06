@@ -84,6 +84,7 @@ Legenda: [x] feito · [~] em andamento · [ ] a fazer
 - [x] **Custo total da troca** (feedback): vagas, papel de cada carta que sai (ex.: Judge = disrupção + compra), tempo, banco, energia de outro tipo, prêmios, ACE SPEC e consistência medida
 - [x] **Validações pendentes implementadas** (verificador genérico, em toda tech): Tera/Ancient/Future, custo de descarte, "não soma" (1 habilidade por turno), 1x por jogo, 1º turno/quem começa, tabuleiro do oponente, tamanho da mão (42 testes ✅)
 - [x] **Site em arquivo único** (`npm run build:single` → `dist-single/pokematch.html`, 2 MB): motor + cartas + exemplos, roda em qualquer hospedagem (Lovable, Netlify…) ou direto do disco
+- [x] **Auditoria do que falta** (`docs/LACUNAS.md` + `npm run audit:coverage`): 36% das 2.776 frases de efeito entendidas; lacunas do simulador, consistência, custos, diagnóstico, dados e contexto
 - [ ] Cérebro com IA (API do Claude): aguardando a chave do Felipe
 - [ ] Validar contra Hydrapple — aguardando a lista do Felipe
 - [ ] Ensinar as frases restantes do relatório de lacunas (cauda longa)

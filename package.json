@@ -9,7 +9,8 @@
     "test": "node --test test/*.test.js",
     "build": "node scripts/build-static.js",
     "audit": "node scripts/audit-damage.js",
-    "build:single": "node scripts/build-single.js"
+    "build:single": "node scripts/build-single.js",
+    "audit:coverage": "node scripts/audit-coverage.js"
   },
   "license": "MIT",
   "devDependencies": {

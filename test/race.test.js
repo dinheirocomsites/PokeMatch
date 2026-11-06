@@ -52,14 +52,20 @@ test('feedback: Pecharunt ex mata o Ogerpon do Ativo sem Boss; Boss só quando n
   const plan = r.race.best.plan.map((t) => t.mine);
   const t2 = plan[1];
   assert.match(t2, /Pecharunt ex/);
-  assert.match(t2, /nocauteia Teal Mask Ogerpon ex sem precisar de Boss/);
+  assert.match(t2, /nocauteia o Ativo dele, Teal Mask Ogerpon ex \(2 prêmios\), sem gastar Boss/);
   assert.doesNotMatch(r.race.best.plan.map((t) => t.mine).join(' '), /Yveltal/);
-  for (const m of plan.filter((x) => /Boss's Orders/.test(x))) assert.match(m, /Ele só vale|Ele não cai/, 'todo Boss precisa de justificativa');
+  for (const m of plan.filter((x) => /Boss's Orders/.test(x))) assert.match(m, /vale só|não cai/, 'todo Boss precisa de justificativa');
 });
 
-test('feedback: todo passo do plano diz quem está no Ativo do oponente', () => {
+test('feedback: todo passo do plano diz o que acontece com o Ativo do oponente', () => {
   const r = analyze(read('sharpedo.txt'), read('basic-box.txt'), db);
-  for (const t of r.race.best.plan) assert.match(t.mine, /^Ativo dele: /);
+  for (const t of r.race.best.plan) assert.match(t.mine, /Ativo dele/);
+});
+
+test('feedback: o roteiro é genérico — Boss num Pokémon de 2 prêmios, com opções', () => {
+  const r = analyze(read('sharpedo.txt'), read('basic-box.txt'), db);
+  const boss = r.race.best.plan.map((t) => t.mine).find((m) => /Boss's Orders/.test(m));
+  assert.match(boss, /Boss's Orders num Pokémon de 2 prêmios que você nocauteia \(.+, .+\)/);
 });
 
 test('consistência: cada sugestão mostra o custo da troca; tirar Judge custa Supporter na mão inicial', () => {

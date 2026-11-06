@@ -100,12 +100,13 @@ export function evaluateFit(card, used, reasons, meBase, opp, db, opt = null) {
       const need = [...new Set((card.attacks ?? []).flatMap((a) => a.cost ?? []).filter((x) => x !== 'Colorless'))].map(typePt);
       add('recursos', 0.9, `⚠ Não ataca com as suas energias${need.length ? ` (precisa de ${need.join('/')})` : ''}.`);
     }
-    const attackValue = used.filter((t) => t.source === 'attack' && (t.cost ?? []).includes(opt?.energy?.type));
-    if (opt?.energy && attackValue.length && !opt.unlocks?.length) {
-      add('recursos', 0.4, `✗ O efeito vem de um ataque que precisa de Energia ${ENERGY_PT[opt.energy.type] ?? opt.energy.type} TODO turno — com 1 energia fora do tipo isso não se sustenta.`);
+    // Energia fora do tipo: o custo é ACHAR a cópia única a tempo (energia ligada fica no Pokémon)
+    if (opt?.energy) {
+      const recur = meBase.entries.find((e) => /basic energy card from your discard pile|search your deck for [^.]*basic energy/i.test(e.card.text));
+      add('recursos', recur ? 0.92 : 0.85, null);
     }
     if (opt?.energy) {
-      add('recursos', 0.95, `✓ Com +${opt.energy.qty} Energia ${ENERGY_PT[opt.energy.type] ?? typePt(opt.energy.type)} no deck ela ataca ("${opt.energy.attack.name}").`);
+      add('recursos', 1, `✓ Com +${opt.energy.qty} Energia ${ENERGY_PT[opt.energy.type] ?? typePt(opt.energy.type)} no deck ela ataca ("${opt.energy.attack.name}").`);
       const recur = meBase.entries.find((e) => /basic energy card from your discard pile/i.test(e.card.text));
       notes.recursos.push(recur ? `• Só ${opt.energy.qty} cópia: dá para recuperar com ${recur.card.name}.` : `⚠ Só ${opt.energy.qty} cópia da energia no deck.`);
     }
@@ -139,6 +140,26 @@ export function evaluateFit(card, used, reasons, meBase, opp, db, opt = null) {
   }
   if (card.trainerType && me.search.trainer) notes.recursos.push("✓ Buscável com Team Rocket's Petrel.");
 
+  // Tempo de energização: quantas ligações para o ataque que dá o valor (1 ligação manual por turno)
+  if (card.category === 'Pokemon') {
+    const valueAtk = (card.attacks ?? []).filter((a) => attackDamage(a) > 0 || used.some((t) => t.source === 'attack' && t.name === a.name))
+      .filter((a) => canPayCost(a.cost, me)).sort((a, b) => attackDamage(b) - attackDamage(a))[0];
+    const attackMatters = used.some((t) => t.source === 'attack') || reasons.some((r) => ['WEAKNESS', 'COMBO_DMG', 'BENCH_PUNISH', 'PRIZE_RACE'].includes(r.kind));
+    if (valueAtk && attackMatters) {
+      const n = (valueAtk.cost ?? []).length;
+      // aceleração do deck que serve para esta carta (ex.: Toxtricity liga {D} em Pokémon {D})
+      const SYMK = { G: 'Grass', R: 'Fire', W: 'Water', L: 'Lightning', P: 'Psychic', F: 'Fighting', D: 'Darkness', M: 'Metal' };
+      const accel = meBase.entries.find((e) => (e.card.abilities ?? []).some((a) => {
+        const m = (a.effect ?? '').match(/attach it to 1 of your benched \{([A-Z])\} pok[eé]mon/i);
+        return m && (card.types ?? []).includes(SYMK[m[1]]);
+      }));
+      const turns = Math.max(1, Math.ceil(n / (accel ? 2 : 1)));
+      let f2 = { 1: 1, 2: 0.9, 3: 0.68 }[turns] ?? 0.5;
+      // Se o valor principal é uma habilidade (funciona sem energia), o ataque é bônus: pesa pela metade
+      if (used.some((t) => t.source === 'ability') && reasons[0] && !['WEAKNESS', 'COMBO_DMG'].includes(reasons[0].kind)) f2 = (1 + f2) / 2;
+      add('peso', f2, `${turns >= 3 ? '✗' : turns === 2 ? '⚠' : '✓'} "${valueAtk.name}" custa ${n} energia${n > 1 ? 's' : ''}: ~${turns} turno${turns > 1 ? 's' : ''} para energizar${accel ? ` (com ajuda do ${accel.card.name})` : ''}.`);
+    }
+  }
   // Espaço no banco: o plano do deck já ocupa as vagas?
   if (card.category === 'Pokemon' && meBase.board) {
     const b = meBase.board;
@@ -186,7 +207,10 @@ export function evaluateFit(card, used, reasons, meBase, opp, db, opt = null) {
       const mySym = (card.types ?? []).map((t) => SYM[t]);
       const canAttack = (card.attacks ?? []).some((a) => attackDamage(a) > 0 && canPayCost(a.cost, me));
       const passive = me.entries.filter((e) => e.card.abilities?.some((a) => /damage counters?/i.test(a.effect ?? '') && /opponent.s pok[eé]mon/i.test(a.effect ?? '')));
-      if (canAttack) add('sinergia', 1, '✓ Segura o dano E ataca de volta.');
+      const wallByAttack = used.find((t) => t.kind === 'WALL_SELF' && t.source === 'attack');
+      const wallAtk = wallByAttack && (card.attacks ?? []).find((a) => a.name === wallByAttack.name);
+      if (wallAtk && attackDamage(wallAtk) < 60 && !(opt?.damage?.kos?.length)) add('sinergia', 0.6, `✗ "${wallAtk.name}" segura 1 turno, mas bate só ${attackDamage(wallAtk)} — não avança na corrida de prêmios.`);
+      else if (canAttack) add('sinergia', 1, '✓ Segura o dano E ataca de volta.');
       else if (passive.length) add('sinergia', 0.9, `✓ Não ataca, mas ${passive.map((e) => e.card.name).join(', ')} continua causando dano enquanto ela segura.`);
       else add('sinergia', 0.55, '✗ Segura o dano mas não causa dano — o oponente pode só esperar ou usar Boss.');
       // Como ela chega no Ativo / sai de lá

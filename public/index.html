@@ -269,7 +269,8 @@ const cardIdFromUrl = (u) => { const m = String(u || '').match(/assets\.tcgdex\.
 function IMG(url) {
   if (!url) return '';
   const id = cardIdFromUrl(url);
-  return id ? `src="${BLANK}" data-cid="${id}" data-remote="${url}"` : `src="${url}"`;
+  const remote = /\.(webp|png|jpg)$/.test(url) ? url : `${url}/low.webp`; // a URL base do TCGdex não é imagem
+  return id ? `src="${BLANK}" data-cid="${id}" data-remote="${remote}"` : `src="${remote}"`;
 }
 const packs = {};
 async function hydrateImages() {

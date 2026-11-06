@@ -164,7 +164,10 @@ export function simulateRace(me, opp, { extraAttackers = [], denial = null, ener
           // Entre alvos de mesmo valor, prefere quem mata o seu atacante principal
           const rank = (x) => x.t.prizeValue * 10 + (killsMain.has(x.t.name) ? 1 : 0);
           if (k && (!g || rank({ t }) > rank(g))) g = { t, ...k, gust: true };
+          if (k) (state.__alts ??= []).push(t);
         }
+        if (g) g.alts = [...new Set((state.__alts ?? []).filter((t) => t.prizeValue === g.t.prizeValue).map((t) => t.name))];
+        delete state.__alts;
         if (g && (!kAct || g.t.prizeValue > act.prizeValue)) options.push(g);
       }
       if (!options.length) options.push(null);
@@ -183,7 +186,7 @@ export function simulateRace(me, opp, { extraAttackers = [], denial = null, ener
           myTaken += pick.t.prizeValue;
           oppLeft.set(pick.t.name, oppLeft.get(pick.t.name) - 1);
           if (pick.gust) gustsLeft--;
-          Object.assign(step, { attack: pick.a.name, target: pick.t.name, gust: pick.gust, dmg: Math.round(pick.r.dmg), hp: pick.t.hp, notes: pick.r.notes, prizes: pick.t.prizeValue });
+          Object.assign(step, { alts: pick.alts, attack: pick.a.name, target: pick.t.name, gust: pick.gust, dmg: Math.round(pick.r.dmg), hp: pick.t.hp, notes: pick.r.notes, prizes: pick.t.prizeValue });
         } else Object.assign(step, { attack: null, target: null, prizes: 0, vs: state.oppActive });
         step.myTotal = myTaken;
         const bankAfter = state.bank - spend;
@@ -253,18 +256,21 @@ export function parseDenial(card, me) {
 }
 
 // Texto do plano em PT-BR
+const pz = (n) => `${n} prêmio${n > 1 ? 's' : ''}`;
 export function planText(plan) {
   if (!plan?.steps?.length) return [];
   return plan.steps.map((s, i) => {
-    const front = s.vsActive ? `Ativo dele: ${s.vsActive}${s.activeValue ? ` (${s.activeValue} prêmio${s.activeValue > 1 ? 's' : ''})` : ''}. ` : '';
-    const ready = s.newAttacker && s.energy ? ` [entra no ataque: ${s.energy} energia${s.energy > 1 ? 's' : ''}]` : '';
+    const who = `${s.attacker}${s.newAttacker && s.energy ? ` (entra com ${s.energy} energia${s.energy > 1 ? 's' : ''})` : ''}`;
     let mine;
-    if (!s.target) mine = `${front}${s.attacker}${ready} ataca, mas não nocauteia ninguém (sem prêmio).`;
-    else if (s.gust) mine = `${front}${s.vsActive && s.activeValue < s.prizes ? `Ele só vale ${s.activeValue}, então ` : 'Ele não cai, então '}Boss's Orders no ${s.target}${s.killsMain ? ' (o atacante que mata o seu principal)' : ''} e ${s.attacker}${ready} ataca com "${s.attack}" (~${s.dmg}${s.notes?.length ? `: ${s.notes.join(', ')}` : ''}) → nocauteia (+${s.prizes}). Você: ${s.myTotal}/6.`;
-    else mine = `${front}${s.attacker}${ready} ataca com "${s.attack}" (~${s.dmg}${s.notes?.length ? `: ${s.notes.join(', ')}` : ''}) → nocauteia ${s.target} sem precisar de Boss (+${s.prizes}). Você: ${s.myTotal}/6.`;
+    if (!s.target) mine = `${who} ataca o Ativo dele, mas não nocauteia.`;
+    else if (s.gust) {
+      const opts = (s.alts?.length ? s.alts : [s.target]).slice(0, 3).join(', ');
+      const why = s.activeValue < s.prizes ? `o Ativo dele vale só ${pz(s.activeValue)}` : 'o Ativo dele não cai';
+      mine = `Como ${why}: Boss's Orders num Pokémon de ${pz(s.prizes)} que você nocauteia (${opts}) e ataque com ${who} (~${s.dmg}). Você: ${s.myTotal}/6.`;
+    } else mine = `${who} nocauteia o Ativo dele, ${s.target} (${pz(s.prizes)}), sem gastar Boss (~${s.dmg}). Você: ${s.myTotal}/6.`;
     const theirs = s.myTotal >= 6 ? '🏆 Você pega o último prêmio.' : s.ko
-      ? `Oponente: ${s.oppAttacker} nocauteia ${s.attacker}${s.oppWeak ? ' (fraqueza)' : ''} → +${s.oppGain}${s.denial ? ` (${s.denial}: −1)` : ''}. Ele: ${s.oppTotal}/6.`
-      : `Oponente não nocauteia ${s.attacker} neste turno${s.oppAttacker ? ` (${s.oppAttacker} faz ~${s.oppDmg})` : ''}.`;
+      ? `Ele responde: ${s.oppAttacker} nocauteia ${s.attacker}${s.oppWeak ? ' (fraqueza)' : ''} → +${s.oppGain}${s.denial ? ` (${s.denial}: −1)` : ''}. Ele: ${s.oppTotal}/6.`
+      : `Ele não consegue nocautear ${s.attacker} neste turno.`;
     return { turn: i + 1, mine, theirs };
   });
 }

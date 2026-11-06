@@ -57,7 +57,7 @@ Legenda: [x] feito · [~] em andamento · [ ] a fazer
 - [x] Corrigidos falsos positivos: "dano de 40 ou menos" (Roggenrola), "só se nocautear" (Golisopod/Marshadow)
 - [x] **Correção (feedback):** simulador agora considera energia por turno (atacante novo precisa ser energizado), custo de Boss/energia, nocautear o Ativo antes de gastar Boss, e mostra quem está no Ativo em cada turno → linha certa: Pecharunt ex mata o Ogerpon (60×3+30) sem Boss
 - [x] Linha alternativa de jogo + anti-sinergia detectada: Legacy Energy reduz o dano do Pecharunt ex (menos prêmios tomados)
-- [x] Cada erro apontado pelo jogador vira **teste permanente** (22 testes ✅)
+- [x] Cada erro apontado pelo jogador vira **teste permanente** (23 testes ✅)
 - [x] **Passo para trás (feedback):** diagnóstico primeiro — "por que ESTE deck perde ESTE matchup" (quem mata seu atacante, troca de prêmios, banco cheio)
 - [x] **Filtro de relevância:** só sugere o que bloqueia quem mata seu atacante, vira a corrida na simulação ou reduz prêmios entregues; o resto vai para "descartadas" com o motivo
 - [x] **Espaço no banco** do plano do deck entra no peso (Sharpedo: banco cheio com Pecharunt, Toxtricity, Munkidori, Fezandipiti + Carvanha)
@@ -66,6 +66,12 @@ Legenda: [x] feito · [~] em andamento · [ ] a fazer
 - [x] **Custo de consistência por troca** (Monte Carlo, 6.000 partidas): setup do atacante principal até T2, Supporter na mão inicial, achar a tech até T3, risco de prêmio — antes × depois
 - [x] Estágio 2 sugerido com a linha inteira (Gastly → Haunter → Mega Gengar ex)
 - [x] **Imagens das cartas na versão publicada**: 2.014 miniaturas em 18 pacotes por coleção (29 MB), carregadas sob demanda — a página do claude.ai bloqueia imagens externas
+- [x] **Tempo de energização** (feedback): custo do ataque que dá o valor em turnos de ligação, considerando aceleração do deck (Sizzlipede 3 energias = ✗ ~3 turnos); habilidade = ataque vale metade
+- [x] Corrigido raciocínio errado: energia ligada fica no Pokémon — o custo da energia fora do tipo é achar a cópia, não "pagar todo turno"
+- [x] Muralha por ataque que bate pouco (<60) é penalizada ("segura 1 turno mas não avança")
+- [x] Relevância: atacante de 1 prêmio, barato, que bate na fraqueza de quem te mata (caso Moltres × Hydrapple)
+- [x] Roteiro de jogo genérico: "Boss num Pokémon de 2 prêmios que você nocauteia (X, Y, Z)"
+- [x] Imagens dos "Caminhos" no site do GitHub Pages (URL de reserva do TCGdex corrigida)
 - [ ] Caminho "⭐ ACE SPEC de consistência" (ex.: Secret Box × Unfair Stamp) medido no simulador de consistência
 - [ ] Caminho "contra-disrupção" (quando o oponente te atrapalha: Iono, item lock…) — precisa de um deck de teste com disrupção
 - [ ] Usar IA (LLM) para ler a dor com mais nuance e escrever o plano de jogo em linguagem natural
@@ -76,7 +82,7 @@ Legenda: [x] feito · [~] em andamento · [ ] a fazer
 - [x] Visual UAAAU 🔥: carta holográfica que inclina com o mouse, anéis de nota animados, confete, Pokébola de loading
 
 ## Fase 7 — Validação
-- [x] Caso de teste real: Mega Sharpedo ex × Basic Box → **#1 Farigiraf ex** com o pacote Girafarig TWM + Energia Psíquica e todos os combos (22 testes ✅)
+- [x] Caso de teste real: Mega Sharpedo ex × Basic Box → **#1 Farigiraf ex** com o pacote Girafarig TWM + Energia Psíquica e todos os combos (23 testes ✅)
 - [ ] Testar com mais 3 matchups do meta
 - [x] Publicar: versão privada no claude.ai ✅
 - [x] Repositório no GitHub: https://github.com/dinheirocomsites/PokeMatch

@@ -336,6 +336,11 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
       if (r.kind === 'PRIZE_RACE' && r.value >= 8 && (r.flip || (c.parts?.peso ?? 100) >= 70)) return r.flip ? 'vira a corrida de prêmios (derrota → vitória) na simulação' : 'melhora a corrida de prêmios na simulação';
       if (r.kind === 'PRIZE_DENIAL') return 'reduz os prêmios que você entrega';
       if (['WALL_SELF', 'WALL_CHOSEN', 'WALL_TEAM'].includes(r.kind) && killerNames.length && killerNames.every((k) => r.covered?.includes(k))) return `bloqueia ${killerNames.join(' e ')}`;
+      // Atacante de 1 prêmio, barato de energizar, que bate na fraqueza de quem mata o seu atacante (ex.: Moltres × Hydrapple)
+      if (r.kind === 'WEAKNESS' && main && c.card.prizeValue < main.prizeValue && (c.parts?.peso ?? 100) >= 60) {
+        const weakKillers = killers.filter((k) => (opp.entries.find((e) => e.card.name === k.name)?.card.weaknesses ?? []).some((w) => (c.card.types ?? []).includes(w.type)));
+        if (weakKillers.length) return `bate na fraqueza de ${weakKillers.map((k) => k.name).join('/')} entregando só ${c.card.prizeValue} prêmio`;
+      }
       if (r.kind === 'COMBO_DMG' && main && (c.parts?.peso ?? 100) >= 70 && c.card.prizeValue < main.prizeValue && r.koNames?.some((k) => killerNames.includes(k))) return `nocauteia ${r.koNames.filter((k) => killerNames.includes(k)).join('/')} entregando menos prêmios`;
     }
     return null;

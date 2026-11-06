@@ -36,16 +36,24 @@ A chave da API **nunca** vai para o site. O estrategista precisa de um servidor:
 - **Site público (próximo passo)**: uma função de servidor (Lovable/Supabase Edge Function, Cloudflare Worker…)
   que chama `runStrategist`; o site aponta para ela em `window.POKEMATCH_STRATEGIST_URL`.
 
-## Revisão das sugestões do motor e modo automático
-- **Revisão**: a ficha traz o **texto das 6 primeiras techs** sugeridas pelo motor e pede para a IA conferir cada uma
-  neste matchup (de quem é a energia/o alvo que a carta conta, se as listas têm o que ela pede). Se a IA discorda, ela
-  precisa citar o trecho exato da carta; o motor confere a citação no texto **daquela versão** da carta, e só então a
-  sugestão ganha o aviso "⚠ O estrategista discorda" no card (`verification.flags`). Caso que motivou: Diancie sugerida no
-  espelho do Sharpedo ("para cada Energia Especial do oponente" contra um deck sem Energia Especial).
-- **Rodar sempre**: caixinha "Rodar o estrategista junto em toda análise", ao lado do botão. É escolha de cada navegador
-  e vem **desligada** (cada leitura nova custa na chave do dono do site). O motor aparece na hora; a leitura chega depois.
+## Uma análise só, já revisada (decisão do Felipe)
+"Prefiro que o usuário espere até 1 minuto para gerar a análise mais correta possível" — nada de mostrar o motor e depois
+a própria ferramenta dizer que errou. Toda análise é assim (no site com o servidor ligado):
+1. **Motor** (~2 s, no navegador; `limit 12`).
+2. **Tela de espera** enquanto a IA trabalha (20–60 s): etapas com progresso; **"Como o PokeMatch entendeu o SEU deck"**
+   (`src/explain.js`: atacante principal e a conta do dano — com quem habilita o bônus —, o que soma dano montado, peças do
+   banco, energia/aceleração, outros atacantes, ataques copiados; e o mesmo do oponente) com **👍 É isso / ✏️ Não é bem
+   assim** (o segundo para tudo e leva para o campo da dor com "Como o meu deck funciona:"); e um **quiz do matchup**
+   tirado das duas listas (fraqueza, prêmios, ataques, dano, recuo, HP), com a carta revelada depois da resposta.
+3. **Revisão da IA**: a ficha traz o **texto das 6 primeiras techs** e pede para conferir cada uma neste matchup. Se a IA
+   derruba uma tech, precisa citar o trecho exato da carta; o motor confere a citação no texto **daquela versão** da carta
+   (`verification.flags`). Caso que motivou: Diancie no espelho do Sharpedo.
+4. **Resultado único**: tech derrubada **sai da lista** (vai para "Cartas que analisamos e descartamos" com o motivo);
+   ficam até 8. Na seção do estrategista aparece só o que o motor confirmou (✅), as techs extras da IA que são legais e
+   funcionam no deck, as dicas de jogo; afirmações derrubadas e a conferência completa ficam em **"Bastidores"** (recolhido).
+5. **Se a IA falhar** (limite do dia, rede, mais de 100 s): mostra a análise do motor com uma nota e "Tentar de novo".
 - **Leitura guardada**: mesmas listas + mesma dor = mesma ficha → o navegador reaproveita a leitura (últimas 8), sem
-  custo; o botão "Pedir leitura nova" força outra. Nada disso muda o servidor (prompt e esquema iguais).
+  custo; "Refazer a leitura da IA" (nos bastidores) força outra. O servidor não mudou (prompt e esquema iguais).
 
 ## Custo
 ~US$ 0,05 a 0,15 por leitura com Claude Opus 5.5 (depende do tamanho das listas). O motor sozinho continua grátis.

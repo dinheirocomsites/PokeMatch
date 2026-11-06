@@ -106,8 +106,10 @@ export function verifyStrategy(s, { me, opp, r, db }) {
 
 // ---------- Execução ----------
 // No navegador: monta a ficha com o motor (rápido, sem chave) — depois manda só a ficha ao servidor.
-export function prepareStrategy({ myText, oppText, context = '', db }) {
-  const r = analyze(myText, oppText, db, { limit: 12, context });
+// `r`: a análise que o site já fez (mesmas listas, limit 12) — evita rodar o motor duas vezes
+export const STRATEGY_LIMIT = 12;
+export function prepareStrategy({ myText, oppText, context = '', db, r: given = null }) {
+  const r = given ?? analyze(myText, oppText, db, { limit: STRATEGY_LIMIT, context });
   const me = profileDeck(parseDeck(myText, db));
   const opp = profileDeck(parseDeck(oppText, db));
   return { r, me, opp, facts: buildFacts(r, me, opp, context) };

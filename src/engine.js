@@ -11,6 +11,7 @@ import { readContext, clusterOf, CLUSTERS } from './context.js';
 import { consistencyImpact } from './consistency.js';
 import { diagnoseDisruption, disruptionValue, counterTags, AXES } from './diagnosis.js';
 import { restricts, matchesTarget } from './target.js';
+import { explainDeck } from './explain.js';
 
 const pct = (x) => `${Math.round(x * 100)}%`;
 const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
@@ -765,6 +766,7 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
     race,
     me: summarize(me, myParsed),
     opp: summarize(opp, oppParsed),
+    explain: explainDeck(me, opp, { koGap, raceResult: race.best?.result ?? null }),
     insights: insightsFor(opp, me, ctx),
     already,
     locked,

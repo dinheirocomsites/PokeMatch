@@ -41,6 +41,42 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   .loading-text { display: none; text-align: center; color: var(--muted); }
 
+  /* Tela de espera: etapas + "como entendemos o seu deck" + quiz */
+  .wait { display: none; max-width: 820px; margin: 26px auto 0; }
+  .wait .loader { display: block; margin: 0; flex: none; width: 58px; height: 58px; }
+  .wait .loader::after { inset: 20px; border-width: 4px; }
+  .wait-head { display: flex; gap: 18px; align-items: flex-start; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 16px 18px; }
+  .wait-main { flex: 1; min-width: 0; }
+  .wait-title { font-weight: 800; font-size: 17px; }
+  .wait-time { color: var(--muted); font-weight: 600; font-size: 14px; margin-left: 6px; }
+  .wait .loading-text { display: block; text-align: left; margin: 4px 0 0; font-size: 13px; }
+  .wait-bar { height: 8px; background: #0e1122; border-radius: 99px; overflow: hidden; margin: 10px 0 8px; }
+  .wait-bar div { height: 100%; width: 0; background: linear-gradient(90deg, var(--accent2), #a855f7, var(--accent)); transition: width .8s ease; }
+  .wait-steps { list-style: none; margin: 0; padding: 0; font-size: 14px; color: var(--muted); }
+  .wait-steps li { padding: 2px 0; }
+  .wait-steps li.now { color: var(--text); font-weight: 700; }
+  .wait-steps li.ok { color: var(--good); }
+  #waitReady:not(:empty) { margin-top: 12px; background: #3ddc9718; border: 1px solid #3ddc9766; border-radius: 14px; padding: 12px 16px; font-weight: 700; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .explain, .quiz { margin-top: 14px; display: none; }
+  .ex-row { display: flex; gap: 10px; padding: 6px 0; border-bottom: 1px dashed var(--line); font-size: 14.5px; line-height: 1.5; }
+  .ex-row:last-of-type { border-bottom: 0; }
+  .ex-row .lbl { color: var(--accent); }
+  .ex-ask { margin-top: 10px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-weight: 700; }
+  .sm { font-size: 13px !important; padding: 7px 12px !important; }
+  .explain details summary { cursor: pointer; color: var(--muted); margin-top: 8px; }
+  .quiz h3 small { color: var(--muted); font-weight: 600; }
+  .quiz .q { font-size: 16px; font-weight: 700; margin: 6px 0 10px; }
+  .quiz .tag { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 99px; background: var(--panel2); color: var(--muted); margin-left: 6px; vertical-align: middle; }
+  .opts { display: flex; flex-wrap: wrap; gap: 8px; }
+  .opt { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; font-weight: 700; cursor: pointer; font-size: 14px; }
+  .opt:hover:not(:disabled) { border-color: var(--accent2); }
+  .opt.right { background: #3ddc9733; border-color: var(--good); }
+  .opt.wrong { background: #ff5d7333; border-color: var(--bad); }
+  .reveal { display: flex; gap: 14px; align-items: center; margin-top: 12px; font-size: 14px; }
+  .reveal img { width: 120px; border-radius: 8px; }
+  .ctx-hint:not(:empty) { margin-top: 8px; font-size: 13px; color: var(--warn); }
+  .reviewed { font-size: 13.5px; color: var(--good); margin: 10px 0 0; }
+
   #results { display: none; margin-top: 30px; }
   .section-title { font-size: 22px; margin: 34px 0 14px; display: flex; align-items: center; gap: 10px; }
   .section-title small { color: var(--muted); font-weight: 500; font-size: 14px; }
@@ -185,14 +221,28 @@
     <h2>💬 Qual é a sua dor nesse matchup? <span class="opt">opcional</span></h2>
     <p>Conte em português o que acontece nas partidas — a análise prioriza os caminhos que resolvem o SEU problema.</p>
     <textarea id="ctx" rows="3" spellcheck="false" placeholder="Ex.: meu problema é a corrida de prêmios: morro em um hit para Ogerpon ou Folhas Férreas e entrego 3 prêmios, e quando eu mato pego só 2…"></textarea>
+    <div id="ctxHint" class="ctx-hint"></div>
   </div>
   <div class="actions">
     <button class="go" id="go">⚡ Encontrar tech cards</button>
     <button class="ghost" id="example">Carregar exemplo: Mega Sharpedo ex × Basic Box</button>
   </div>
-  <label id="autoStratWrap" style="display:none;margin:-4px 0 12px;font-size:14px;cursor:pointer"><input type="checkbox" id="autoStrat" style="vertical-align:middle;margin-right:6px">🧠 Rodar o estrategista junto em toda análise <small style="color:var(--muted)">— a IA também revisa as techs sugeridas; +20–60 s e ~US$ 0,05–0,15 por leitura nova (mesmas listas e mesma dor não pagam de novo)</small></label>
-  <div class="loader" id="loader"></div>
-  <p class="loading-text" id="loadingText">Lendo habilidades e ataques de todas as cartas legais…</p>
+
+  <!-- Tela de espera: etapas, como o motor entendeu o seu deck (para você conferir) e um quiz do matchup -->
+  <section class="wait" id="wait">
+    <div class="wait-head">
+      <div class="loader" id="loader"></div>
+      <div class="wait-main">
+        <div class="wait-title"><span id="waitTitle">Preparando a análise mais correta possível…</span> <span class="wait-time" id="waitTime"></span></div>
+        <p class="loading-text" id="loadingText"></p>
+        <div class="wait-bar"><div id="waitFill"></div></div>
+        <ul class="wait-steps" id="waitSteps"></ul>
+      </div>
+    </div>
+    <div id="waitReady"></div>
+    <div class="box explain" id="explainBox"></div>
+    <div class="box quiz" id="quizBox"></div>
+  </section>
 
   <section id="results">
     <h2 class="section-title">🔍 Raio-X do oponente</h2>
@@ -203,9 +253,8 @@
     <h2 class="section-title">🩺 Diagnóstico <small>por que o seu deck perde este matchup</small></h2>
     <div class="diag" id="diag"></div>
 
-    <h2 class="section-title">🧠 Estrategista <small>beta · a IA lê o matchup e o motor confere cada afirmação</small></h2>
-    <div class="diag" id="strat"><button class="go" id="stratGo" style="font-size:15px;padding:10px 16px">🧠 Pedir a leitura do estrategista</button>
-      <div id="stratOut" style="margin-top:10px"></div></div>
+    <h2 class="section-title" id="stratTitle">🧠 Estrategista <small>a IA leu o matchup e revisou as techs; o motor conferiu cada afirmação</small></h2>
+    <div class="diag" id="strat"><div id="stratOut"></div></div>
 
     <h2 class="section-title">🧭 Caminhos para virar o matchup <small>agrupados pelo tipo de solução</small></h2>
     <div class="clusters" id="clusters"></div>
@@ -239,25 +288,48 @@ $('#example').onclick = async () => {
   $('#ctx').value = 'Meu problema é a corrida de prêmios: morro em um hit para Ogerpon ou Folhas Férreas e entrego 3 prêmios de uma vez, enquanto quando eu mato pego só 2. Assim a conta não fecha.';
 };
 
-$('#go').onclick = async () => {
+// ---------- Uma análise só, já revisada ----------
+// O motor calcula (~2 s) e a IA revisa (20–60 s) ANTES de mostrar: o jogador recebe uma análise só, a mais correta
+// possível — sem "aparece uma coisa e depois a gente mesmo diz que estava errado". Enquanto espera: as etapas,
+// como o motor entendeu o deck dele (para conferir) e um quiz do matchup.
+let session = null;
+async function analyzeAll({ fresh = false } = {}) {
   const mine = $('#mine').value, opp = $('#opp').value, context = $('#ctx').value;
   try { localStorage.setItem(KEY, JSON.stringify({ mine, opp, context })); } catch {}
-  $('#go').disabled = true; $('#results').style.display = 'none';
-  $('#loader').style.display = 'block'; $('#loadingText').style.display = 'block';
-  stratRun++; $('#stratOut').innerHTML = ''; // leitura antiga (de outra análise) não aparece nesta
-  const started = Date.now();
+  const me = (session = { aborted: false, ctl: new AbortController() });
+  $('#go').disabled = true; $('#results').style.display = 'none'; $('#ctxHint').textContent = '';
+  const withAI = !!STRAT_URL;
+  const w = waitScreen(withAI);
   try {
-    const { res, data } = await runAnalysis({ mine, opp, context });
-    await new Promise((r) => setTimeout(r, Math.max(0, 900 - (Date.now() - started)))); // suspense 😎
+    w.step(0);
+    const { res, data, raw } = await runAnalysis({ mine, opp, context }, () => w.step(1));
     if (!res.ok) throw new Error(data.error);
-    render(data);
-    if (STRAT_URL && $('#autoStrat').checked) runStrat(); // não espera: o motor já aparece, a IA chega depois
+    if (me.aborted) return w.stop();
+    let review = null, prep = null;
+    if (withAI) {
+      w.step(2);
+      prep = await prepareReview({ mine, opp, context, raw });
+      if (data.explain) renderExplain(data.explain);
+      if (prep) startQuiz(prep.me, prep.opp);
+      review = await getReview({ mine, opp, context, prep, fresh, signal: me.ctl.signal });
+      if (me.aborted) return w.stop();
+      w.step(3);
+      await new Promise((r) => setTimeout(r, 350));
+    } else if (data.explain) renderExplain(data.explain);
+    const final = finalize(data, review?.ok ? review.full.verification : null);
+    await w.ready();
+    if (me.aborted) return w.stop();
+    w.close();
+    render(final);
+    renderReview(review, final);
   } catch (e) {
+    w.close();
     $('#oppStatus').className = 'status err'; $('#oppStatus').textContent = e.message;
   } finally {
-    $('#go').disabled = false; $('#loader').style.display = 'none'; $('#loadingText').style.display = 'none';
+    if (session === me) $('#go').disabled = false;
   }
-};
+}
+$('#go').onclick = () => analyzeAll();
 
 // Se a imagem da carta não carregar (ex.: página publicada sem acesso a imagens externas),
 // troca por um "card" com o nome e a cor do tipo.
@@ -301,10 +373,11 @@ async function hydrateImages() {
 
 // Roda no servidor (npm start) ou direto no navegador (versão estática publicada)
 let localEngine = null;
-async function runAnalysis(payload) {
+async function runAnalysis(payload, onCalc = () => {}) {
   if (!window.TF_STATIC) {
+    onCalc();
     const res = await fetch('/api/analyze', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) });
-    return { res, data: await res.json() };
+    return { res, data: await res.json(), raw: null };
   }
   if (!localEngine && window.TF_INLINE && window.PokeMatch) {
     // Versão arquivo único: motor e base já estão dentro da página
@@ -314,86 +387,237 @@ async function runAnalysis(payload) {
     $('#loadingText').textContent = 'Carregando as 3.000+ cartas do Standard (só na primeira vez)…';
     const [core, eng, ser, raw] = await Promise.all([import('./src/db-core.js'), import('./src/engine.js'), import('./src/serialize.js'), fetch('data/cards.json').then((r) => r.json())]);
     localEngine = { db: core.buildDb(raw), analyze: eng.analyze, toJson: ser.toJson };
-    $('#loadingText').textContent = 'Lendo habilidades e ataques de todas as cartas legais…';
   }
   if (!payload.mine.trim() || !payload.opp.trim()) return { res: { ok: false }, data: { error: 'Cole as duas listas.' } };
-  await new Promise((r) => setTimeout(r, 30)); // deixa a Pokébola girar antes do cálculo
-  const r = localEngine.analyze(payload.mine, payload.opp, localEngine.db, { limit: 8, context: payload.context.slice(0, 2000) });
-  return { res: { ok: true }, data: localEngine.toJson(r, localEngine.db) };
+  onCalc();
+  await new Promise((r) => setTimeout(r, 60)); // deixa a tela pintar antes do cálculo
+  // limit 12: a IA revisa as 6 primeiras e as derrubadas saem; ficam até 8 na tela
+  const r = localEngine.analyze(payload.mine, payload.opp, localEngine.db, { limit: 12, context: payload.context.slice(0, 2000) });
+  return { res: { ok: true }, data: localEngine.toJson(r, localEngine.db), raw: r };
 }
 
 // Estrategista: precisa de um servidor com a chave da API (npm start com ANTHROPIC_API_KEY, ou a função do Lovable/Supabase).
-// No site estático, defina window.POKEMATCH_STRATEGIST_URL com o endereço da função.
+// No site estático, window.POKEMATCH_STRATEGIST_URL aponta para a função.
 const STRAT_URL = window.POKEMATCH_STRATEGIST_URL || (!window.TF_STATIC ? '/api/strategist' : '');
-function renderStrategy(o, cached = false) {
-  const icon = { ok: '✅', erro: '❌', '?': '❔' };
-  const s = o.strategy, v = o.verification;
-  return `<div style="line-height:1.5">
-    ${v.flags?.length ? `<div style="color:var(--warn);border:1px solid #ffb54766;background:#ffb54714;border-radius:8px;padding:8px 10px;margin-bottom:8px"><b>⚠ A IA derrubou ${v.flags.length} sugestão(ões) do motor</b> (citação conferida no texto da carta): ${v.flags.map((f) => `<b>${esc(f.card)}</b> — ${esc(f.text_pt)}`).join(' · ')}</div>` : `<p style="opacity:.8">✅ A IA revisou as primeiras techs sugeridas pelo motor e não derrubou nenhuma.</p>`}
-    <p><b>Plano do oponente:</b> ${esc(s.opponent_plan.summary_pt)}</p>
-    <p><b>O seu problema:</b> ${esc(s.my_problem.summary_pt)} <i>${esc(s.my_problem.mechanism_pt)}</i></p>
-    <h3 style="margin:10px 0 4px">Afirmações conferidas pelo motor <small>(${v.summary.confirmed}/${v.summary.claims} confirmadas${v.summary.refuted ? `, ${v.summary.refuted} derrubadas` : ''})</small></h3>
-    <ul style="margin:0;padding-left:18px">${v.claims.map((c) => `<li>${icon[c.status]} ${esc(c.text_pt)} <small style="opacity:.75">— ${esc(c.check)}</small></li>`).join('')}</ul>
-    <h3 style="margin:10px 0 4px">Techs da IA</h3>
-    <ul style="margin:0;padding-left:18px">${v.techs.map((t) => `<li>${icon[t.status]} <b>${esc(t.card)}</b> — ${esc(t.why_pt)} <small style="opacity:.75">— ${esc(t.check)}</small></li>`).join('')}</ul>
-    ${s.play_tips_pt.length ? `<h3 style="margin:10px 0 4px">Como jogar</h3><ul style="margin:0;padding-left:18px">${s.play_tips_pt.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
-    ${v.disagreements?.length ? `<h3 style="margin:10px 0 4px">Onde a IA discorda do motor <small>(a citação da carta é conferida)</small></h3><ul style="margin:0;padding-left:18px">${v.disagreements.map((x) => `<li>${icon[x.status]} ${esc(x.text_pt)} <small style="opacity:.75">— ${esc(x.check)}</small></li>`).join('')}</ul>` : ''}
-    ${s.uncertainty_pt ? `<p style="opacity:.8"><b>Incerteza:</b> ${esc(s.uncertainty_pt)}</p>` : ''}
-    <p style="opacity:.6;font-size:12px">Só as afirmações ✅ foram confirmadas pelas contas do motor. ${cached ? `Leitura guardada (mesmas listas e mesma dor): sem custo novo. <button class="ghost" id="stratFresh" style="font-size:12px;padding:3px 8px">🔄 Pedir leitura nova</button>` : `Custo desta leitura: ~US$ ${o.usage.usd.toFixed(3)} (${esc(o.model)}).`}</p></div>`;
-}
-// Revisão da IA nas sugestões do motor: aviso ⚠ no card de cada tech que ela derrubou citando o texto da carta
-function flagSuggestions(flags) {
-  document.querySelectorAll('.ia-flag').forEach((x) => x.remove());
-  for (const f of flags ?? []) {
-    const h = document.querySelector(`#suggestions [data-card="${CSS.escape(f.card)}"] h3`);
-    if (h) h.insertAdjacentHTML('afterend', `<div class="ia-flag" style="color:var(--warn);border:1px solid #ffb54766;background:#ffb54714;border-radius:8px;padding:6px 9px;margin:6px 0;font-size:13px">⚠ <b>O estrategista discorda:</b> ${esc(f.text_pt)} <small style="opacity:.8">— trecho conferido no texto da carta: “${esc(f.quote)}”</small></div>`);
-  }
-}
+const AI_TIMEOUT_MS = 100000;
+
 // Leitura guardada: mesmas listas + mesma dor = mesma ficha → não paga de novo (últimas 8 leituras, neste navegador)
 const STRAT_CACHE = 'pokematch:strat:v1';
 const hashStr = (s) => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36) + s.length.toString(36); };
 const cacheGet = (k) => { try { return JSON.parse(localStorage.getItem(STRAT_CACHE) || '{}')[k] ?? null; } catch { return null; } };
 const cachePut = (k, v) => { try { const all = JSON.parse(localStorage.getItem(STRAT_CACHE) || '{}'); all[k] = { ...v, at: Date.now() }; for (const x of Object.keys(all).sort((a, b) => all[b].at - all[a].at).slice(8)) delete all[x]; localStorage.setItem(STRAT_CACHE, JSON.stringify(all)); } catch {} };
-let stratRun = 0; // cada análise nova invalida a leitura que ainda estava a caminho
-async function runStrat({ fresh = false } = {}) {
-  const out = $('#stratOut'), btn = $('#stratGo');
-  if (!STRAT_URL) { out.innerHTML = '<p>O estrategista precisa de um servidor com a chave da API (a chave nunca fica no site). Ele ainda não está ligado nesta versão.</p>'; return; }
-  const my = ++stratRun;
-  btn.disabled = true; out.innerHTML = '<p>🧠 Lendo o matchup e revisando as techs sugeridas (leva uns 20–60 s)…</p>';
+
+// Ficha de fatos montada aqui no navegador, reaproveitando a análise que o motor acabou de fazer
+async function prepareReview({ mine, opp, context, raw }) {
+  if (!(window.TF_STATIC && localEngine && raw)) return null;
+  const st = window.TF_INLINE ? window.PokeMatch : await import('./src/strategist.js');
+  return { st, ...st.prepareStrategy({ myText: mine, oppText: opp, context: context.slice(0, 2000), db: localEngine.db, r: raw }) };
+}
+// Leitura da IA (ou a guardada) + conferência do motor. Nunca lança: se falhar, { ok: false, error }.
+async function getReview({ mine, opp, context, prep, fresh, signal }) {
+  const body = prep ? { facts: prep.facts } : { mine, opp, context };
+  const key = hashStr(JSON.stringify(body));
+  let data = fresh ? null : cacheGet(key);
+  const cached = !!data;
   try {
-    // Site estático: o motor (aqui no navegador) monta a ficha; o servidor só guarda a chave e chama a IA;
-    // a conferência das afirmações volta a ser feita aqui, pelo motor.
-    const local = window.TF_STATIC && localEngine;
-    const st = local ? (window.TF_INLINE ? window.PokeMatch : await import('./src/strategist.js')) : null;
-    const prep = local ? st.prepareStrategy({ myText: $('#mine').value, oppText: $('#opp').value, context: $('#ctx').value.slice(0, 2000), db: localEngine.db }) : null;
-    const body = local ? { facts: prep.facts } : { mine: $('#mine').value, opp: $('#opp').value, context: $('#ctx').value };
-    const key = hashStr(JSON.stringify(body));
-    let data = fresh ? null : cacheGet(key);
-    const cached = !!data;
     if (!data) {
-      const res = await fetch(STRAT_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
-      const j = await res.json();
-      if (my !== stratRun) return;
-      if (!res.ok) { out.innerHTML = `<p>⚠ ${esc(j.error ?? 'erro')}</p>`; return; }
+      const sig = AbortSignal.any && AbortSignal.timeout ? AbortSignal.any([signal, AbortSignal.timeout(AI_TIMEOUT_MS)]) : signal;
+      const res = await fetch(STRAT_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), signal: sig });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) return { ok: false, error: j.error ?? `erro ${res.status}` };
       data = j; cachePut(key, data);
     }
-    if (my !== stratRun) return;
-    const full = local ? { ...data, verification: st.verifyStrategy(data.strategy, { me: prep.me, opp: prep.opp, r: prep.r, db: localEngine.db }) } : data;
-    out.innerHTML = renderStrategy(full, cached);
-    flagSuggestions(full.verification.flags);
-  } catch (e) { if (my === stratRun) out.innerHTML = `<p>⚠ ${esc(e.message)}</p>`; }
-  finally { if (my === stratRun) btn.disabled = false; }
+    const full = prep ? { ...data, verification: prep.st.verifyStrategy(data.strategy, { me: prep.me, opp: prep.opp, r: prep.r, db: localEngine.db }) } : data;
+    return { ok: true, full, cached };
+  } catch (e) {
+    return { ok: false, error: /abort|timeout/i.test(e.name) ? 'a IA demorou mais que o normal' : e.message };
+  }
 }
+// Aplica a revisão ANTES de mostrar: tech derrubada pela IA (com a citação conferida no texto da carta) sai da lista
+// e vai para "Cartas que analisamos e descartamos" com o motivo. Ficam até 8.
+function finalize(data, v) {
+  const flagged = new Map((v?.flags ?? []).map((f) => [f.card, f]));
+  const removed = data.suggestions.filter((s) => flagged.has(s.card.name));
+  const suggestions = data.suggestions.filter((s) => !flagged.has(s.card.name)).slice(0, 8);
+  const shown = new Set(suggestions.map((s) => s.card.name));
+  return {
+    ...data,
+    suggestions,
+    removed: removed.map((s) => ({ name: s.card.name, ...flagged.get(s.card.name) })),
+    clusters: (data.clusters ?? []).map((c) => ({ ...c, items: c.items.filter((i) => shown.has(i.name)) })).filter((c) => c.items.length),
+    others: [...removed.map((s) => { const f = flagged.get(s.card.name); return { name: s.card.name, missing: 'saiu na revisão da IA', why: `${f.text_pt} (texto da carta: “${f.quote}”)` }; }), ...(data.others ?? [])],
+  };
+}
+// Seção do estrategista: só o que foi confirmado à vista; a conferência completa fica nos bastidores (recolhida)
+function renderStrategy(o, cached, final) {
+  const icon = { ok: '✅', erro: '❌', '?': '❔' };
+  const s = o.strategy, v = o.verification;
+  const shown = new Set(final.suggestions.map((x) => x.card.name));
+  const okClaims = v.claims.filter((c) => c.status === 'ok');
+  const okTechs = v.techs.filter((t) => t.status === 'ok' && !shown.has(t.name));
+  const removed = final.removed ?? [];
+  const ul = (items) => `<ul style="margin:0;padding-left:18px">${items.join('')}</ul>`;
+  return `<div style="line-height:1.55">
+    <p><b>Plano do oponente:</b> ${esc(s.opponent_plan.summary_pt)}</p>
+    <p><b>O seu problema:</b> ${esc(s.my_problem.summary_pt)}${s.my_problem.mechanism_pt ? ` <i>${esc(s.my_problem.mechanism_pt)}</i>` : ''}</p>
+    ${okClaims.length ? `<h3 style="margin:10px 0 4px">Confirmado nas contas do motor</h3>${ul(okClaims.map((c) => `<li>✅ ${esc(c.text_pt)} <small style="opacity:.75">— ${esc(c.check)}</small></li>`))}` : ''}
+    ${okTechs.length ? `<h3 style="margin:10px 0 4px">A IA também sugere <small style="opacity:.7">(legal no Standard e funciona no seu deck)</small></h3>${ul(okTechs.map((t) => `<li><b>${esc(t.name ?? t.card)}</b> — ${esc(t.why_pt)} <small style="opacity:.75">— ${esc(t.check)}</small></li>`))}` : ''}
+    ${s.play_tips_pt.length ? `<h3 style="margin:10px 0 4px">Como jogar</h3>${ul(s.play_tips_pt.map((x) => `<li>${esc(x)}</li>`))}` : ''}
+    ${s.uncertainty_pt ? `<p style="opacity:.8"><b>Incerteza:</b> ${esc(s.uncertainty_pt)}</p>` : ''}
+    <p class="reviewed">🔍 Revisada pela IA antes de chegar a você: ${removed.length ? `${removed.length} tech${removed.length > 1 ? 's' : ''} que não funciona${removed.length > 1 ? 'm' : ''} neste matchup saiu${removed.length > 1 ? 'ram' : ''} da lista (${removed.map((r) => esc(r.name)).join(', ')} — o motivo está em "Cartas que analisamos e descartamos").` : 'as techs sugeridas passaram na revisão.'}</p>
+    <details style="margin-top:8px"><summary style="cursor:pointer;opacity:.75">Bastidores da conferência</summary>
+      <h4 style="margin:8px 0 4px">Afirmações da IA (${v.summary.confirmed}/${v.summary.claims} confirmadas)</h4>${ul(v.claims.map((c) => `<li>${icon[c.status]} ${esc(c.text_pt)} <small style="opacity:.75">— ${esc(c.check)}</small></li>`))}
+      ${v.techs.length ? `<h4 style="margin:8px 0 4px">Techs da IA</h4>${ul(v.techs.map((t) => `<li>${icon[t.status]} <b>${esc(t.card)}</b> — ${esc(t.why_pt)} <small style="opacity:.75">— ${esc(t.check)}</small></li>`))}` : ''}
+      ${v.disagreements?.length ? `<h4 style="margin:8px 0 4px">Onde a IA discordou do motor (a citação da carta é conferida)</h4>${ul(v.disagreements.map((x) => `<li>${icon[x.status]} ${esc(x.text_pt)} <small style="opacity:.75">— ${esc(x.check)}</small></li>`))}` : ''}
+      <p style="opacity:.6;font-size:12px">${cached ? 'Leitura guardada (mesmas listas e mesma dor): sem custo novo.' : `Custo desta leitura: ~US$ ${o.usage.usd.toFixed(3)} (${esc(o.model)}).`} <button class="ghost sm" id="stratFresh">🔄 Refazer a leitura da IA</button></p>
+    </details></div>`;
+}
+function renderReview(review, final) {
+  $('#stratTitle').style.display = $('#strat').style.display = STRAT_URL ? '' : 'none';
+  if (!STRAT_URL) return;
+  $('#stratOut').innerHTML = review?.ok
+    ? renderStrategy(review.full, review.cached, final)
+    : `<p>⚠ A leitura da IA não ficou pronta desta vez (${esc(review?.error ?? 'sem resposta')}). Esta é a análise do motor, sem a revisão da IA. <button class="ghost sm" id="stratFresh">🔄 Tentar de novo</button></p>`;
+}
+
+// ---------- Tela de espera ----------
+const STEPS = [
+  '📚 Lendo as duas listas e as cartas do Standard',
+  '🎲 Calculando dano, simulando a corrida de prêmios e milhares de mãos',
+  '🧠 A IA lê o plano do oponente e revisa cada tech sugerida',
+  '🔍 O motor confere cada afirmação da IA nas contas',
+];
+let readyResolve = null;
+let explainTouched = false;
+function waitScreen(withAI) {
+  const steps = withAI ? STEPS : STEPS.slice(0, 2);
+  const t0 = Date.now();
+  let cur = 0, done = false, stepAt = t0;
+  $('#wait').style.display = 'block';
+  $('#explainBox').style.display = 'none'; $('#quizBox').style.display = 'none'; $('#waitReady').innerHTML = '';
+  $('#waitTitle').textContent = withAI ? 'Preparando a análise mais correta possível…' : 'Analisando…';
+  const note = withAI ? 'O motor calcula em segundos; a IA leva até ~1 minuto para ler o matchup e revisar cada tech. Você recebe uma análise só, já conferida.' : '';
+  $('#loadingText').textContent = note;
+  const paint = () => { $('#waitSteps').innerHTML = steps.map((s, i) => `<li class="${done || i < cur ? 'ok' : i === cur ? 'now' : ''}">${done || i < cur ? '✅' : i === cur ? '⏳' : '○'} ${s}</li>`).join(''); };
+  const tick = () => {
+    const sec = (Date.now() - t0) / 1000;
+    $('#waitTime').textContent = `⏱ ${Math.round(sec)} s`;
+    const base = (cur / steps.length) * 100, next = ((cur + 1) / steps.length) * 100;
+    const pct = done ? 100 : base + (next - base) * 0.92 * (1 - Math.exp(-(Date.now() - stepAt) / 1000 / (cur === 2 ? 18 : 2)));
+    $('#waitFill').style.width = `${pct.toFixed(1)}%`;
+  };
+  paint(); tick();
+  const timer = setInterval(tick, 400);
+  const stop = () => clearInterval(timer);
+  return {
+    step(i) { cur = i; stepAt = Date.now(); if (i >= 1) $('#loadingText').textContent = note; paint(); tick(); },
+    stop,
+    ready() {
+      done = true; paint(); tick(); stop();
+      $('#waitTitle').textContent = '✅ Análise pronta!';
+      // quem está jogando o quiz ou conferindo o deck escolhe a hora de ver (ou segue sozinho em alguns segundos)
+      if (!quizState.answered && !explainTouched) return new Promise((r) => setTimeout(r, 700));
+      $('#waitReady').innerHTML = `✅ A sua análise está pronta. <button class="go sm" id="seeResult">Ver análise ➜</button>`;
+      return new Promise((r) => { readyResolve = r; setTimeout(r, 12000); });
+    },
+    close() { stop(); $('#wait').style.display = 'none'; stopQuiz(); },
+  };
+}
+
+// "Como o PokeMatch entendeu o SEU deck": o jogador confere a mecânica enquanto a IA trabalha
+function renderExplain(ex) {
+  const rich = (t) => esc(t).replace(/&lt;(\/?)b&gt;/g, '<$1b>');
+  const rows = (xs) => xs.map((x) => `<div class="ex-row"><span>${x.icon}</span><div><span class="lbl">${esc(x.label)}:</span> ${rich(x.text)}</div></div>`).join('');
+  explainTouched = false;
+  $('#explainBox').innerHTML = `<h3>🔎 Como o PokeMatch entendeu o SEU deck <small style="color:var(--muted);font-weight:600">— confira enquanto a IA trabalha</small></h3>${rows(ex.mine)}
+    ${ex.theirs?.length ? `<details><summary>E o deck do oponente, como entendemos</summary>${rows(ex.theirs)}</details>` : ''}
+    <div class="ex-ask" id="exAsk">É assim que o seu deck funciona? <button class="ghost sm" id="exOk">👍 É isso</button><button class="ghost sm" id="exNo">✏️ Não é bem assim</button></div>`;
+  $('#explainBox').style.display = 'block';
+}
+function stopAndCorrect() {
+  if (session) { session.aborted = true; session.ctl.abort(); }
+  $('#wait').style.display = 'none'; stopQuiz(); $('#go').disabled = false;
+  const ctx = $('#ctx');
+  if (!/como o meu deck funciona/i.test(ctx.value)) ctx.value = `${ctx.value.trim() ? `${ctx.value.trim()}\n` : ''}Como o meu deck funciona: `;
+  $('#ctxHint').textContent = '✏️ Conte como o seu deck funciona de verdade (quem ataca, o que monta o dano, o que vai ao Ativo) e clique em "Encontrar tech cards" de novo — a IA lê esse texto. Se o motor leu alguma carta errado, use também o botão 🚩 nos resultados para a gente corrigir.';
+  ctx.scrollIntoView({ behavior: 'smooth', block: 'center' }); ctx.focus(); ctx.setSelectionRange(ctx.value.length, ctx.value.length);
+}
+
+// ---------- Quiz do matchup (perguntas tiradas das duas listas coladas) ----------
+const TYPE_PT_UI = { Grass: 'Planta', Fire: 'Fogo', Water: 'Água', Lightning: 'Elétrico', Psychic: 'Psíquico', Fighting: 'Lutador', Darkness: 'Escuridão', Metal: 'Metal', Dragon: 'Dragão', Colorless: 'Incolor' };
+const quizState = { active: false, answered: 0, right: 0, queue: [], cur: null };
+const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+function buildQuiz(me, opp) {
+  const cards = [], seen = new Set();
+  for (const [p, side] of [[me, 'do seu deck'], [opp, 'do oponente']]) for (const e of p.entries) if (e.card.category === 'Pokemon' && !seen.has(e.card.name)) { seen.add(e.card.name); cards.push({ c: e.card, side }); }
+  const printed = (c) => (c.attacks ?? []).filter((a) => !a.copiedFrom); // ataques copiados não estão impressos na carta
+  const atkNames = [...new Set(cards.flatMap(({ c }) => printed(c).map((a) => a.name)))];
+  const qs = [];
+  for (const { c, side } of cards) {
+    const w = c.weaknesses?.[0]?.type;
+    if (w && TYPE_PT_UI[w]) {
+      const others = shuffle(Object.keys(TYPE_PT_UI).filter((t) => t !== w && t !== 'Colorless')).slice(0, 3);
+      qs.push({ text: `Qual é a fraqueza do ${c.name}?`, side, options: shuffle([w, ...others]).map((t) => TYPE_PT_UI[t]), answer: TYPE_PT_UI[w], reveal: `Fraqueza do ${c.name}: ${TYPE_PT_UI[w]} (dano ×2).`, card: c });
+    }
+    if (c.prizeValue) qs.push({ text: `Quantos prêmios o oponente pega quando o ${c.name} é nocauteado?`, side, options: ['1', '2', '3'], answer: String(c.prizeValue), reveal: `${c.name} vale ${c.prizeValue} prêmio${c.prizeValue > 1 ? 's' : ''}${c.isMega ? ' (Mega ex)' : c.isEx ? ' (Pokémon ex)' : ''}.`, card: c });
+    const atks = printed(c);
+    if (atks.length) {
+      const a = atks[Math.floor(Math.random() * atks.length)];
+      const others = shuffle(atkNames.filter((n) => !atks.some((x) => x.name === n))).slice(0, 2);
+      if (others.length === 2) qs.push({ text: `Qual destes ataques é do ${c.name}?`, side, options: shuffle([a.name, ...others]), answer: a.name, reveal: `"${a.name}"${a.damage ? ` faz ${a.damage}` : ''}.`, card: c });
+    }
+    const fixed = atks.find((a) => /^\d+$/.test(String(a.damage ?? '')));
+    if (fixed) {
+      const d = +fixed.damage, opts = new Set([d]);
+      for (const k of shuffle([-60, -30, -20, 20, 30, 60, 90])) { if (opts.size >= 3) break; if (d + k > 0) opts.add(d + k); }
+      qs.push({ text: `Quanto de dano faz o "${fixed.name}" do ${c.name}?`, side, options: shuffle([...opts]).map(String), answer: String(d), reveal: `"${fixed.name}" faz ${d} de dano.`, card: c });
+    }
+    if (Number.isInteger(c.retreat) && c.retreat <= 4) qs.push({ text: `Qual é o custo de recuo do ${c.name}?`, side, options: ['0', '1', '2', '3', ...(c.retreat > 3 ? ['4'] : [])], answer: String(c.retreat), reveal: `Recuo do ${c.name}: ${c.retreat}.`, card: c });
+  }
+  for (let i = 0; i < 6 && cards.length >= 2; i++) {
+    const [a, b] = shuffle([...cards]).slice(0, 2);
+    if (a.c.hp && b.c.hp && a.c.hp !== b.c.hp) { const big = a.c.hp > b.c.hp ? a : b; qs.push({ text: 'Quem tem mais HP?', side: 'duelo', options: [a.c.name, b.c.name], answer: big.c.name, reveal: `${a.c.name}: ${a.c.hp} HP · ${b.c.name}: ${b.c.hp} HP.`, card: big.c }); }
+  }
+  return shuffle(qs);
+}
+function startQuiz(me, opp) {
+  Object.assign(quizState, { active: true, answered: 0, right: 0, queue: buildQuiz(me, opp), cur: null });
+  if (!quizState.queue.length) return;
+  $('#quizBox').style.display = 'block';
+  nextQuestion();
+}
+function stopQuiz() { quizState.active = false; $('#quizBox').style.display = 'none'; }
+const quizScore = () => `enquanto a IA pensa · acertos: ${quizState.right}/${quizState.answered}`;
+function nextQuestion() {
+  if (!quizState.active) return;
+  const q = quizState.queue.shift();
+  if (!q) { $('#quizBox').innerHTML = `<h3>🎮 Quiz do matchup</h3><p>Acabaram as perguntas! Você acertou ${quizState.right} de ${quizState.answered}. 🎉</p>`; return; }
+  quizState.cur = q;
+  $('#quizBox').innerHTML = `<h3>🎮 Quiz do matchup <small id="quizScore">${quizScore()}</small></h3>
+    <div class="q">${esc(q.text)}<span class="tag">${esc(q.side)}</span></div>
+    <div class="opts">${q.options.map((o) => `<button class="opt" data-opt="${esc(o)}">${esc(o)}</button>`).join('')}</div><div id="quizReveal"></div>`;
+}
+function answerQuiz(btn) {
+  const q = quizState.cur;
+  if (!q || btn.disabled) return;
+  const ok = btn.dataset.opt === q.answer;
+  quizState.answered++; if (ok) quizState.right++;
+  document.querySelectorAll('#quizBox .opt').forEach((b) => { b.disabled = true; if (b.dataset.opt === q.answer) b.classList.add('right'); });
+  if (!ok) btn.classList.add('wrong');
+  $('#quizScore').textContent = quizScore();
+  $('#quizReveal').innerHTML = `<div class="reveal">${q.card?.image ? `<img ${IMG(q.card.image)} alt="${esc(q.card.name)}" data-type="${esc(q.card.types?.[0] || '')}" width="120">` : ''}<div><b>${ok ? '✅ Acertou!' : '❌ Quase!'}</b> ${esc(q.reveal)}<br><button class="ghost sm" id="quizNext" style="margin-top:8px">Próxima ➜</button></div></div>`;
+  hydrateImages();
+}
+
 document.addEventListener('click', (ev) => {
-  if (ev.target?.id === 'stratGo') runStrat();
-  if (ev.target?.id === 'stratFresh') runStrat({ fresh: true });
+  const t = ev.target;
+  if (t?.id === 'stratFresh') analyzeAll({ fresh: true });
+  else if (t?.id === 'seeResult') readyResolve?.();
+  else if (t?.id === 'exOk') { explainTouched = true; $('#exAsk').textContent = '👍 Show! A análise segue com esse entendimento.'; }
+  else if (t?.id === 'exNo') stopAndCorrect();
+  else if (t?.id === 'quizNext') nextQuestion();
+  else if (t?.closest?.('#quizBox .opt')) answerQuiz(t.closest('.opt'));
 });
-// "Rodar o estrategista junto": escolha de cada navegador (desligada por padrão — cada leitura nova custa na chave do site)
-if (STRAT_URL) {
-  $('#autoStratWrap').style.display = 'block';
-  try { $('#autoStrat').checked = localStorage.getItem('pokematch:autoStrat') === '1'; } catch {}
-  $('#autoStrat').onchange = () => { try { localStorage.setItem('pokematch:autoStrat', $('#autoStrat').checked ? '1' : '0'); } catch {} };
-}
 
 function status(el, deck) {
   if (deck.errors.length) { el.className = 'status err'; el.innerHTML = '⚠ ' + deck.errors.map(esc).join('<br>⚠ '); }

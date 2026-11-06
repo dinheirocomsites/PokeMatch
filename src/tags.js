@@ -188,7 +188,8 @@ export function extractTags(card) {
         continue;
       }
       // 2) Redução de dano
-      const red = s.match(/takes? (\d+) less damage from attacks(?: from (?:your |the )?opponent.s ([^(]+?))?(?:\s*\(|\s*$|\s*\.)/i);
+      const red = s.match(/takes? (\d+) less damage from attacks(?: from (?:your |the )?opponent.s ([^(]+?))?(?:\s*\(|\s*$|\s*\.)/i)
+        || (/as long as this pok[eé]mon is in the active spot/i.test(s) && s.match(/attacks used by your opponent.s active pok[eé]mon do (\d+) less damage()/i));
       if (red) {
         const sel = red[2] ? parseSelector(red[2]) : {};
         tags.push({ ...base, kind: 'REDUCE', sel, amount: +red[1] });
@@ -230,24 +231,27 @@ export function extractTags(card) {
       if (/discard[^.]*pok[eé]mon tools?[^.]*(opponent|in play)/i.test(s) || /discard all pok[eé]mon tools from your opponent/i.test(s)) tags.push({ ...base, kind: 'TOOL_HATE' });
       if (/special energy/i.test(s) && /(discard|knocked out|opponent)/i.test(s) && !/your special energy/i.test(s)) tags.push({ ...base, kind: 'SPECIAL_ENERGY_HATE' });
       if (/discard (a|the) stadium in play|discard a stadium/i.test(s)) tags.push({ ...base, kind: 'STADIUM_HATE' });
-      if (/discard (an|\d+|up to \d+|all) energy from (your opponent|the defending|1 of your opponent|each of your opponent)/i.test(s)) tags.push({ ...base, kind: 'ENERGY_DISRUPT' });
+      if (/discard (an|\d+|up to \d+|all) energy from (your opponent|the defending|1 of your opponent|each of your opponent)/i.test(s) || /put (an|\d+) energy attached to (1 of )?your opponent.s (active )?(stage \d )?pok[eé]mon into their hand/i.test(s)) tags.push({ ...base, kind: 'ENERGY_DISRUPT' });
       // 8) Corrida de prêmios: oponente pega menos / eu pego mais
       const fewer = s.match(/takes? (\d+) fewer prize/i);
       if (fewer) tags.push({ ...base, kind: 'PRIZE_DENIAL', amount: +fewer[1], once: /can.t be applied more than once/i.test(full) });
       // 9) Disrupção de mão
-      if (/your opponent (shuffles|reveals) their hand/i.test(s) || /opponent shuffles their hand/i.test(s) || /discard (a random card|\d+ cards?) from your opponent.s hand|your opponent discards (a|\d+) cards?/i.test(s)) tags.push({ ...base, kind: 'HAND_DISRUPT' });
+      if (/your opponent (shuffles|reveals) their hand/i.test(s) || /opponent shuffles their hand/i.test(s) || /discard (a random card|\d+ cards?) from your opponent.s hand|your opponent discards (a|\d+) cards?|choose a random card from your opponent.s hand/i.test(s)) tags.push({ ...base, kind: 'HAND_DISRUPT' });
       // 10) Condições especiais no Ativo do oponente
-      const st = s.match(/your opponent.s active pok[eé]mon is now (asleep|paralyzed|confused|burned|poisoned)/i) || s.match(/the defending pok[eé]mon is now (asleep|paralyzed|confused|burned|poisoned)/i);
+      const st = s.match(/your opponent.s active pok[eé]mon is now (asleep|paralyzed|confused|burned|poisoned)/i) || s.match(/the defending pok[eé]mon is now (asleep|paralyzed|confused|burned|poisoned)/i)
+        || s.match(/make your opponent.s active pok[eé]mon (asleep|paralyzed|confused|burned|poisoned)/i) || s.match(/both active (?:non-\{[A-Z]\} )?pok[eé]mon are now (asleep|paralyzed|confused|burned|poisoned)/i)
+        || (/your opponent.s active pok[eé]mon is now affected by that special condition/i.test(s) && [null, 'poisoned'])
+        || (/if the defending pok[eé]mon tries to use an attack, your opponent flips a coin/i.test(s) && [null, 'smokescreen']);
       if (st) tags.push({ ...base, kind: 'STATUS', status: st[1].toLowerCase() });
       // 11) Desvantagem do próprio ataque
-      if (b.source === 'attack' && (/during your next turn, this pok[eé]mon can.t (attack|use)/i.test(s) || (/discard (all|\d+|an?) energy from this pok[eé]mon/i.test(s) && !/you may/i.test(s)) || /this pok[eé]mon takes \d+ more damage/i.test(s) || /this pok[eé]mon also does \d+ damage to itself/i.test(s))) {
+      if (b.source === 'attack' && (/during your next turn, this pok[eé]mon can.t (attack|use)/i.test(s) || (/discard (all|\d+|an?) (basic )?(\{[a-z]\} )?energy from this pok[eé]mon|put (an|\d+) (\{[a-z]\} )?energy attached to this pok[eé]mon into your hand/i.test(s) && !/you may/i.test(s)) || /this pok[eé]mon takes \d+ more damage/i.test(s) || /this pok[eé]mon also does \d+ damage to itself/i.test(s))) {
         tags.push({ ...base, kind: 'DRAWBACK', what: /can.t (attack|use)/i.test(s) ? 'noAttack' : /discard/i.test(s) ? 'discardEnergy' : /takes/i.test(s) ? 'takesMore' : 'selfDamage' });
       }
       // 12) Cura
       const heal = s.match(/heal (\d+|all) damage from (1 of your|each of your|this|your active|all of your)/i);
       if (heal) tags.push({ ...base, kind: 'HEAL', amount: heal[1] === 'all' ? 999 : +heal[1], scope: /each of your|all of your/i.test(heal[2]) ? 'all' : 'one' });
       // 13) Troca/recuo dos seus Pokémon e prender o do oponente
-      if (/switch (your active pok[eé]mon|this pok[eé]mon) with 1 of your benched/i.test(s) || /your (basic )?pok[eé]mon in play have no retreat cost|retreat cost is .*less/i.test(s)) tags.push({ ...base, kind: 'SWITCH' });
+      if (/switch (your active pok[eé]mon|this pok[eé]mon) with 1 of your benched/i.test(s) || /your (basic )?pok[eé]mon in play have no retreat cost|retreat cost (of the pok[eé]mon this card is attached to )?is .*less|has no retreat cost/i.test(s)) tags.push({ ...base, kind: 'SWITCH' });
       if (/the defending pok[eé]mon can.t retreat|your opponent.s active pok[eé]mon can.t retreat|during your opponent.s next turn, that pok[eé]mon can.t retreat/i.test(s)) tags.push({ ...base, kind: 'TRAP' });
       // 14) Mover energia entre os seus Pokémon
       if (/move (a|an|up to \d+|any amount of|all) (basic )?(\{[a-z]\} )?energy from (1 of )?(your|this pok[eé]mon)/i.test(s)) tags.push({ ...base, kind: 'ENERGY_MOVE' });
@@ -268,6 +272,23 @@ export function extractTags(card) {
       // 16) HP extra (Ferramenta)
       const hpb = s.match(/gets \+(\d+) hp/i);
       if (hpb) tags.push({ ...base, kind: 'HP_BOOST', amount: +hpb[1] });
+      // 17) Retaliação: quem ataca este Pokémon leva contadores ("put 3 damage counters on the Attacking Pokémon")
+      const ret = s.match(/(?:is (?:damaged|knocked out) by (?:damage from )?an attack|damaged by an attack)[^,]*,\s*(?:put|place) (\d+) damage counters on the attacking pok[eé]mon/i);
+      if (ret && !/flip a coin/i.test(full)) tags.push({ ...base, kind: 'RETALIATE', amount: +ret[1] * 10, whenKO: /knocked out/i.test(s), nextTurnOnly: /during your opponent.s next turn/i.test(s) });
+      // 18) Aguenta o nocaute com HP cheio (fica com 10)
+      if (/has full hp and would be knocked out by damage from an attack, it is not knocked out/i.test(s) && !/flip a coin/i.test(full)) tags.push({ ...base, kind: 'SURVIVE_FULL', hpLeft: +(s.match(/remaining hp becomes (\d+)/i)?.[1] ?? 10) });
+      // 19) Tira o Ativo do oponente para o banco (ele escolhe o novo): quebra efeitos "enquanto estiver no Ativo"
+      if (/switch out your opponent.s active pok[eé]mon to the bench/i.test(s) && !/flip a coin|if heads/i.test(s)) tags.push({ ...base, kind: 'FORCE_SWITCH' });
+      // 20) Habilidade que nocauteia o próprio Pokémon (dá prêmio ao oponente)
+      if (b.source === 'ability' && /if you use this ability, this pok[eé]mon is knocked out/i.test(s)) tags.push({ ...base, kind: 'SELF_KO' });
+      // 21) Evolução do oponente: trava, pune ou desfaz
+      if (/they can.t play any pok[eé]mon from their hand to evolve/i.test(s)) tags.push({ ...base, kind: 'EVOLVE_LOCK' });
+      if (/whenever your opponent plays a pok[eé]mon from their hand to evolve[^.]*put (\d+) damage counters/i.test(s)) tags.push({ ...base, kind: 'EVOLVE_PUNISH', amount: +s.match(/put (\d+) damage counters/i)[1] * 10 });
+      if (/devolve (1 of your opponent.s|each of your opponent.s|it)/i.test(s) && !/your evolved \{/i.test(s)) tags.push({ ...base, kind: 'DEVOLVE', all: /each of your opponent/i.test(s) });
+      // 22b) Tira um Pokémon do oponente de jogo sem nocaute (embaralha no deck / volta para a mão): sem prêmio, mas some do tabuleiro
+      if (/shuffle (that|1 of your opponent.s|your opponent.s active) pok[eé]mon and all attached cards into their deck|put (that|your opponent.s active) pok[eé]mon and all attached cards into (their|your opponent.s) hand/i.test(s)) tags.push({ ...base, kind: 'BOUNCE_OPP' });
+      // 22) Trava de ligar energia / atacar com pouca energia no turno dele
+      if (/energy can.t be attached from your opponent.s hand to the defending|if they attach an energy card from their hand to the defending pok[eé]mon, their turn ends|pok[eé]mon that have \d+ or less energy attached can.t attack|whenever (they|your opponent) attach(es)? an energy card from (their|the) hand[^.]*(put|place) \d+ damage counters/i.test(s)) tags.push({ ...base, kind: 'ATTACH_LOCK' });
     }
   }
   // Estádios sempre "removem" o estádio do oponente ao serem jogados

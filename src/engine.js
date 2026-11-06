@@ -109,6 +109,37 @@ function tagValue(t, opp, me, ctx) {
       if (c.item < 8) return null;
       return { value: 50 * clamp(c.item / 20) * condFactor * nextTurn, why: `"${t.name}": o oponente não pode jogar Itens${t.alsoTools ? ' nem Ferramentas' : ''} (ele usa ${c.item} Itens${t.alsoTools ? ` e ${c.tool} Ferramentas` : ''}).` };
     }
+    case 'RETALIATE': {
+      // Quem ataca este Pokémon leva contadores: pune o atacante dele (e pode nocautear quem já está ferido)
+      const atk = opp.threat.filter((e) => maxDamage(e.card) > 0);
+      if (!atk.length) return null;
+      const weakOnes = atk.filter((e) => e.card.hp <= t.amount * 2);
+      return { value: clamp((t.amount / 60) * 14 * condFactor * (t.nextTurnOnly ? 0.6 : 1) * (t.whenKO ? 0.7 : 1), 0, 22), why: `"${t.name}": quem atacar este Pokémon${t.whenKO ? ' e nocauteá-lo' : ''} leva ${t.amount} de dano em contadores${weakOnes.length ? ` — ${names(weakOnes.map((e) => e.card.name))} cai${weakOnes.length > 1 ? 'em' : ''} em 2 trocas` : ''}.` };
+    }
+    case 'SURVIVE_FULL':
+      return { value: 12 * condFactor, why: `"${t.name}": com o HP cheio, não cai de um ataque só (fica com ${t.hpLeft} HP) — força o oponente a gastar 2 ataques.` };
+    case 'FORCE_SWITCH': {
+      // Tira o Ativo dele para o banco: desfaz o que só vale no Ativo (Arbok, muralhas, travas)
+      const activeOnly = opp.tagsByCard.filter(({ tags }) => tags.some((x) => (x.cond ?? []).includes('active') || x.kind === 'WALL_SELF'));
+      if (!activeOnly.length) return null;
+      return { value: 18 * condFactor * nextTurn, why: `"${t.name}": manda o Ativo dele para o banco — desfaz o que só funciona no Ativo (${names(activeOnly.map((x) => x.entry.card.name))}).` };
+    }
+    case 'EVOLVE_LOCK':
+    case 'EVOLVE_PUNISH':
+    case 'DEVOLVE': {
+      const evo = (c.stage1 ?? 0) + (c.stage2 ?? 0) * 1.5;
+      if (evo < 4) return null;
+      const base = { EVOLVE_LOCK: 24, EVOLVE_PUNISH: 18, DEVOLVE: t.all ? 34 : 26 }[t.kind];
+      const what = { EVOLVE_LOCK: 'impede ele de evoluir no próximo turno', EVOLVE_PUNISH: `cada evolução dele toma ${t.amount} de dano`, DEVOLVE: t.all ? 'desfaz a evolução de TODOS os Pokémon evoluídos dele' : 'desfaz a evolução de 1 Pokémon dele' }[t.kind];
+      return { value: base * clamp(evo / 10) * condFactor * (t.kind === 'EVOLVE_PUNISH' ? 1 : nextTurn), why: `"${t.name}": ${what} — o deck dele joga ${c.stage1 ?? 0} Estágio 1 e ${c.stage2 ?? 0} Estágio 2.` };
+    }
+    case 'BOUNCE_OPP': {
+      // Some com um Pokémon dele junto com tudo que estava ligado (energia, Ferramenta): ótimo contra atacante carregado
+      const heavy = opp.threat.filter((e) => (e.card.attacks ?? []).some((a) => (a.cost ?? []).length >= 3));
+      return { value: (heavy.length ? 20 : 12) * condFactor * nextTurn, why: `"${t.name}": tira um Pokémon dele de jogo com tudo que está ligado (sem nocaute, sem prêmio)${heavy.length ? ` — dói contra atacantes de muita energia (${names(heavy.map((e) => e.card.name))})` : ''}.` };
+    }
+    case 'ATTACH_LOCK':
+      return { value: 14 * condFactor * nextTurn, why: `"${t.name}": atrapalha a ligação de energia do oponente no turno dele.` };
     case 'HAND_PKMN_LOCK': {
       // Team Rocket's Arbok: no Ativo, o oponente não joga da mão (banco nem evolução) Pokémon com Habilidade
       const hit = opp.entries.filter((e) => e.card.category === 'Pokemon' && e.card.abilities?.length && (!t.exceptOwner || e.card.owner !== t.exceptOwner));
@@ -178,7 +209,8 @@ function tagValue(t, opp, me, ctx) {
     }
     case 'STATUS': {
       // Sono/paralisia travam o Ativo dele (valem mais); confusão/queimadura/veneno dão dano e chance de erro
-      const v = { paralyzed: 14, asleep: 11, confused: 8, burned: 6, poisoned: 5 }[t.status] ?? 5;
+      const v = { paralyzed: 14, asleep: 11, confused: 8, smokescreen: 7, burned: 6, poisoned: 5 }[t.status] ?? 5;
+      if (t.status === 'smokescreen') return { value: v * condFactor, why: `"${t.name}": no turno dele, o atacante que recebeu o ataque só ataca se acertar a moeda.` };
       return { value: v * condFactor * (t.source === 'attack' ? 0.8 : 1), why: `"${t.name}": deixa o Ativo do oponente ${{ paralyzed: 'Paralisado', asleep: 'Adormecido', confused: 'Confuso', burned: 'Queimado', poisoned: 'Envenenado' }[t.status]}.` };
     }
     case 'PLACE_COUNTERS': {
@@ -561,7 +593,7 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
       if (r.kind === 'KO_GAP') return `ajuda o ${main.name} a nocautear ${koGap.target} todo turno`;
       if (r.kind === 'COST_CHANGE' && ctxRead.weights.disrupcao) return 'dificulta os ataques dele (custo maior)';
       // Pedido "dificultar a vida dele": travas que pegam boa parte do deck dele também resolvem
-      if (ctxRead.weights.disrupcao && ['ITEM_LOCK', 'ABILITY_LOCK', 'SUPPORTER_LOCK', 'HAND_PKMN_LOCK'].includes(r.kind) && r.value >= 15) return `dificulta o jogo dele (${{ ITEM_LOCK: 'trava os Itens', ABILITY_LOCK: 'desliga habilidades', SUPPORTER_LOCK: 'trava Supporters', HAND_PKMN_LOCK: 'impede Pokémon com Habilidade vindos da mão' }[r.kind]})`;
+      if (ctxRead.weights.disrupcao && ['ITEM_LOCK', 'ABILITY_LOCK', 'SUPPORTER_LOCK', 'HAND_PKMN_LOCK', 'EVOLVE_LOCK', 'DEVOLVE', 'ATTACH_LOCK'].includes(r.kind) && r.value >= 15) return `dificulta o jogo dele (${{ ITEM_LOCK: 'trava os Itens', ABILITY_LOCK: 'desliga habilidades', SUPPORTER_LOCK: 'trava Supporters', HAND_PKMN_LOCK: 'impede Pokémon com Habilidade vindos da mão', EVOLVE_LOCK: 'trava a evolução', DEVOLVE: 'desfaz evoluções', ATTACH_LOCK: 'atrapalha a energia' }[r.kind]})`;
       if (r.kind?.startsWith('ANTI_')) {
         const ax = disruption.axes.find((a) => a.key === r.axis);
         if (ax && ax.severity >= 0.3) return `responde a ${AXES[r.axis].label.toLowerCase()}`;

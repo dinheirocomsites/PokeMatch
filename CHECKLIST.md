@@ -118,6 +118,8 @@ Legenda: [x] feito · [~] em andamento · [ ] a fazer
 
 - [x] Rodada 5: régua em 3 níveis (79% lido · 69% usado), leitor genérico de condições de dano (468/468), contadores, ataque que puxa, proteção/trava do próprio ataque (84 testes ✅)
 
+- [x] Rodada 6: retaliação, aguentar com HP cheio, tirar o Ativo dele, evolução do oponente, cópia do ataque dele, buscas genéricas na mão; 87% lido · 80% usado (96 testes ✅)
+
 ## Próximos passos (ideias)
 - [ ] Interações mais finas: Boss's Orders do oponente contorna muralha; muralha precisa estar Ativa
 - [ ] Analisar contra o meta inteiro de uma vez (várias listas)

@@ -15,7 +15,7 @@ export const AXES = {
   trap: { label: 'Prender o seu Pokémon no Ativo', counters: ['SWITCH'] },
   ko_gap: { label: 'Margem de nocaute', counters: [] }, // tratado no motor (dano extra / HP reduzido do alvo)
   ability_lock: { label: 'Trava das suas habilidades', counters: ['DRAW_ABILITY', 'SUPPORTER_SEARCH'] },
-  pokemon_lock: { label: 'Trava de Pokémon com Habilidade vindos da mão', counters: [] }, // resposta: tirar o Pokémon do Ativo (Boss) ou nocautear
+  pokemon_lock: { label: 'Trava de Pokémon com Habilidade vindos da mão', counters: ['FORCE_SWITCH', 'GUST'] }, // tirar o Arbok do Ativo
   speed: { label: 'Pressão cedo (ele bate forte no 1º/2º turno)', counters: ['STARTER'] },
   heal_stall: { label: 'Cura / stall', counters: ['HEAL_BLOCK'] }, // dano extra para nocautear em 1 ataque: tratado no motor
   mill: { label: 'Moinho (descarta o topo do seu deck)', counters: ['DECK_RECOVERY'] },
@@ -218,7 +218,9 @@ export function counterTags(card) {
   if (/can.t be healed/i.test(card.text ?? '')) out.push({ kind: 'HEAL_BLOCK', name: card.name });
   // Bom Pokémon inicial: Básico sem Rule Box, HP alto e recuo barato (aguenta o ataque cedo)
   if (card.category === 'Pokemon' && card.stage === 'Basic' && !card.isRuleBox && (card.retreat ?? 9) <= 1 && card.hp >= 100) out.push({ kind: 'STARTER', name: card.name, hp: card.hp });
+  if (/switch in 1 of your opponent.s benched pok[eé]mon to the active spot/i.test(card.text ?? '') && !/flip a coin/i.test(card.text ?? '')) out.push({ kind: 'GUST', name: card.name });
   for (const t of extractTags(card)) {
+    if (t.kind === 'FORCE_SWITCH') out.push({ kind: 'FORCE_SWITCH', name: t.name });
     if (t.kind === 'BENCH_WALL') out.push({ kind: 'BENCH_WALL', name: t.name });
     if (t.kind === 'HEAL' && t.source !== 'attack') out.push({ kind: 'HEAL', name: t.name, amount: t.amount, scope: t.scope });
     if (t.kind === 'SWITCH' && t.source !== 'attack') out.push({ kind: 'SWITCH', name: t.name });
@@ -389,6 +391,8 @@ const WHY = {
   DECK_RECOVERY: (t) => `"${t.name}" devolve cartas do descarte para o deck — adia o deck out.`,
   STATUS_CURE: (t) => `"${t.name}" tira/evita Condições Especiais — responde a paralisia e sono.`,
   HEAL_BLOCK: (t) => `"${t.name}" impede a cura — o dano do 1º ataque fica.`,
+  FORCE_SWITCH: (t) => `"${t.name}" manda o Ativo dele para o banco — a trava "enquanto estiver no Ativo" para.`,
+  GUST: (t) => `"${t.name}" puxa outro Pokémon dele para o Ativo — o que trava fica no banco.`,
   STARTER: (t, ax) => `${t.name} (${t.hp} HP, recuo barato, 1 prêmio) aguenta o ataque cedo (~${Math.round(ax.maxDmg ?? 0)}) — bom para começar no Ativo enquanto você monta.`,
 };
 

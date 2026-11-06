@@ -8,7 +8,22 @@
 | Rodada 2 (subtipos oficiais, custo de ataque, margem de nocaute) | 56%+ | 65% | 51 |
 | Rodada 3 (Pokémon de Treinador: N, Lupo/Hop, Equipe Rocket…) | 58% | 65% | 62 |
 | Rodada 4 (simulador realista + eixos novos de diagnóstico) | 58% | 66% | 72 |
-| Rodada 5 (régua nova + leitor genérico de condições de dano) | **79% lido · 69% usado · 8% testado** | **100%** | **84** |
+| Rodada 5 (régua nova + leitor genérico de condições de dano) | 79% lido · 69% usado · 8% testado | 100% | 84 |
+| Rodada 6 (famílias que mudam o cálculo + buscas na simulação de mão) | **87% lido · 80% usado · 13% testado** | **100%** | **96** |
+
+### Coberto na rodada 6
+Das 578 frases que sobravam, 408 apareciam em **uma carta só**. Em vez de uma regra por carta, a rodada atacou **famílias** e só contou como "usado" o que entra num cálculo:
+- **Retaliação** ("põe N contadores no Pokémon que atacou": Iron Jugulis, Bruxish, Iron Boulder ex, Deluxe Bomb…): no simulador, quem ataca leva os contadores (e pode cair por eles); vale nos dois lados.
+- **Aguenta com HP cheio** (Pikachu ex, Crustle): não cai de um ataque só — fica com 10 HP e o nocaute vai para o ataque seguinte (nos dois lados).
+- **Tirar o Ativo dele para o banco** (Hippopotas, Repel…) e **puxar** viram resposta à trava "enquanto estiver no Ativo" (Arbok) e às muralhas.
+- **Evolução do oponente**: trava (Bronzong), pune (Ampharos da Equipe Rocket: 40 por evolução) e desfaz (Espathra, Espeon ex, Claydol) — valem contra decks de Estágio 1/2 e entram no pedido "dificultar a vida dele".
+- **Copiar o ataque dele** (Zoroark "Foul Play": usa o Phantom Dive do Dragapult = 200).
+- **Habilidade que nocauteia o próprio Pokémon** (Dusknoir): risco, dá prêmio ao oponente.
+- **Veneno forte** ("2 contadores em vez de 1") e **queimadura/veneno por habilidade** (Volcarona) no Checkup; **energia de volta para a mão dele** e **carta aleatória da mão** como disrupção; **cortina de fumaça** (só ataca se acertar a moeda); **trava do ataque escolhido**; **tirar um Pokémon dele de jogo** sem nocaute; **trava de ligar energia**; redução enquanto Ativo; Ferramentas que zeram o recuo como troca.
+- **Buscas genéricas na simulação de mão**: qualquer carta, Pokémon {X}, Evolução/Estágio, Ferramenta, Item, Estádio, energia {X}.
+- **Simulador sempre termina**: oponente sem Pokémon (ou travado sem conseguir atacar) fecha o jogo; antes, a análise podia ficar sem resultado nesses casos.
+
+**O que sobra (360 frases, ~13%)**: quase tudo é efeito único — Pinsir/Glaceon (nocaute no fim do turno dele), Cresselia (virar prêmio), Dipplin (atacar 2 vezes), Relicanth (usar ataque da pré-evolução), Alakazam/Sableye (mover contadores do oponente), Ogre's Mask… Para esses, o caminho é a camada de IA lendo o texto na hora (com o motor conferindo o que dá).
 
 ### Rodada 5: a régua mudou (e ficou mais honesta)
 A cobertura agora é medida em **3 níveis** (`npm run audit:coverage`):

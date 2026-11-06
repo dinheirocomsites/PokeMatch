@@ -11,6 +11,7 @@ import { extractTags } from '../src/tags.js';
 import { counterTags } from '../src/diagnosis.js';
 import { damageVs, unparsed } from '../src/damage.js';
 import { parseDeck } from '../src/parser.js';
+import { searcherOf } from '../src/consistency.js';
 
 const db = loadDb();
 const root = new URL('../', import.meta.url);
@@ -62,6 +63,18 @@ const KNOWN = [
   [/(defending|opponent.s active) pok[eé]mon is now (?:[a-z]+ and )?(paralyzed|asleep)/i, 'usado'], // eixo paralisia/sono
   [/discard the top (\d+|card)[^.]* of your opponent.s deck/i, 'usado'], // eixo moinho
   [/heal (\d+|all) damage/i, 'usado'],
+  [/each player shuffles their hand into their deck/i, 'usado'], // eixo disrupção de mão
+  [/put \d+ damage counters (on that pok[eé]mon )?instead of \d+/i, 'usado'], // veneno/queimadura mais forte no Checkup
+  [/choose 1 of your opponent.s active pok[eé]mon.s attacks and use it as this attack/i, 'usado'],
+  [/(put|shuffle) this pok[eé]mon and all attached cards into your (hand|deck)/i, 'lido'],
+  [/put (up to \d+|a|an|\d+) (pok[eé]mon|supporter|trainer|item|basic [^.]*energy)[^.]* from your discard pile into your hand/i, 'lido'],
+  [/discard the top (\d+ cards|card) of your deck/i, 'lido'],
+  [/(reveal|look at) the top \d+ cards of your opponent.s deck/i, 'lido'],
+  [/you may attach any number of basic energy cards from your hand/i, 'lido'],
+  [/this attack does nothing/i, 'lido'],
+  [/if this pok[eé]mon would be knocked out by damage from an attack, flip a coin|if any damage is done to this pok[eé]mon by attacks, flip a coin/i, 'lido'],
+  [/this pok[eé]mon may use an attack it has twice|you may attack again/i, 'lido'],
+  [/prevent all effects of (that card|attacks|your opponent)/i, 'lido'],
   [/during your opponent.s next turn, (attacks used by the defending pok[eé]mon do \d+ less damage|the defending pok[eé]mon can.t (attack|use attacks))/i, 'usado'], // simulador
   [/play this card as if it were a \d+-hp basic/i, 'lido'], [/this card can.t be affected by any special conditions and can.t retreat/i, 'lido'],
   [/this pok[eé]mon is now (asleep|confused|paralyzed)/i, 'lido'], // desvantagem própria
@@ -74,9 +87,9 @@ const KNOWN = [
 ];
 
 // Frases de ligação (não são efeito por si só)
-const GLUE = /^(then, )?shuffle (your|their) deck\.?$|^once during your turn, (when you play this pok[eé]mon from your hand to evolve \d+ of your pok[eé]mon|if this pok[eé]mon is in the active spot), you may use this ability\.?$|^as often as you like during your turn, you may use this ability\.?$|^look at the top \d+ cards of your deck\.?$|^shuffle your hand into your deck\.?$|^at any time during your turn, you may discard this card from play\.?$|^discard the other cards\.?$|^then, that player shuffles their deck\.?$|^flip (a|\d+) coins?\.?$|^(then, )?(reveal (it|them)|put (it|them) into your hand)(, and put (it|them) into your hand)?\.?$|^if tails, this attack does nothing\.?$|^you may do this \d+ times?\.?$|^once during your turn,? you may use this ability\.?$|^you may use this ability\.?$|^(then, )?shuffle the other cards (back )?into your deck\.?$|^if you can.t, this attack does nothing\.?$|^this attack does nothing\.?$/i;
+const GLUE = /^(then, )?shuffle (your|their) deck\.?$|^once during your turn, (when you play this pok[eé]mon from your hand to evolve \d+ of your pok[eé]mon|if this pok[eé]mon is in the active spot), you may use this ability\.?$|^as often as you like during your turn, you may use this ability\.?$|^look at the top \d+ cards of your deck\.?$|^shuffle your hand into your deck\.?$|^at any time during your turn, you may discard this card from play\.?$|^discard the other cards\.?$|^then, that player shuffles their deck\.?$|^your turn ends\.?$|^you may discard that card\.?$|^(then, )?flip a coin\.?$|^once during your turn, (you may flip a coin|if this pok[eé]mon is on your bench, you may use this ability)\.?$|^look at the top card of your deck\.?$|^any attached cards, damage counters, special conditions, turns in play, and any other effects remain on the new pok[eé]mon\.?$|^flip (a|\d+) coins?\.?$|^(then, )?(reveal (it|them)|put (it|them) into your hand)(, and put (it|them) into your hand)?\.?$|^if tails, this attack does nothing\.?$|^you may do this \d+ times?\.?$|^once during your turn,? you may use this ability\.?$|^you may use this ability\.?$|^(then, )?shuffle the other cards (back )?into your deck\.?$|^if you can.t, this attack does nothing\.?$|^this attack does nothing\.?$/i;
 // Pedaços que só fazem sentido com a frase anterior
-const FRAG = /^(if you do|if heads|if tails|if you can.t|then\b|prevent that damage|that pok[eé]mon|it (is|isn.t|can.t)|choose 1 of|in this way|for each heads)/i;
+const FRAG = /^(if you do|if heads|if tails|if you can.t|if you (placed|switched|discarded|attached)|then\b|prevent that damage|that pok[eé]mon|it (is|isn.t|can.t)|choose (\d+|up to \d+) of|in this way|for each heads|your opponent reveals (that card|those cards)|during your opponent.s next turn, that pok[eé]mon can.t use that attack)/i;
 
 const FAMILIES = [
   ['Desvantagem do próprio ataque (não pode atacar / descarta energia / recebe mais dano)', /this pok[eé]mon can.t (attack|use)|during your next turn, this pok[eé]mon (can.t|takes)|discard (all|\d+|an?) energy from this pok[eé]mon|this pok[eé]mon also does \d+ damage to itself/i],
@@ -113,6 +126,8 @@ function levelOf(s, b, c) {
   if (tags.length) lvl = tags.some((t) => !READ_ONLY_KINDS.has(t.kind)) ? 'usado' : 'lido';
   if (counterTags(pseudo).filter((t) => t.kind !== 'STARTER').length) lvl = 'usado';
   for (const [re, l] of KNOWN) if (re.test(s)) lvl = lvl ? best(lvl, l) : l;
+  // busca que a simulação de mão sabe usar
+  if (/search your deck/i.test(s) && searcherOf({ ...pseudo, text: s })) lvl = 'usado';
   if (!lvl && b.kind === 'attack' && /damage/i.test(s)) {
     const before = [...unparsed.values()].reduce((x, y) => x + y, 0);
     damageVs({ ...b.atk, effect: s }, c, { category: 'Pokemon', stage: 'Basic', hp: 200, isEx: true, types: [], weaknesses: [], resistances: [] }, { deck: { counts: { basic: 6 }, entries: [] } });
@@ -138,7 +153,7 @@ for (const c of db.unique) {
     if (b.kind === 'attack' && /[+×x]$/.test(String(b.atk.damage ?? ''))) {
       const before = [...unparsed.values()].reduce((x, y) => x + y, 0);
       damageVs(b.atk, c, { category: 'Pokemon', stage: 'Basic', hp: 200, isEx: true, types: [], weaknesses: [], resistances: [] }, { deck: { counts: { basic: 6 }, entries: [] } });
-      if ([...unparsed.values()].reduce((x, y) => x + y, 0) === before) ss.forEach((s, i) => { if (!lv[i] && /damage/i.test(s)) lv[i] = 'usado'; });
+      if ([...unparsed.values()].reduce((x, y) => x + y, 0) === before) ss.forEach((s, i) => { if (!lv[i] && /damage|flip|coin/i.test(s)) lv[i] = 'usado'; });
     }
     // pedaço dependente herda o nível da frase anterior entendida
     for (let i = 1; i < ss.length; i++) if (!lv[i] && FRAG.test(ss[i]) && lv[i - 1]) lv[i] = lv[i - 1];

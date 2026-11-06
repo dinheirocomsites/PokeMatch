@@ -31,8 +31,40 @@ function searcherOf(card) {
     if (/search your deck for (up to \d+ )?basic pok[eé]mon/i.test(t)) return (c) => c.category === 'Pokemon' && c.stage === 'Basic';
     if (/search your deck for a supporter card/i.test(t)) return (c) => c.trainerType === 'Supporter';
   }
-  return null;
+  return genericSearch(t);
 }
+
+// Demais buscas (Treinador ou Pokémon): qualquer carta, {X} Pokémon, Evolução/Estágio, Ferramenta, Item, Estádio, energia {X}
+const SYMC = { G: 'Grass', R: 'Fire', W: 'Water', L: 'Lightning', P: 'Psychic', F: 'Fighting', D: 'Darkness', M: 'Metal', N: 'Dragon', C: 'Colorless' };
+export function genericSearch(text) {
+  const t = (text ?? '').replace(/[’]/g, "'");
+  const m = t.match(/search your deck for (?:a|an|up to \d+|any number of|\d+)(?: in any combination of)? ([^,.]+?)(?:,| and put| and attach| and shuffle| reveal|\.)/i);
+  if (!m) return null;
+  const what = m[1].toLowerCase();
+  const typ = what.match(/\{([a-z])\}/i)?.[1]?.toUpperCase();
+  const T = typ && SYMC[typ];
+  const parts = what.split(/ and | or /);
+  const preds = parts.map((w) => {
+    if (/^cards?$/.test(w.trim())) return () => true;
+    if (/energy/.test(w)) return (c) => c.category === 'Energy' && (!/basic/.test(w) || c.isBasicEnergy) && (!T || c.name === `${T} Energy` || (c.types ?? []).includes(T));
+    if (/pok[eé]mon tool/.test(w)) return (c) => c.trainerType === 'Tool';
+    if (/item/.test(w)) return (c) => c.trainerType === 'Item';
+    if (/stadium/.test(w)) return (c) => c.trainerType === 'Stadium';
+    if (/supporter/.test(w)) return (c) => c.trainerType === 'Supporter';
+    if (/trainer/.test(w)) return (c) => c.category === 'Trainer';
+    if (/pok[eé]mon/.test(w)) {
+      return (c) => c.category === 'Pokemon'
+        && (!/basic/.test(w) || c.stage === 'Basic')
+        && (!/evolution/.test(w) || (c.stage && c.stage !== 'Basic'))
+        && (!/stage 1/.test(w) || c.stage === 'Stage1') && (!/stage 2/.test(w) || c.stage === 'Stage2')
+        && (!/\bex\b/.test(w) || c.isEx)
+        && (!T || (c.types ?? []).includes(T));
+    }
+    return null;
+  }).filter(Boolean);
+  return preds.length ? (c) => preds.some((f) => f(c)) : null;
+}
+export { searcherOf };
 function drawOf(card) {
   if (card.trainerType !== 'Supporter') return 0;
   const m = (card.text ?? '').match(/draws? (\d+|a) cards?/i);

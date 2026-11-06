@@ -79,8 +79,8 @@ export function clusterOf(s) {
   if (k?.startsWith('ANTI_')) return 'contra';
   if (k === 'KO_GAP' || k === 'HP_DOWN') return 'dano';
   if (k === 'COST_CHANGE') return 'disrupcao';
-  if (['WALL_SELF', 'WALL_TEAM', 'WALL_CHOSEN', 'REDUCE', 'BENCH_WALL', 'SURVIVE'].includes(k)) return 'protecao';
+  if (['WALL_SELF', 'WALL_TEAM', 'WALL_CHOSEN', 'REDUCE', 'BENCH_WALL', 'SURVIVE', 'SURVIVE_FULL', 'RETALIATE'].includes(k)) return 'protecao';
   if (['STATUS', 'PLACE_COUNTERS'].includes(k)) return 'disrupcao';
-  if (['ABILITY_LOCK', 'ITEM_LOCK', 'SUPPORTER_LOCK', 'HAND_PKMN_LOCK', 'HAND_DISRUPT', 'ENERGY_DISRUPT', 'STADIUM_HATE', 'STADIUM_REPLACE', 'TOOL_HATE', 'SPECIAL_ENERGY_HATE'].includes(k)) return 'disrupcao';
+  if (['ABILITY_LOCK', 'ITEM_LOCK', 'SUPPORTER_LOCK', 'HAND_PKMN_LOCK', 'EVOLVE_LOCK', 'EVOLVE_PUNISH', 'DEVOLVE', 'ATTACH_LOCK', 'FORCE_SWITCH', 'BOUNCE_OPP', 'HAND_DISRUPT', 'ENERGY_DISRUPT', 'STADIUM_HATE', 'STADIUM_REPLACE', 'TOOL_HATE', 'SPECIAL_ENERGY_HATE'].includes(k)) return 'disrupcao';
   return 'dano';
 }

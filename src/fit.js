@@ -133,6 +133,8 @@ export function evaluateFit(card, used, reasons, meBase, opp, db, opt = null) {
   if (!req.ok) add('recursos', 0.1, `✗ ${req.note}.`);
   else if (req.note) add('recursos', req.factor, `⚠ ${req.note[0].toUpperCase()}${req.note.slice(1)}.`);
   for (const g of req.good ?? []) notes.sinergia.push(`✓ ${g[0].toUpperCase()}${g.slice(1)}.`);
+  // Habilidade que nocauteia o próprio Pokémon: cada uso dá prêmio(s) ao oponente
+  if (extractTags(card).some((t) => t.kind === 'SELF_KO')) add('risco', 0.8, `⚠ Usar a habilidade nocauteia o ${card.name}: dá ${card.prizeValue} prêmio${card.prizeValue > 1 ? 's' : ''} ao oponente a cada uso.`);
   // O contrário: a tech é Pokémon de um Treinador e o seu deck já tem cartas que ajudam esse dono
   if (card.owner) {
     const helpers = meBase.entries.filter((e) => e.card.name !== card.name && ownerRefsOf(e.card).includes(card.owner)).map((e) => e.card.name);

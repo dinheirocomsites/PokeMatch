@@ -248,6 +248,12 @@ export function damageVs(attack, attacker, target, ctx = {}) {
     } else {
       note(eff.slice(0, 90));
     }
+  } else if (!n && /choose 1 of your opponent.s active pok[eé]mon.s attacks and use it as this attack/i.test(eff)) {
+    // Copia um ataque do Pokémon Ativo dele (Foul Play): usa o maior dano dele contra ele mesmo
+    const own = (target.attacks ?? []).filter((a) => !/use it as this attack/i.test(a.effect ?? ''));
+    const best = own.map((a) => damageVs(a, attacker, target, { ...ctx, bonus: 0 })).sort((x, y) => y.dmg - x.dmg)[0];
+    if (!best?.dmg) return { dmg: 0, notes };
+    return { dmg: best.dmg, notes: [...best.notes, 'copia o ataque dele'] };
   } else if (!n) {
     // Sem número no dano: o efeito diz onde o dano vai
     const counters = eff.match(/put (\d+) damage counters on (?:your opponent.s active pok[eé]mon|the defending pok[eé]mon|1 of your opponent.s pok[eé]mon)/i);

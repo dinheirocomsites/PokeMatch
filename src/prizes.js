@@ -50,14 +50,17 @@ function myDamage(card, attack, target, state, me, eng, extra = {}) {
 // Magmortar: +30 em Queimado; Perilous Jungle: +20 em Envenenado não-{D}).
 export function checkupDamage(attack, attacker, target, deck) {
   const eff = attack?.effect ?? '';
-  if (/flip a coin/i.test(eff)) return { dmg: 0 };
-  const poison = /(defending|opponent.s active) pok[eé]mon is now (?:[a-z]+ and )?poisoned/i.test(eff);
-  const burn = /(defending|opponent.s active) pok[eé]mon is now (?:[a-z]+ and )?burned/i.test(eff);
+  const coin = /flip a coin/i.test(eff);
+  // habilidade do seu deck que queima/envenena o Ativo dele todo turno (Volcarona: "make your opponent's Active Pokémon Burned")
+  const byAbility = (cond) => (deck?.entries ?? []).some((e) => (e.card.abilities ?? []).some((a) => new RegExp(`make your opponent.s active pok[eé]mon ${cond}`, 'i').test(a.effect ?? '') && !/flip a coin/i.test(a.effect ?? '') && (!/if this pok[eé]mon is in the active spot/i.test(a.effect ?? '') || e.card.name === attacker?.name)));
+  const poison = (!coin && /(defending|opponent.s active) pok[eé]mon is now (?:[a-z]+ and )?poisoned/i.test(eff)) || byAbility('poisoned');
+  const burn = (!coin && /(defending|opponent.s active) pok[eé]mon is now (?:[a-z]+ and )?burned/i.test(eff)) || byAbility('burned');
   if (!poison && !burn) return { dmg: 0 };
   let dmg = 0;
   const why = [];
+  const instead = eff.match(/put (\d+) damage counters (?:on that pok[eé]mon )?instead of \d+/i);
   if (poison) {
-    dmg += 10; why.push('veneno');
+    dmg += instead && !burn ? +instead[1] * 10 : 10; why.push(instead && !burn ? `veneno forte (${+instead[1] * 10})` : 'veneno');
     for (const e of deck?.entries ?? []) for (const a of [...(e.card.abilities ?? []), { effect: e.card.trainerType === 'Stadium' ? e.card.text : '' }]) {
       const m = (a.effect ?? '').match(/put (\d+) more damage counters on (?:your opponent.s|each) poisoned (non-\{([A-Z])\} )?pok[eé]mon during pok[eé]mon checkup|during pok[eé]mon checkup, put (\d+) more damage counters on each poisoned (non-\{([A-Z])\} )?pok[eé]mon/i);
       if (!m) continue;
@@ -141,12 +144,15 @@ export function drawbackOf(attack) {
   const name = (attack?.name ?? '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return {
     noAttack: /during your next turn, this pok[eé]mon can.t (attack|use attacks)/i.test(e) || (!!name && new RegExp(`during your next turn, this pok[eé]mon can.t use ${name}`, 'i').test(e)),
-    discardEnergy: /discard (all|\d+|an?) energy from this pok[eé]mon/i.test(e) && !/you may discard/i.test(e),
+    discardEnergy: (/discard (all|\d+|an?) (basic )?(\{[A-Z]\} )?energy from this pok[eé]mon/i.test(e) || /put (an|\d+) (\{[A-Z]\} )?energy attached to this pok[eé]mon into your hand/i.test(e)) && !/you may (discard|put|shuffle)/i.test(e),
     takesMore: +(e.match(/this pok[eé]mon takes (\d+) more damage/i)?.[1] ?? 0),
     // Proteção do próprio ataque no turno dele (sem moeda): "takes 30 less damage" / "prevent all damage done to this Pokémon"
     shield: /flip a coin/i.test(e) ? 0 : /during your opponent.s next turn, prevent all damage (?:from and effects of attacks )?done to this pok[eé]mon/i.test(e) ? 999 : +(e.match(/during your opponent.s next turn, (?:this pok[eé]mon takes|attacks used by the defending pok[eé]mon do) (\d+) less damage/i)?.[1] ?? 0),
     // Trava o Pokémon que recebeu o ataque: no turno dele, ele não ataca (tem que trocar)
-    lockDefender: !/flip a coin/i.test(e) && /during your opponent.s next turn, the defending pok[eé]mon can.t (attack|use attacks)/i.test(e),
+    // (também: "no fim do próximo turno dele, o Defensor é nocauteado/descartado/leva 9 contadores" — ele precisa trocar)
+    lockDefender: !/flip a coin/i.test(e) && (/during your opponent.s next turn, the defending pok[eé]mon can.t (attack|use attacks)/i.test(e) || /during your opponent.s next turn, that pok[eé]mon can.t use that attack/i.test(e) || /at the end of your opponent.s next turn, (the defending pok[eé]mon will be knocked out|discard the defending pok[eé]mon|put \d+ damage counters on the defending)/i.test(e)),
+    // Retaliação só no turno dele ("during your opponent's next turn, if this Pokémon is damaged by an attack, put 8 damage counters on the Attacking Pokémon")
+    retaliate: /flip a coin/i.test(e) ? 0 : +(e.match(/during your opponent.s next turn, if this pok[eé]mon is damaged by an attack[^,]*,\s*(?:put|place) (\d+) damage counters on the attacking/i)?.[1] ?? 0) * 10,
   };
 }
 // Ataque que puxa do banco dele e bate no novo Ativo (Dipplin, Malamar…): nocauteia no banco sem gastar Boss
@@ -209,7 +215,12 @@ function oppChoose(target, opp, oppLeft, hitsTaken, extraWalls = [], ctx = {}) {
       const dmg = Math.max(0, r.dmg + (r.dmg ? (ctx.takesMore ?? 0) : 0) - (r.counters ? 0 : (ctx.shield ?? 0)));
       if (dmg > 0 && (!best || dmg > best.dmg || (dmg + hitsTaken >= hp && best.dmg + hitsTaken >= hp && spreadOf(a) && !spreadOf(best.atk)))) best = { dmg, weak: r.notes.some((n) => n.startsWith('fraqueza')), atk: a };
     }
-    if (best) opts.push({ card: e.card, ...best, ko: best.dmg + hitsTaken >= hp });
+    if (best) {
+      // "Com HP cheio, não é nocauteado: fica com 10 HP" (Pikachu ex, Crustle)
+      const sturdy = !hitsTaken && tagsOf(target).some((t) => t.kind === 'SURVIVE_FULL');
+      const ko = best.dmg + hitsTaken >= hp && !sturdy;
+      opts.push({ card: e.card, ...best, dmg: sturdy && best.dmg >= hp ? hp - 10 : best.dmg, ko, sturdy: sturdy && best.dmg >= hp });
+    }
   }
   const kos = opts.filter((o) => o.ko).sort((a, b) => a.card.prizeValue - b.card.prizeValue || (spreadOf(b.atk) ? 1 : 0) - (spreadOf(a.atk) ? 1 : 0) || b.card.hp - a.card.hp);
   if (kos.length) return kos[0];
@@ -262,7 +273,8 @@ export function simulateRace(me, opp, { extraAttackers = [], denial = null, ener
   // se ele tiver; senão quem mata o seu atacante principal entre os que já estão prontos (Básico/Estágio 1)
   const lockOpener = opp.entries.find((e) => e.card.category === 'Pokemon' && e.card.stage === 'Basic' && (e.card.attacks ?? []).some((a) => (a.cost ?? []).length <= 1 && /can.t play any item cards/i.test(a.effect ?? '')))?.card.name;
   const opener = lockOpener ?? (me.mainAttacker && oppChoose(me.mainAttacker, opp, oppLeft0, 0, [], { oppTurn: 1 })?.card.name)
-    ?? [...opp.threat].filter((e) => e.feas >= 0.3 && (e.card.attacks ?? []).length && e.card.stage !== 'Stage2').sort((a, b) => b.threat - a.threat)[0]?.card.name;
+    ?? [...opp.threat].filter((e) => e.feas >= 0.3 && (e.card.attacks ?? []).length && e.card.stage !== 'Stage2').sort((a, b) => b.threat - a.threat)[0]?.card.name
+    ?? opp.entries.find((e) => e.card.category === 'Pokemon' && e.card.stage === 'Basic')?.card.name ?? opp.entries.find((e) => e.card.category === 'Pokemon')?.card.name;
   // No banco dele (alcançável com Boss): Pokémon com habilidade que funciona no banco + os que já atacaram
   const benchy = new Set(targets.filter((t) => (t.abilities ?? []).some((a) => !/in the active spot/i.test(a.effect ?? ''))).map((t) => t.name));
 
@@ -310,12 +322,19 @@ export function simulateRace(me, opp, { extraAttackers = [], denial = null, ener
   let best = null;
   const finals = [];
   const memo = new Map();
-  function rec(stateIn, steps, depth) {
+  function rec(stateIn, steps, depth, parentKey = null) {
     let state = stateIn;
     const key = `${JSON.stringify(state.oppDmg)}|${state.tempo}|${JSON.stringify(state.benchDmg)}|${state.oppCooldown}|${state.capeLeft}|${state.myCapeLeft}|${state.hammer}|${state.stampLeft}|${state.stamped}|${state.active?.cool}|${state.active?.needEnergy}|${state.oppGusts}|${(state.benchLost ?? []).join(',')}|${state.bank}|${state.gustsUsed}|${state.energySpent}|${state.myTaken}|${state.oppTaken}|${state.active?.card.name}|${state.active?.dmgTaken}|${[...state.shown].sort()}|${state.oppActive}|${state.gusts}|${[...state.myLeft.values()]}|${[...state.oppLeft.values()]}|${state.denialLeft}`;
-    if (memo.has(key) && memo.get(key) <= depth) return;
-    memo.set(key, depth);
-    if (state.myTaken >= 6 || state.oppTaken >= 6 || depth >= maxTurns) {
+    // Fim de jogo vem antes da poda: um estado igual ao anterior (ex.: ele ficou sem Pokémon) ainda precisa fechar o jogo
+    const oppOut = ![...state.oppLeft.values()].some((n) => n > 0); // ele não tem mais Pokémon em jogo: você vence
+    if (oppOut && state.myTaken < 6) state = { ...state, myTaken: 6, wipeout: true };
+    // Nada mudou desde o turno anterior (ninguém consegue avançar): fecha o jogo como está
+    const stalled = key === parentKey;
+    if (!(state.myTaken >= 6 || state.oppTaken >= 6 || depth >= maxTurns || stalled)) {
+      if (memo.has(key) && memo.get(key) <= depth) return;
+      memo.set(key, depth);
+    }
+    if (state.myTaken >= 6 || state.oppTaken >= 6 || depth >= maxTurns || stalled) {
       // Vence quem fecha primeiro; entre vitórias, prefere margem MAS cobra recursos (Boss e energia)
       const cost = state.gustsUsed * 4 + state.energySpent * 1.5;
       const score = state.myTaken >= 6 ? 1000 - depth * 20 + (6 - state.oppTaken) * 5 - cost : state.oppTaken >= 6 ? state.myTaken * 10 - 500 - cost : state.myTaken * 10 - state.oppTaken * 10 - 100 - cost;
@@ -340,7 +359,8 @@ export function simulateRace(me, opp, { extraAttackers = [], denial = null, ener
           if (!payable(a)) continue;
           const x = myDamage(att.card, a, t, state, meX, eng, { weaknessOverride: myWO, reduction: reductionOn(t, att.card) });
           const chk = x.dmg ? checkupDamage(a, att.card, t, meX) : { dmg: 0 };
-          if (x.dmg && x.dmg + chk.dmg >= effHp(t, state) && (!r || (a.cost ?? []).length < (r.a.cost ?? []).length || x.dmg > r.r.dmg)) r = { a, r: x, chk: x.dmg >= effHp(t, state) ? null : chk };
+          const sturdy = !(state.oppDmg?.[t.name]) && tagsOf(t).some((tg) => tg.kind === 'SURVIVE_FULL');
+          if (x.dmg && !sturdy && x.dmg + chk.dmg >= effHp(t, state) && (!r || (a.cost ?? []).length < (r.a.cost ?? []).length || x.dmg > r.r.dmg)) r = { a, r: x, chk: x.dmg >= effHp(t, state) ? null : chk };
         }
         return r;
       };
@@ -353,6 +373,8 @@ export function simulateRace(me, opp, { extraAttackers = [], denial = null, ener
           const chk = x.dmg ? checkupDamage(a, att.card, t, meX) : { dmg: 0 };
           if (x.dmg + chk.dmg > 0 && (!r || x.dmg + chk.dmg > r.r.dmg + (r.chk?.dmg ?? 0))) r = { a, r: x, chk };
         }
+        // alvo que aguenta com HP cheio fica com 10
+        if (r && !(state.oppDmg?.[t.name]) && tagsOf(t).some((tg) => tg.kind === 'SURVIVE_FULL') && r.r.dmg + (r.chk?.dmg ?? 0) >= effHp(t, state)) r = { ...r, r: { ...r.r, dmg: effHp(t, state) - 10 }, chk: null, sturdy: true };
         return r;
       };
       if (!att.atks.some(payable)) continue;
@@ -413,7 +435,7 @@ export function simulateRace(me, opp, { extraAttackers = [], denial = null, ener
         if (pick?.chip) {
           const add = pick.r.dmg + (pick.chk?.dmg ?? 0);
           oppDmg[pick.t.name] = (oppDmg[pick.t.name] ?? 0) + add;
-          Object.assign(step, { attack: pick.a.name, target: null, chip: { target: pick.t.name, dmg: Math.round(pick.r.dmg), checkup: pick.chk?.dmg ? pick.chk : null, left: Math.max(0, Math.round(effHp(pick.t, state) - add)) }, prizes: 0, vs: state.oppActive, notes: pick.r.notes });
+          Object.assign(step, { attack: pick.a.name, target: null, chip: { target: pick.t.name, dmg: Math.round(pick.r.dmg), checkup: pick.chk?.dmg ? pick.chk : null, left: Math.max(0, Math.round(effHp(pick.t, state) - add)), sturdy: !!pick.sturdy }, prizes: 0, vs: state.oppActive, notes: pick.r.notes });
         } else if (pick) {
           myTaken += pick.t.prizeValue;
           oppLeft.set(pick.t.name, oppLeft.get(pick.t.name) - 1);
@@ -427,13 +449,15 @@ export function simulateRace(me, opp, { extraAttackers = [], denial = null, ener
         const bankAfter = state.bank - spend;
         const gustsUsed = state.gustsUsed + (pick?.gust ? 1 : 0);
         const energySpent = state.energySpent + spend;
-        if (myTaken >= 6) { rec({ ...state, myTaken, myLeft, oppLeft, oppDmg, tempo, gusts: gustsLeft, gustsUsed, energySpent, bank: bankAfter, capeLeft }, [...steps, step], depth + 1); continue; }
+        if (myTaken >= 6) { rec({ ...state, myTaken, myLeft, oppLeft, oppDmg, tempo, gusts: gustsLeft, gustsUsed, energySpent, bank: bankAfter, capeLeft }, [...steps, step], depth + 1, key); continue; }
         // Desvantagem do MEU ataque (vale no turno do oponente / no meu próximo turno)
         const myDb = drawbackOf(used);
         const selfHurt = pick && eng.selfDamage && /if this pok[eé]mon has any damage counters/i.test(pick.a.effect ?? '') ? eng.selfDmgAmount : 0;
         // Envenenado pelo próprio combo (Pecharunt ex troca e envenena): 10 no Checkup depois do seu turno
         const selfPoison = pick?.r?.poisoned ? 10 : 0;
-        const prevHits = (state.active?.att === att ? state.active.dmgTaken : 0) + (state.active?.att === att ? 0 : selfHurt) + preCarry + selfPoison;
+        const theirRet = pick && !pick.r?.counters ? Math.max(0, ...tagsOf(pick.t).filter((t) => t.kind === 'RETALIATE' && !t.nextTurnOnly && (!t.whenKO || !pick.chip)).map((t) => t.amount)) : 0;
+        if (theirRet) step.theirRetaliate = { amount: theirRet, from: pick.t.name };
+        const prevHits = (state.active?.att === att ? state.active.dmgTaken : 0) + (state.active?.att === att ? 0 : selfHurt) + preCarry + selfPoison + theirRet;
         const myHpBonus = myCape && state.myCapeLeft && att.card.name === me.mainAttacker?.name ? myCape.amount : 0;
         // Seu ataque trava o Pokémon que sobreviveu a ele ("the Defending Pokémon can't attack"): ele não ataca agora
         const locked = myDb.lockDefender && pick?.chip ? pick.t.name : null;
@@ -475,6 +499,18 @@ export function simulateRace(me, opp, { extraAttackers = [], denial = null, ener
             }
           }
         }
+        // Retaliação do seu Pokémon: quem atacou leva contadores (habilidade/Ferramenta "put N counters on the Attacking Pokémon"
+        // ou o próprio ataque "no próximo turno dele, se receber dano…")
+        if (hit?.card && hit.dmg > 0) {
+          const rt = tagsOf(att.card).filter((t) => t.kind === 'RETALIATE' && !t.nextTurnOnly && (!t.whenKO || hit.ko));
+          const amt = Math.max(0, ...rt.map((t) => t.amount)) + (myDb.retaliate ?? 0);
+          if (amt > 0 && oppLeft.get(hit.card.name) > 0) {
+            oppDmg[hit.card.name] = (oppDmg[hit.card.name] ?? 0) + amt;
+            const dead = oppDmg[hit.card.name] >= hit.card.hp;
+            step.retaliate = { amount: amt, on: hit.card.name, ko: dead };
+            if (dead) { myTaken += hit.card.prizeValue; oppLeft.set(hit.card.name, oppLeft.get(hit.card.name) - 1); delete oppDmg[hit.card.name]; step.myTotal = myTaken; }
+          }
+        }
         // Dano espalhado no seu banco (ex.: Phantom Dive) — nocautes no banco também dão prêmio
         const spread = spreadOf(hit?.atk);
         if (spread) {
@@ -495,7 +531,7 @@ export function simulateRace(me, opp, { extraAttackers = [], denial = null, ener
         step.oppTotal = oppTaken;
         const shown = new Set(state.shown); if (hit?.card) shown.add(hit.card.name);
         const nextBank = Math.max(0, Math.min(6, bankAfter + income - (stamped ? 1 : 0) - hammerHit));
-        rec({ myTaken, oppTaken, myLeft, oppLeft, oppDmg, tempo, active, oppActive: hit?.card.name ?? state.oppActive, gusts: gustsLeft, denialLeft, shown, gustsUsed, energySpent, bank: nextBank, oppGusts: state.oppGusts, benchLost, benchDmg, oppCooldown, capeLeft, myCapeLeft, hammer, stampLeft, stamped }, [...steps, step], depth + 1);
+        rec({ myTaken, oppTaken, myLeft, oppLeft, oppDmg, tempo, active, oppActive: hit?.card.name ?? state.oppActive, gusts: gustsLeft, denialLeft, shown, gustsUsed, energySpent, bank: nextBank, oppGusts: state.oppGusts, benchLost, benchDmg, oppCooldown, capeLeft, myCapeLeft, hammer, stampLeft, stamped }, [...steps, step], depth + 1, key);
       }
     }
   }
@@ -545,7 +581,8 @@ export function planText(plan) {
   return plan.steps.map((s, i) => {
     const who = `${s.attacker}${s.newAttacker && s.energy ? ` (entra com ${s.energy} energia${s.energy > 1 ? 's' : ''})` : ''}`;
     let mine;
-    if (s.chip) mine = `${who} causa ~${s.chip.dmg}${s.chip.checkup ? ` (+${s.chip.checkup.dmg} de ${s.chip.checkup.why} no Checkup)` : ''} no ${s.chip.target}: não nocauteia, mas ele fica com ${s.chip.left} HP.`;
+    if (s.chip?.sturdy) mine = `${who} bateria o suficiente, mas o ${s.chip.target} está com HP cheio e aguenta com ${s.chip.left} HP (habilidade): o nocaute fica para o próximo ataque.`;
+    else if (s.chip) mine = `${who} causa ~${s.chip.dmg}${s.chip.checkup ? ` (+${s.chip.checkup.dmg} de ${s.chip.checkup.why} no Checkup)` : ''} no ${s.chip.target}: não nocauteia, mas ele fica com ${s.chip.left} HP.`;
     else if (!s.target) mine = `${who} ataca o Ativo dele, mas não nocauteia.`;
     else if (s.gust) {
       const opts = (s.alts?.length ? s.alts : [s.target]).slice(0, 3).join(', ');
@@ -564,6 +601,8 @@ export function planText(plan) {
     if (s.hammer) extras.push(`${s.hammer} tira 1 energia sua`);
     if (s.myCool) extras.push(`"${s.myCool}" não pode ser usado no seu próximo turno`);
     if (s.oppCheckup) extras.push(`o ${s.attacker} toma +${s.oppCheckup} no Checkup (veneno/queimadura)`);
+    if (s.retaliate) extras.push(`${s.attacker} devolve ${s.retaliate.amount} em contadores no ${s.retaliate.on}${s.retaliate.ko ? ` e nocauteia → você: ${s.myTotal}/6` : ''}`);
+    if (s.theirRetaliate) extras.push(`${s.theirRetaliate.from} devolveu ${s.theirRetaliate.amount} em contadores no ${s.attacker}`);
     if (s.locked) extras.push(`o ${s.locked} não pode atacar no turno dele ("${s.attack}")`);
     if (s.shield && !s.ko) extras.push(`"${s.attack}" protege o ${s.attacker} (${s.shield >= 999 ? 'sem dano' : `−${s.shield}`}) no turno dele`);
     const tail = extras.length ? ` Além disso: ${extras.join('; ')}. Ele: ${s.oppTotal}/6.` : '';

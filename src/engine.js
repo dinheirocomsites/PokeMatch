@@ -143,6 +143,18 @@ function tagValue(t, opp, me, ctx) {
       const avgCost = opp.threat.reduce((s, e) => s + e.count * Math.max(0, ...(e.card.attacks ?? []).map((a) => (a.cost ?? []).length)), 0) / Math.max(1, c.pokemon);
       return { value: 14 * clamp(avgCost / 3) * condFactor * nextTurn, why: `"${t.name}": remove energia do oponente (custo médio de ataque: ${avgCost.toFixed(1)}).` };
     }
+    case 'STATUS': {
+      // Sono/paralisia travam o Ativo dele (valem mais); confusão/queimadura/veneno dão dano e chance de erro
+      const v = { paralyzed: 14, asleep: 11, confused: 8, burned: 6, poisoned: 5 }[t.status] ?? 5;
+      return { value: v * condFactor * (t.source === 'attack' ? 0.8 : 1), why: `"${t.name}": deixa o Ativo do oponente ${{ paralyzed: 'Paralisado', asleep: 'Adormecido', confused: 'Confuso', burned: 'Queimado', poisoned: 'Envenenado' }[t.status]}.` };
+    }
+    case 'PLACE_COUNTERS': {
+      // Contadores no oponente sem atacar: nocauteia Pokémon de pouco HP (ex.: Budew, 30 HP)
+      const weak = opp.entries.filter((e) => e.card.category === 'Pokemon' && e.card.hp <= t.amount);
+      if (!weak.length || t.source === 'attack') return null;
+      const share = weak.reduce((s2, e) => s2 + e.count, 0) / Math.max(1, c.pokemon);
+      return { value: 30 * clamp(share * 3) * condFactor, why: `"${t.name}": coloca ${t.amount} de dano sem precisar atacar — nocauteia ${names(weak.map((e) => `${e.card.name} (${e.card.hp} HP)`))}.` };
+    }
     case 'HAND_DISRUPT':
       return { value: 8 * condFactor, why: `"${t.name}": bagunça a mão do oponente.` };
     default:
@@ -388,9 +400,32 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
   if (!killers.length && !disruption.axes.some((a) => a.severity >= 0.3)) diagnosis.push(`Não encontrei um ponto fraco claro do seu deck neste matchup pelas regras atuais — as sugestões abaixo são ideias, avalie com cuidado.`);
   if (me.board?.benchNeeded >= 5) diagnosis.push(`Seu banco já fica cheio no plano normal (${me.board.pieces.join(', ')} + ${me.board.backup} de reserva): techs que ocupam banco custam caro.`);
 
+  // HP extra (Ferramenta): faz o seu atacante principal SOBREVIVER a quem hoje o nocauteia em 1 ataque?
+  if (main && killers.length) {
+    for (const card of db.unique) {
+      if (me.names.has(card.name) || card.trainerType !== 'Tool') continue;
+      const hb = extractTags(card).find((t) => t.kind === 'HP_BOOST');
+      if (!hb) continue;
+      // Ferramenta restrita a um Pokémon ("the Cynthia's Pokémon this card is attached to", "the Pikachu ex…")
+      const only = card.text.match(/the (.+?) this card is attached to/i)?.[1];
+      if (only && !/^pok[eé]mon$/i.test(only)) {
+        const who = only.replace(/ pok[eé]mon$/i, '');
+        if (!main.name.toLowerCase().startsWith(who.toLowerCase())) continue;
+      }
+      const hurt = /if this pok[eé]mon has any damage counters/i.test(main.text) ? 20 : 0;
+      const survives = killers.filter((k) => k.dmg < main.hp + hb.amount - hurt);
+      if (!survives.length) continue;
+      const reasons = [{ kind: 'SURVIVE', value: 45 * (survives.length / killers.length), why: `"${card.name}": +${hb.amount} HP no ${main.name} (${main.hp}→${main.hp + hb.amount}) — ele passa a aguentar ${survives.map((k) => `${k.name} (~${k.dmg})`).join(', ')}, que hoje o nocauteiam em 1 ataque.` }];
+      const fit = evaluateFit(card, [], reasons, me, opp, db, null);
+      const impact = Math.round(reasons[0].value);
+      candidates.push({ card, impact, fit: Math.round(fit.factor * 100), parts: fit.parts, score: Math.round(impact * fit.factor), reasons, notes: fit.notes, slots: fit.slots, pkg: null, cluster: 'protecao', survives: survives.map((k) => k.name) });
+    }
+  }
+
   // Uma tech só é RELEVANTE se resolve o diagnóstico
   const relevanceOf = (c) => {
     for (const r of c.reasons) {
+      if (r.kind === 'SURVIVE') return `faz o ${main.name} sobreviver a ${c.survives.join(' e ')}`;
       if (r.kind?.startsWith('ANTI_')) {
         const ax = disruption.axes.find((a) => a.key === r.axis);
         if (ax && ax.severity >= 0.3) return `responde a ${AXES[r.axis].label.toLowerCase()}`;
@@ -548,10 +583,16 @@ function totalCosts(s, me, opp) {
 }
 
 function summarize(p, parsed) {
+  // Arquétipo provável: os dois Pokémon que mais carregam o poder de ataque (como a Limitless nomeia: "Dragapult Dudunsparce")
+  const ranked = [...p.threat].filter((e) => e.feas >= 0.3 && (e.card.attacks ?? []).length).sort((a, b) => b.threat - a.threat).map((e) => e.card);
+  const chosen = [];
+  const sameLine = (a, b) => a.evolveFrom === b.name || b.evolveFrom === a.name || a.name.replace(/^Mega | ex$/g, '') === b.name.replace(/^Mega | ex$/g, '');
+  for (const c of ranked) { if (chosen.length >= 2) break; if (!chosen.some((x) => sameLine(x, c) || ranked.some((y) => y.evolveFrom === c.name && sameLine(y, x)))) chosen.push(c); }
+  const archetype = chosen.map((c) => c.name.replace(/^Mega /, '').replace(/ ex$/, '')).join(' ');
   const topThreats = [...p.threat].sort((a, b) => b.threat - a.threat).slice(0, 5).map((e) => ({ name: e.card.name, count: e.count, share: Math.round((e.threat / p.totalThreat) * 100), image: e.card.image }));
   return {
     total: p.total, errors: parsed.errors, warnings: parsed.warnings, counts: p.counts,
-    energyTypes: [...p.energyTypes], mainAttacker: p.mainAttacker?.name ?? null, topThreats,
+    energyTypes: [...p.energyTypes], mainAttacker: p.mainAttacker?.name ?? null, topThreats, archetype,
     weakness: Object.entries(p.weakness).sort((a, b) => b[1] - a[1]).map(([t, v]) => ({ type: t, typePt: typePt(t), share: Math.round(v * 100) })),
     bigBench: p.bigBench, aceSpec: p.aceSpec?.name ?? null,
   };

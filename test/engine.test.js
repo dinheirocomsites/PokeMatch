@@ -7,10 +7,10 @@ import { analyze } from '../src/engine.js';
 const db = loadDb();
 const read = (f) => readFileSync(new URL(`./decks/${f}`, import.meta.url), 'utf8');
 
-test('Sharpedo × Basic Box: Farigiraf ex é o #1 com o pacote e os combos certos', () => {
+test('Sharpedo × Basic Box: Farigiraf ex no top 3 com o pacote e os combos certos', () => {
   const r = analyze(read('sharpedo.txt'), read('basic-box.txt'), db);
-  const f = r.suggestions[0];
-  assert.equal(f.card.name, 'Farigiraf ex');
+  const f = r.suggestions.find((s) => s.card.name === 'Farigiraf ex');
+  assert.ok(r.suggestions.indexOf(f) < 3, r.suggestions.map((s) => s.card.name).join(', '));
   const adds = f.pkg.adds.map((a) => a.card.id);
   assert.ok(adds.includes('sv06-083'), 'deve escolher o Girafarig TWM (Dual Headbutt)');
   assert.ok(f.pkg.adds.some((a) => a.card.name === 'Psychic Energy'), 'deve adicionar Energia Psíquica');

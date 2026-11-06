@@ -39,3 +39,11 @@ test('sugere Supporters que buscam sem Itens (Salvatore → Mega Sharpedo, Cyran
   assert.doesNotMatch(sal.reasons[0].why, /Lillie|Boss/);
   for (const n of ['Lunatone', "Rosa's Encouragement", 'Philippe', "Iono's Kilowattrel"]) assert.ok(!names.includes(n), `${n} tem requisito que o deck não cumpre`);
 });
+
+test('regra: "colocar contadores" não é "causar dano" — Battle Cage sim, Shadowy Darkness Energy não, contra Phantom Dive', () => {
+  const r = analyze(read('sharpedo.txt'), read('dragapult.txt'), db, { limit: 20, context: PAIN });
+  const names = r.suggestions.map((s) => s.card.name);
+  assert.ok(!names.includes('Shadowy Darkness Energy'));
+  assert.ok(!names.includes("Clemont's Quick Wit"), 'cura só Pokémon {L}');
+  assert.match(r.diagnosis.join(' '), /colocando contadores/);
+});

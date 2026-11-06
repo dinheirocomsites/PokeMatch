@@ -12,11 +12,11 @@ export const CLUSTERS = {
 };
 
 const PAINS = [
-  { key: 'premios', label: 'corrida de prêmios', re: /pr[eê]mio|prize|corrida|troca de|conta n[aã]o fecha|3 de uma vez|tr[eê]s de uma vez|entrego \d|pega(r)? \d/ },
-  { key: 'protecao', label: 'seu atacante cai rápido', re: /morr|um hit|1 hit|one ?shot|ohko|de primeira|n[aã]o aguent|muito dano|bate muito|mata (o )?meu/ },
+  { key: 'premios', label: 'corrida de prêmios', re: /pr[eê]mio|prize|corrida|troca de|trade|conta n[aã]o fecha|3 de uma vez|tr[eê]s de uma vez|entrego \d|pega(r)? \d/ },
+  { key: 'protecao', label: 'seu atacante cai rápido', re: /morr|um hit|1 hit|one ?shot|ohko|de primeira|n[aã]o aguent|muito dano|bate muito|mata (o )?meu|dies? (in one|to)|gets? ko/ },
   { key: 'disrupcao', label: 'quer atrapalhar o oponente', re: /travar|atrapalh|disrup[cç][aã]o nele|quero (travar|disrup)|lock nele|tirar (a )?energia|desligar/ },
-  { key: 'contra', label: 'o oponente te atrapalha (disrupção)', re: /iono|judge|juiz|carimbo|stamp|martelo|hammer|me trava|trava(m)? (os )?(meus )?ite|item lock|minha m[aã]o|travam? (os )?meus|perco (a m[aã]o|energia)|tira(m)? (minha )?energia|me disrupt|disrup[cç][aã]o (dele|do oponente)|budew/ },
-  { key: 'consistencia', label: 'setup / consistência', re: /lento|setup|consist|brick|n[aã]o monto|n[aã]o compro|demora|m[aã]o ruim/ },
+  { key: 'contra', label: 'o oponente te atrapalha (disrupção)', re: /iono|judge|juiz|carimbo|stamp|martelo|hammer|item ?lock|spread|banco morre|morre no banco|me trava|trava(m)? (os )?(meus )?ite|item lock|minha m[aã]o|travam? (os )?meus|perco (a m[aã]o|energia)|tira(m)? (minha )?energia|me disrupt|disrup[cç][aã]o (dele|do oponente)|budew/ },
+  { key: 'consistencia', label: 'setup / consistência', re: /lento|setup|consist|brick|n[aã]o monto|n[aã]o compro|demora|m[aã]o ruim|dead hand|slow/ },
   { key: 'dano', label: 'falta dano', re: /falta dano|n[aã]o mato|n[aã]o consigo matar|pouco dano|hp alto|n[aã]o chego|bater mais/ },
   { key: 'acespec', label: 'ACE SPEC', re: /ace ?spec|legacy|energia legado/ },
 ];
@@ -27,7 +27,9 @@ const short = (s) => normName(s).replace(/^mega /, '').replace(/ ex$/, '').trim(
 export function readContext(text, me, opp, db) {
   const raw = normName(text ?? '');
   if (!raw) return { empty: true, weights: {}, pains: [], mentions: { mine: [], opp: [] } };
-  const pains = PAINS.filter((p) => p.re.test(raw));
+  // Negação: "não é problema", "não sofro com", "sem problema de" antes da palavra-chave anula a dor
+  const negated = (re) => { const m = raw.match(re); if (!m) return false; const before = raw.slice(Math.max(0, m.index - 25), m.index); return /n[aã]o (e|é|tenho|sofro|ligo|me preocupo)|sem problema|tranquilo|not (a )?problem/.test(before); };
+  const pains = PAINS.filter((p) => p.re.test(raw) && !negated(p.re));
   const weights = {};
   for (const p of pains) weights[p.key] = (weights[p.key] ?? 1) + 0.5;
   if (weights.protecao) weights.premios = (weights.premios ?? 1) + 0.2; // morrer rápido = perder a corrida
@@ -61,7 +63,8 @@ export function clusterOf(s) {
   const k = s.reasons[0]?.kind;
   if (k === 'PRIZE_RACE' || k === 'PRIZE_DENIAL' || k === 'KO_TRADE') return 'premios';
   if (k?.startsWith('ANTI_')) return 'contra';
-  if (['WALL_SELF', 'WALL_TEAM', 'WALL_CHOSEN', 'REDUCE', 'BENCH_WALL'].includes(k)) return 'protecao';
+  if (['WALL_SELF', 'WALL_TEAM', 'WALL_CHOSEN', 'REDUCE', 'BENCH_WALL', 'SURVIVE'].includes(k)) return 'protecao';
+  if (['STATUS', 'PLACE_COUNTERS'].includes(k)) return 'disrupcao';
   if (['ABILITY_LOCK', 'ITEM_LOCK', 'SUPPORTER_LOCK', 'HAND_DISRUPT', 'ENERGY_DISRUPT', 'STADIUM_HATE', 'STADIUM_REPLACE', 'TOOL_HATE', 'SPECIAL_ENERGY_HATE'].includes(k)) return 'disrupcao';
   return 'dano';
 }

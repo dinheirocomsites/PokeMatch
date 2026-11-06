@@ -21,12 +21,31 @@ function searcherOf(card) {
   if (/search your deck for a pok[eé]mon(,|\s|\.)/i.test(t) && card.category === 'Trainer') return (c) => c.category === 'Pokemon';
   if (/search your deck for a trainer card/i.test(t)) return (c) => c.category === 'Trainer';
   if (/search your deck for (a|up to \d+) basic energy/i.test(t) && card.category === 'Trainer') return (c) => c.isBasicEnergy;
+  // Buscas feitas por Pokémon (ataque ou habilidade): Toxel "Call for Family", Meowth ex "Last-Ditch Catch"
+  if (card.category === 'Pokemon') {
+    if (/search your deck for (up to \d+ )?basic pok[eé]mon/i.test(t)) return (c) => c.category === 'Pokemon' && c.stage === 'Basic';
+    if (/search your deck for a supporter card/i.test(t)) return (c) => c.trainerType === 'Supporter';
+  }
   return null;
 }
 function drawOf(card) {
   if (card.trainerType !== 'Supporter') return 0;
-  const m = (card.text ?? '').match(/draw (\d+) cards/i);
+  const m = (card.text ?? '').match(/draws? (\d+) cards/i);
   return m ? +m[1] : 0;
+}
+// Habilidade de compra repetível (conta a partir do turno seguinte ao Pokémon aparecer)
+function abilityDrawOf(card) {
+  if (card.category !== 'Pokemon') return 0;
+  let best = 0;
+  for (const a of card.abilities ?? []) {
+    const t = a.effect ?? '';
+    if (!/once during your turn/i.test(t) || /only if|if any of your pok[eé]mon were knocked out/i.test(t)) continue;
+    const m = t.match(/draw (\d+) cards?/i);
+    let n = m ? +m[1] : /look at the top \d+ cards of your deck and put 1 of them into your hand/i.test(t) ? 1 : 0;
+    if (/if this pok[eé]mon is in the active spot/i.test(t)) n = n / 2;
+    best = Math.max(best, n);
+  }
+  return best;
 }
 
 function expand(entries) {
@@ -49,6 +68,7 @@ export function simulateConsistency(entries, goals, { trials = TRIALS, seed = 42
   const deck = expand(entries);
   const rnd = mulberry32(seed);
   const searchers = new Map(deck.map((c) => [c.id, searcherOf(c)]));
+  const abilityDraw = new Map(deck.map((c) => [c.id, abilityDrawOf(c)]));
   const hits = Object.fromEntries(goals.map((g) => [g.key, 0]));
   let supporterOpen = 0;
   const prized = {};
@@ -68,6 +88,8 @@ export function simulateConsistency(entries, goals, { trials = TRIALS, seed = 42
     const seenAt = [];
     for (let turn = 1; turn <= maxTurn; turn++) {
       if (turn > 1 || rnd() < 0.5) seen++; // quem começa não compra no T1
+      // Habilidades de compra de Pokémon que já apareceram em turnos anteriores
+      if (turn > 1) { let extra = 0; for (let i = 0; i < Math.min(seenAt[turn - 1] ?? 7, pile.length); i++) extra = Math.max(extra, abilityDraw.get(pile[i].id) ?? 0); seen += Math.round(extra); }
       // usa 1 Supporter de compra visto e ainda não usado
       for (let i = 0; i < seen; i++) {
         const d = drawOf(pile[i]);
@@ -85,7 +107,7 @@ export function simulateConsistency(entries, goals, { trials = TRIALS, seed = 42
         if (idx >= 0) { usedSearch.add(`c${idx}`); continue; }
         // busca: precisa de um buscador visto e da carta ainda no baralho (não nos prêmios)
         const target = rest.find((c) => c.name === need);
-        const s = target && view.findIndex((c, i) => !usedSearch.has(`s${i}`) && searchers.get(c.id)?.(target));
+        const s = target && view.findIndex((c, i) => !usedSearch.has(`s${i}`) && searchers.get(c.id)?.(target) && (!/only if you discard (\d+)/i.test(c.text ?? '') || view.length - usedSearch.size >= 1 + +(c.text.match(/only if you discard (\d+)/i)?.[1] ?? 0)));
         if (target && s >= 0) { usedSearch.add(`s${s}`); continue; }
         ok = false;
         break;

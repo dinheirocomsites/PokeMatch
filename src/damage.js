@@ -106,8 +106,14 @@ export function damageVs(attack, attacker, target, ctx = {}) {
   if (ctx.bonus) { dmg += ctx.bonus; if (ctx.bonusNote) notes.push(ctx.bonusNote); }
 
   const ignoresWR = /isn.t affected by weakness/i.test(eff);
-  if (!ignoresWR && (target.weaknesses ?? []).some((w) => (attacker.types ?? []).includes(w.type))) { dmg *= 2; notes.push('fraqueza'); }
+  // Fraqueza alterada por efeito em jogo (ex.: Lillie's Clefairy ex: Pokémon {N} do oponente ficam fracos a {P})
+  let weaknesses = target.weaknesses ?? [];
+  const wo = ctx.weaknessOverride;
+  if (wo && (target.types ?? []).includes(wo.fromType)) { weaknesses = [{ type: wo.toType }]; }
+  if (!ignoresWR && weaknesses.some((w) => (attacker.types ?? []).includes(w.type))) { dmg *= 2; notes.push(wo && (target.types ?? []).includes(wo.fromType) ? `fraqueza (${wo.by})` : 'fraqueza'); }
   if (!ignoresWR && (target.resistances ?? []).some((r) => (attacker.types ?? []).includes(r.type))) dmg -= 30;
+  // Redução de dano do defensor (habilidade "recebe N a menos de dano", depois de fraqueza)
+  if (ctx.reduction && !/isn.t affected by .*effects/i.test(eff)) { dmg -= ctx.reduction; notes.push(`−${ctx.reduction} (redução)`); }
   return { dmg: Math.max(0, dmg), notes };
 }
 

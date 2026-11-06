@@ -175,7 +175,18 @@ export function evaluateFit(card, used, reasons, meBase, opp, db, opt = null) {
   add('peso', pesoOf(effSlots ?? slots), slots === 1 ? '✓ Custa só 1 slot.' : `• Pacote de ${slots} cartas: ${opt ? opt.adds.map((a) => `${a.qty}x ${a.card?.name}`).join(' + ') : card.name}.`);
   if (card.aceSpec && me.aceSpec) add('peso', 0.6, `⚠ É ACE SPEC: precisa sair o seu ${me.aceSpec.name}.`);
   if (card.trainerType === 'Supporter') add('peso', 0.9, '• É Supporter: compete com Lillie\'s, Boss etc. pelo turno.');
-  if (card.trainerType === 'Stadium' && me.counts.stadium) notes.peso.push(`• Você já joga ${me.counts.stadium} Estádio(s) — pode trocar 1 deles.`);
+  if (card.trainerType === 'Stadium') {
+    // Só um Estádio fica em jogo: o seu concorre com os seus outros e o do oponente sobrescreve
+    const mine = me.stadiums.map((e) => e.card.name);
+    const theirs = opp.stadiums.reduce((n, e) => n + e.count, 0);
+    if (mine.length) add('peso', 0.92, `• Concorre com os seus Estádios (${mine.join(', ')}): só um fica em jogo.`);
+    if (theirs) add('risco', theirs >= 3 ? 0.85 : 0.93, `• O oponente joga ${theirs} Estádio(s) (${opp.stadiums.map((e) => e.card.name).join(', ')}) e pode sobrescrever o seu.`);
+  }
+  if (card.trainerType === 'Tool') {
+    // Cada Pokémon segura 1 Ferramenta: a nova disputa espaço com as que já estão no seu atacante
+    const myTools = me.entries.filter((e) => e.card.trainerType === 'Tool' && e.card.name !== card.name);
+    if (myTools.length) add('peso', 0.85, `⚠ Cada Pokémon segura 1 Ferramenta: concorre com ${myTools.map((e) => `${e.count}x ${e.card.name}`).join(', ')} no seu atacante (perde o efeito dela quando usar esta).`);
+  }
 
   // ---------- SINERGIA ----------
   if (opt?.combos?.length) {
@@ -222,6 +233,10 @@ export function evaluateFit(card, used, reasons, meBase, opp, db, opt = null) {
 
   // ---------- RISCO ----------
   if (card.category === 'Pokemon') {
+    // Desvantagem do ataque que dá o valor (não ataca no próximo turno, descarta energia, recebe +dano)
+    const valueAtkName = reasons.find((r) => r.kind === 'KO_TRADE')?.attackName ?? (opt?.damage?.attack?.name);
+    const db0 = extractTags(card).find((t) => t.kind === 'DRAWBACK' && (!valueAtkName || t.name === valueAtkName));
+    if (db0 && db0.what !== 'selfDamage') add('risco', 0.85, `⚠ "${db0.name}" tem desvantagem: ${{ noAttack: 'não pode atacar no seu próximo turno', discardEnergy: 'descarta energia deste Pokémon (precisa reenergizar)', takesMore: 'recebe mais dano no turno seguinte' }[db0.what]}.`);
     if (isWall) {
       const wall = used.find((t) => t.kind === 'WALL_SELF');
       const through = opp.threat.filter((e) => (e.card.attacks ?? []).length && e.feas >= 0.3 && !matches(wall.sel, e.card));

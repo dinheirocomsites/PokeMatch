@@ -9,8 +9,9 @@ const list = (arr, n = 4) => [...new Set(arr)].slice(0, n).join(', ');
 export const AXES = {
   item_lock: { label: 'Trava de Itens', counters: ['DRAW_ABILITY', 'SUPPORTER_SEARCH'] },
   hand_disrupt: { label: 'Disrupção da sua mão', counters: ['DRAW_ABILITY'] },
-  energy_removal: { label: 'Remoção de energia', counters: ['ENERGY_ACCEL', 'ENERGY_RECOVERY'] },
-  spread: { label: 'Dano no seu banco', counters: ['BENCH_WALL', 'BENCH_SHIELD'] },
+  energy_removal: { label: 'Remoção de energia', counters: ['ENERGY_ACCEL', 'ENERGY_RECOVERY', 'ENERGY_MOVE'] },
+  spread: { label: 'Dano no seu banco', counters: ['BENCH_WALL', 'BENCH_SHIELD', 'HEAL'] },
+  trap: { label: 'Prender o seu Pokémon no Ativo', counters: ['SWITCH'] },
   ability_lock: { label: 'Trava das suas habilidades', counters: ['DRAW_ABILITY', 'SUPPORTER_SEARCH'] },
 };
 
@@ -58,18 +59,29 @@ export function diagnoseDisruption(me, opp) {
   const spreadAtk = [];
   for (const e of opp.threat) for (const a of e.card.attacks ?? []) {
     const m = (a.effect ?? '').match(/put (\d+) damage counters on your opponent.s benched/i) || (a.effect ?? '').match(/(\d+) damage to (?:1|2) of your opponent.s benched/i);
-    if (m) spreadAtk.push({ by: e.card.name, amount: /counters/i.test(m[0]) ? +m[1] * 10 : +m[1] });
+    if (m) spreadAtk.push({ by: e.card.name, amount: /counters/i.test(m[0]) ? +m[1] * 10 : +m[1], kind: /counters/i.test(m[0]) ? 'counters' : 'damage' });
   }
   if (spreadAtk.length) {
     const max = Math.max(...spreadAtk.map((s) => s.amount));
     const bench = me.entries.filter((e) => e.card.category === 'Pokemon' && (me.board?.pieces ?? []).concat(me.board?.backup ?? []).includes(e.card.name));
     const fragile = bench.filter((e) => e.card.hp <= max);
+    const fragile2 = bench.filter((e) => e.card.hp > max && e.card.hp <= max * 2); // caem em 2 ataques espalhados
     const share = opp.threat.filter((e) => spreadAtk.some((x) => x.by === e.card.name)).reduce((s2, e) => s2 + e.threat, 0) / (opp.totalThreat || 1);
-    const sev = clamp((fragile.length / Math.max(2, bench.length) + (max >= 60 ? 0.2 : 0)) * clamp(share * 3));
-    if (sev > 0.15) axes.push({ key: 'spread', severity: sev, evidence: `${list(spreadAtk.map((s) => s.by))} espalha até ${max} de dano no seu banco; ${fragile.length ? `caem de uma vez: ${list(fragile.map((e) => `${e.card.name} (${e.card.hp} HP)`))}` : 'seu banco aguenta um ataque'}.` });
+    const sev = clamp(((fragile.length + fragile2.length * 0.5) / Math.max(2, bench.length) + (max >= 60 ? 0.2 : 0)) * clamp(share * 3));
+    const kinds = [...new Set(spreadAtk.map((x) => x.kind))];
+    if (sev > 0.15) axes.push({ key: 'spread', severity: sev, kinds, evidence: `${list(spreadAtk.map((s) => s.by))} espalha até ${max} de dano no seu banco (${kinds.map((k) => (k === 'counters' ? 'colocando contadores' : 'causando dano')).join(' e ')}); ${fragile.length ? `caem de uma vez: ${list(fragile.map((e) => `${e.card.name} (${e.card.hp} HP)`))}` : 'seu banco aguenta um ataque'}${fragile2.length ? `; caem em 2 ataques: ${list(fragile2.map((e) => `${e.card.name} (${e.card.hp} HP)`))}` : ''}.` });
   }
 
-  // 5) Trava das suas habilidades
+  // 5) Prender o seu Pokémon no Ativo (não pode recuar)
+  const traps = opp.entries.filter((e) => (e.card.attacks ?? []).some((a) => /the defending pok[eé]mon can.t retreat|your opponent.s active pok[eé]mon can.t retreat/i.test(a.effect ?? '')));
+  if (traps.length) {
+    const copies = traps.reduce((s2, e) => s2 + e.count, 0);
+    const mySwitch = me.entries.filter((e) => /switch (your active|this pok[eé]mon|1 of your benched)|no retreat cost/i.test(e.card.text)).reduce((s2, e) => s2 + e.count, 0);
+    const sev = clamp(copies / 5 * (mySwitch >= 4 ? 0.5 : 1));
+    if (sev >= 0.2) axes.push({ key: 'trap', severity: sev, evidence: `${list(traps.map((e) => `${e.card.name} (${e.count}x)`))} prende o seu Ativo (não pode recuar); você tem ${mySwitch} carta(s) de troca.` });
+  }
+
+  // 6) Trava das suas habilidades
   const aLock = oppTags.filter((t) => t.kind === 'ABILITY_LOCK');
   if (aLock.length) {
     const hit = me.entries.filter((e) => e.card.abilities?.length && aLock.some((t) => matches(t.sel, e.card)));
@@ -92,7 +104,12 @@ export function counterTags(card) {
   if (card.trainerType === 'Supporter' && /search your deck for (up to \d+ )?(basic )?pok[eé]mon|search your deck for (up to \d+ )?(cards|a card)/i.test(card.text)) out.push({ kind: 'SUPPORTER_SEARCH', name: card.name });
   if (card.category === 'Trainer' && /attach (up to \d+ )?basic .*energy cards? from your discard pile|basic energy cards? from your discard pile into your hand/i.test(card.text)) out.push({ kind: 'ENERGY_RECOVERY', name: card.name });
   if (card.category === 'Trainer' && /prevent all damage counters from being placed on .*benched|damage counters .*benched pok[eé]mon/i.test(card.text) && /prevent/i.test(card.text)) out.push({ kind: 'BENCH_SHIELD', name: card.name });
-  for (const t of extractTags(card)) if (t.kind === 'BENCH_WALL') out.push({ kind: 'BENCH_WALL', name: t.name });
+  for (const t of extractTags(card)) {
+    if (t.kind === 'BENCH_WALL') out.push({ kind: 'BENCH_WALL', name: t.name });
+    if (t.kind === 'HEAL' && t.source !== 'attack') out.push({ kind: 'HEAL', name: t.name, amount: t.amount, scope: t.scope });
+    if (t.kind === 'SWITCH' && t.source !== 'attack') out.push({ kind: 'SWITCH', name: t.name });
+    if (t.kind === 'ENERGY_MOVE' && t.source !== 'attack') out.push({ kind: 'ENERGY_MOVE', name: t.name });
+  }
   return out;
 }
 
@@ -117,7 +134,7 @@ export function requirements(card, me, opp = null) {
   if (inPlay && !/pok[eé]mon/i.test(inPlay[1]) && !me.names.has(inPlay[1].trim())) return { ok: false, note: `exige ${inPlay[1].trim()} em jogo — seu deck não tem` };
   const discE = t.match(/discard a basic \{([A-Z])\} energy/i);
   if (discE && !(me.energyByType?.[SYMT[discE[1].toUpperCase()]] > 0)) return { ok: false, note: `precisa descartar energia ${SYMT[discE[1].toUpperCase()]} — seu deck não tem` };
-  const typedTarget = t.match(/to (?:1 of )?your \{([A-Z])\} pok[eé]mon/i);
+  const typedTarget = t.match(/(?:to|from|on) (?:1 of |each of |all of )?your \{([A-Z])\} pok[eé]mon/i);
   if (typedTarget && !me.entries.some((e) => (e.card.types ?? []).includes(SYMT[typedTarget[1].toUpperCase()]))) return { ok: false, note: `só funciona em Pokémon ${SYMT[typedTarget[1].toUpperCase()]} — seu deck não tem` };
   const stageTarget = t.match(/your stage (1|2) pok[eé]mon/i);
   if (stageTarget && !me.entries.some((e) => e.card.stage === `Stage${stageTarget[1]}`)) return { ok: false, note: `só funciona em Pokémon de Estágio ${stageTarget[1]} — seu deck não tem` };
@@ -159,6 +176,9 @@ const WHY = {
   ENERGY_RECOVERY: (t) => `"${t.name}" recupera energia do descarte — repõe o que o oponente tira.`,
   BENCH_SHIELD: (t) => `"${t.name}" protege o seu banco de contadores de dano.`,
   BENCH_WALL: (t) => `"${t.name}" protege no banco contra o dano espalhado.`,
+  HEAL: (t) => `"${t.name}" cura ${t.amount >= 999 ? 'todo o dano' : `${t.amount}`}${t.scope === 'all' ? ' de todos os seus Pokémon' : ''} — desfaz o dano espalhado antes de virar nocaute.`,
+  SWITCH: (t) => `"${t.name}" troca/zera o recuo — tira o seu Pokémon preso do Ativo.`,
+  ENERGY_MOVE: (t) => `"${t.name}" move energia entre os seus Pokémon — redistribui depois de perder energia.`,
 };
 
 // Valor de uma carta contra os eixos diagnosticados
@@ -170,8 +190,13 @@ export function disruptionValue(card, diag, me) {
   for (const t of counterTags(card)) {
     for (const ax of diag.axes) {
       if (!AXES[ax.key].counters.includes(t.kind) || ax.severity < 0.2) continue;
+      // Regra do jogo: "colocar contadores" não é "causar dano". Battle Cage para contadores; prevenir dano não para.
+      if (ax.key === 'spread' && t.kind === 'BENCH_WALL' && !(ax.kinds ?? []).includes('damage')) continue;
+      if (ax.key === 'spread' && t.kind === 'BENCH_SHIELD' && !(ax.kinds ?? []).includes('counters')) continue;
       let strength = req.factor;
       if (t.kind === 'DRAW_ABILITY') strength *= clamp(t.amount / 3) * (t.repeat ? 1 : 0.6);
+      if (t.kind === 'HEAL') strength *= clamp((t.amount >= 999 ? 120 : t.amount) / 60) * (t.scope === 'all' ? 1 : 0.6);
+      if (t.kind === 'ENERGY_MOVE') strength *= 0.6;
       // Item é justamente o que a trava de Itens bloqueia
       const lockedItem = card.trainerType === 'Item' && itemLock && itemLock.severity >= 0.3;
       if (lockedItem) strength *= 0.35;

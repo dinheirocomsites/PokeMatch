@@ -32,12 +32,12 @@ function myEngine(me) {
 }
 
 // Dano do meu ataque num alvo, dado o estado do jogo
-function myDamage(card, attack, target, state, me, eng) {
+function myDamage(card, attack, target, state, me, eng, extra = {}) {
   const ps = eng.poisonSwitch;
   const poisoned = ps && eng.poisonBoost && (card.types ?? []).some((t) => SYM[t] === ps.sym) && !ps.except.includes(card.name);
   const r = damageVs(attack, card, target, {
     deck: me, oppTaken: state.oppTaken, selfDamaged: eng.selfDamage, ...(me.pressure ?? {}),
-    bonus: poisoned ? eng.poisonBoost : 0, bonusNote: poisoned ? `+${eng.poisonBoost} envenenado` : '',
+    bonus: poisoned ? eng.poisonBoost : 0, bonusNote: poisoned ? `+${eng.poisonBoost} envenenado` : '', ...extra,
   });
   if (!r.dmg) return r;
   if (eng.passive) { r.dmg += eng.passive; r.notes.push(`+${eng.passive} ${eng.passiveBy}`); }
@@ -71,23 +71,120 @@ function attackWalls(card, attackName) {
   if (!atkWallCache.has(k)) atkWallCache.set(k, extractTags(card).filter((t) => t.kind === 'WALL_SELF' && t.source === 'attack' && t.name === attackName && !(t.cond ?? []).includes('coin')));
   return atkWallCache.get(k);
 }
-function oppChoose(target, opp, oppLeft, hitsTaken, extraWalls = []) {
+// ---------- Efeitos que mudam a corrida, lidos do texto das cartas ----------
+const SYMX = { G: 'Grass', R: 'Fire', W: 'Water', L: 'Lightning', P: 'Psychic', F: 'Fighting', D: 'Darkness', M: 'Metal', N: 'Dragon', C: 'Colorless' };
+// Dano espalhado no banco
+function spreadOf(attack) {
+  const e = attack?.effect ?? '';
+  let m = e.match(/put (\d+) damage counters on your opponent.s benched pok[eé]mon in any way/i);
+  if (m) return { mode: 'distribute', amount: +m[1] * 10 };
+  m = e.match(/put (\d+) damage counters? on each of your opponent.s benched/i);
+  if (m) return { mode: 'each', amount: +m[1] * 10 };
+  m = e.match(/(\d+) damage to each of your opponent.s benched/i);
+  if (m) return { mode: 'each', amount: +m[1] };
+  m = e.match(/(\d+) damage to (1|2) of your opponent.s benched pok[eé]mon/i);
+  if (m) return { mode: 'single', amount: +m[1], count: +m[2] };
+  return null;
+}
+// Desvantagem do próprio ataque
+function drawbackOf(attack) {
+  const e = attack?.effect ?? '';
+  const name = (attack?.name ?? '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return {
+    noAttack: /during your next turn, this pok[eé]mon can.t (attack|use attacks)/i.test(e) || (!!name && new RegExp(`during your next turn, this pok[eé]mon can.t use ${name}`, 'i').test(e)),
+    discardEnergy: /discard (all|\d+|an?) energy from this pok[eé]mon/i.test(e) && !/you may discard/i.test(e),
+    takesMore: +(e.match(/this pok[eé]mon takes (\d+) more damage/i)?.[1] ?? 0),
+  };
+}
+// Redução de dano do defensor (habilidade)
+const tagCache = new Map();
+const tagsOf = (c) => { if (!tagCache.has(c.id ?? c.name)) tagCache.set(c.id ?? c.name, extractTags(c)); return tagCache.get(c.id ?? c.name); };
+function reductionOn(defender, attacker) {
+  let r = 0;
+  for (const t of tagsOf(defender)) if (t.kind === 'REDUCE' && t.source === 'ability' && !(t.cond ?? []).length && (!t.sel || !Object.keys(t.sel).length || matches(t.sel, attacker))) r = Math.max(r, t.amount);
+  return r;
+}
+const copiesAttacks = (card) => (card.abilities ?? []).some((a) => /can use the attacks of any of your benched pok[eé]mon/i.test(a.effect ?? ''));
+function weaknessOverrideFrom(deck) {
+  for (const e of deck.entries) for (const a of e.card.abilities ?? []) {
+    const m = (a.effect ?? '').match(/weakness of each of your opponent.s \{([A-Z])\} pok[eé]mon in play is now \{([A-Z])\}/i);
+    if (m) return { fromType: SYMX[m[1]], toType: SYMX[m[2]], by: e.card.name };
+  }
+  return null;
+}
+function hpToolOf(deck) {
+  for (const e of deck.entries) {
+    const m = e.card.trainerType === 'Tool' && e.card.text.match(/gets \+(\d+) hp/i);
+    const only = e.card.text.match(/the (.+?) this card is attached to/i)?.[1];
+    if (m && (!only || /^pok[eé]mon$/i.test(only))) return { amount: +m[1], name: e.card.name };
+  }
+  return null;
+}
+// Disrupção que o oponente faz na corrida
+function oppDisruption(opp) {
+  const hammers = opp.entries.filter((e) => /discard an energy from (1 of )?your opponent/i.test(e.card.text));
+  const hammerBudget = Math.min(3, Math.round(hammers.reduce((s2, e) => s2 + e.count * (/flip a coin/i.test(e.card.text) ? 0.5 : 1), 0) * 0.7));
+  const stamps = opp.entries.filter((e) => /only if any of your pok[eé]mon were knocked out during your opponent.s last turn/i.test(e.card.text) && /shuffles? (their|your) hand/i.test(e.card.text));
+  const earlyLock = opp.entries.some((e) => e.card.category === 'Pokemon' && e.card.stage === 'Basic' && (e.card.attacks ?? []).some((a) => (a.cost ?? []).length <= 1 && /can.t play any item cards/i.test(a.effect ?? '')));
+  const ruins = opp.entries.find((e) => e.card.trainerType === 'Stadium' && e.count >= 2 && /basic non-\{([A-Z])\} pok[eé]mon onto their bench[^.]*place (\d+) damage counters/i.test(e.card.text));
+  const ruinsM = ruins?.card.text.match(/basic non-\{([A-Z])\} pok[eé]mon onto their bench[^.]*place (\d+) damage counters/i);
+  return {
+    hammerBudget, hammerName: hammers[0]?.card.name,
+    stampLeft: stamps.reduce((s2, e) => s2 + e.count, 0) ? 1 : 0, stampName: stamps[0]?.card.name,
+    earlyLock, ruins: ruinsM ? { notType: SYMX[ruinsM[1]], dmg: +ruinsM[2] * 10, name: ruins.card.name } : null,
+  };
+}
+
+// O oponente escolhe com quem atacar: quem nocauteia o seu atacante entregando MENOS prêmios
+// (e, no empate, com mais HP). Se ninguém nocauteia, usa o que mais bate.
+function oppChoose(target, opp, oppLeft, hitsTaken, extraWalls = [], ctx = {}) {
   const opts = [];
   const walls = [...wallsOf(target), ...extraWalls];
-  for (const e of opp.threat) {
-    if (!oppLeft.get(e.card.name) || e.feas < 0.3) continue;
+  const hp = target.hp + (ctx.hpBonus ?? 0);
+  const pool = opp.threat.filter((e) => oppLeft.get(e.card.name) && e.feas >= 0.3);
+  for (const e of pool) {
+    if (ctx.cooldown === e.card.name) continue; // não pode atacar neste turno (desvantagem do ataque anterior)
+    // Tempo do oponente: Estágio 2 só fica pronto a partir do 2º turno de resposta (Estágio 1 já no 1º)
+    if (ctx.oppTurn && e.card.stage === 'Stage2' && ctx.oppTurn < 2) continue;
     if (walls.some((w) => matches(w.sel, e.card))) continue; // muralha: esse atacante não causa dano
-    let dmg = 0;
-    let weak = false;
-    for (const a of e.card.attacks ?? []) {
-      const r = damageVs(a, e.card, target, { deck: opp, oppTaken: 3 });
-      if (r.dmg > dmg) { dmg = r.dmg; weak = r.notes.includes('fraqueza'); }
+    const atks = copiesAttacks(e.card) ? [...(e.card.attacks ?? []), ...pool.filter((x) => x !== e).flatMap((x) => x.card.attacks ?? [])] : (e.card.attacks ?? []);
+    let best = null;
+    for (const a of atks) {
+      const r = damageVs(a, e.card, target, { deck: opp, oppTaken: 3, weaknessOverride: ctx.wo, reduction: reductionOn(target, e.card) });
+      const dmg = r.dmg + (r.dmg ? (ctx.takesMore ?? 0) : 0);
+      if (dmg > 0 && (!best || dmg > best.dmg || (dmg + hitsTaken >= hp && best.dmg + hitsTaken >= hp && spreadOf(a) && !spreadOf(best.atk)))) best = { dmg, weak: r.notes.some((n) => n.startsWith('fraqueza')), atk: a };
     }
-    if (dmg) opts.push({ card: e.card, dmg, weak, ko: dmg + hitsTaken >= target.hp });
+    if (best) opts.push({ card: e.card, ...best, ko: best.dmg + hitsTaken >= hp });
   }
-  const kos = opts.filter((o) => o.ko).sort((a, b) => a.card.prizeValue - b.card.prizeValue || b.card.hp - a.card.hp);
+  const kos = opts.filter((o) => o.ko).sort((a, b) => a.card.prizeValue - b.card.prizeValue || (spreadOf(b.atk) ? 1 : 0) - (spreadOf(a.atk) ? 1 : 0) || b.card.hp - a.card.hp);
   if (kos.length) return kos[0];
   return opts.sort((a, b) => b.dmg - a.dmg)[0] ?? null;
+}
+
+// Aplica dano espalhado no seu banco; devolve os nocautes
+function applySpread(spread, benchCards, benchDmg, lost) {
+  const kos = [];
+  const alive = benchCards.filter((b) => !lost.includes(b.name));
+  const rem = (b) => b.hp - (benchDmg[b.name] ?? 0);
+  if (!spread || !alive.length) return kos;
+  if (spread.mode === 'each') {
+    for (const b of alive) { benchDmg[b.name] = (benchDmg[b.name] ?? 0) + spread.amount; if (rem(b) <= 0) kos.push(b); }
+  } else if (spread.mode === 'distribute') {
+    let left = spread.amount;
+    const order = [...alive].sort((a, b) => b.prizeValue - a.prizeValue || rem(a) - rem(b));
+    for (const b of order) if (rem(b) <= left) { left -= Math.max(0, rem(b)); benchDmg[b.name] = b.hp; kos.push(b); }
+    if (left > 0) { const t = alive.filter((b) => !kos.includes(b)).sort((a, b) => rem(a) - rem(b))[0]; if (t) benchDmg[t.name] = (benchDmg[t.name] ?? 0) + left; }
+  } else {
+    for (let i = 0; i < (spread.count ?? 1); i++) {
+      const cand = alive.filter((b) => !kos.includes(b));
+      const killable = cand.filter((b) => rem(b) <= spread.amount).sort((a, b) => b.prizeValue - a.prizeValue)[0];
+      const t = killable ?? cand.sort((a, b) => b.prizeValue - a.prizeValue || rem(a) - rem(b))[0];
+      if (!t) break;
+      benchDmg[t.name] = (benchDmg[t.name] ?? 0) + spread.amount;
+      if (rem(t) <= 0) kos.push(t);
+    }
+  }
+  return kos;
 }
 
 export function simulateRace(me, opp, { extraAttackers = [], denial = null, energyTypes = null, maxTurns = 9, only = null } = {}) {
@@ -105,28 +202,41 @@ export function simulateRace(me, opp, { extraAttackers = [], denial = null, ener
   const targets = opp.entries.filter((e) => e.card.category === 'Pokemon').map((e) => e.card);
   const gustCards = me.entries.filter((e) => /switch in 1 of your opponent.s benched/i.test(e.card.text)).reduce((s, e) => s + e.count, 0);
   const gusts = Math.min(3, Math.ceil(gustCards / 2)); // nem todos os Boss aparecem a tempo
-  // Quem o oponente começa atacando: o atacante que mais pressiona
-  // O oponente abre com quem mata o seu atacante principal entregando menos prêmios
   const oppLeft0 = new Map(targets.map((t) => [t.name, opp.entries.find((e) => e.card.name === t.name).count]));
-  const opener = (me.mainAttacker && oppChoose(me.mainAttacker, opp, oppLeft0, 0)?.card.name)
-    ?? [...opp.threat].filter((e) => e.feas >= 0.3 && (e.card.attacks ?? []).length).sort((a, b) => b.threat - a.threat)[0]?.card.name;
+  // O oponente abre com quem mata o seu atacante principal entregando menos prêmios
+  // Quem está no Ativo dele no seu 1º ataque: um Básico que trava Itens com ataque barato (ex.: Budew),
+  // se ele tiver; senão quem mata o seu atacante principal entre os que já estão prontos (Básico/Estágio 1)
+  const lockOpener = opp.entries.find((e) => e.card.category === 'Pokemon' && e.card.stage === 'Basic' && (e.card.attacks ?? []).some((a) => (a.cost ?? []).length <= 1 && /can.t play any item cards/i.test(a.effect ?? '')))?.card.name;
+  const opener = lockOpener ?? (me.mainAttacker && oppChoose(me.mainAttacker, opp, oppLeft0, 0, [], { oppTurn: 1 })?.card.name)
+    ?? [...opp.threat].filter((e) => e.feas >= 0.3 && (e.card.attacks ?? []).length && e.card.stage !== 'Stage2').sort((a, b) => b.threat - a.threat)[0]?.card.name;
   // No banco dele (alcançável com Boss): Pokémon com habilidade que funciona no banco + os que já atacaram
   const benchy = new Set(targets.filter((t) => (t.abilities ?? []).some((a) => !/in the active spot/i.test(a.effect ?? ''))).map((t) => t.name));
 
-  // O oponente também usa Boss's Orders: quando não consegue nocautear o seu Ativo (ex.: muralha),
-  // puxa do seu banco o Pokémon que vale mais prêmios e que ele nocauteia.
+  // O oponente também usa Boss's Orders para contornar muralhas
   const oppGustCards = opp.entries.filter((e) => /switch in 1 of your opponent.s benched/i.test(e.card.text)).reduce((s2, e) => s2 + e.count, 0);
   const oppGusts0 = Math.min(3, Math.ceil(oppGustCards / 2));
-  const myBench = me.entries.filter((e) => e.card.category === 'Pokemon' && (me.board?.pieces ?? []).includes(e.card.name)).map((e) => e.card);
+  // Seu banco: peças do plano + a reserva do atacante principal (alvos de Boss e de dano espalhado)
+  const benchNames = [...new Set([...(me.board?.pieces ?? []), me.board?.backup].filter(Boolean))];
+  const myBench = benchNames.map((n) => me.entries.find((e) => e.card.name === n)?.card).filter((c) => c?.category === 'Pokemon');
+  // Efeitos de cartas que mudam a corrida
+  const dis = oppDisruption(opp);
+  const oppWO = weaknessOverrideFrom(opp); // fraqueza alterada pelo oponente contra os seus Pokémon
+  const myWO = weaknessOverrideFrom(meX);
+  const oppCape = hpToolOf(opp);
+  const capeOn = oppCape ? [...targets].filter((t) => opp.threat.find((x) => x.card.name === t.name)?.feas >= 0.3).sort((a, b) => b.prizeValue - a.prizeValue || (opp.threat.find((x) => x.card.name === b.name)?.threat ?? 0) - (opp.threat.find((x) => x.card.name === a.name)?.threat ?? 0))[0]?.name : null;
+  const myCape = hpToolOf(meX);
+  const benchDmg0 = {};
+  if (dis.ruins) for (const b of myBench) if (b.stage === 'Basic' && !(b.types ?? []).includes(dis.ruins.notType)) benchDmg0[b.name] = dis.ruins.dmg;
   const income = 1 + (eng.accel ? 1 : 0); // energia por turno: 1 manual + aceleração
-  const SETUP_BANK = 3; // energia montada antes do primeiro ataque
-  const killsMain = new Set(me.mainAttacker ? opp.threat.filter((e) => e.feas >= 0.3 && (e.card.attacks ?? []).some((a) => damageVs(a, e.card, me.mainAttacker, { deck: opp, oppTaken: 3 }).dmg >= me.mainAttacker.hp - 20)).map((e) => e.card.name) : []);
+  const SETUP_BANK = dis.earlyLock ? 2 : 3; // trava de Itens no 1º turno = setup menor
+  const killsMain = new Set(me.mainAttacker ? opp.threat.filter((e) => e.feas >= 0.3 && (e.card.attacks ?? []).some((a) => damageVs(a, e.card, me.mainAttacker, { deck: opp, oppTaken: 3, weaknessOverride: oppWO }).dmg >= me.mainAttacker.hp - 20)).map((e) => e.card.name) : []);
+  const effHp = (t, st) => t.hp + (oppCape && st.capeLeft && t.name === capeOn ? oppCape.amount : 0);
   let best = null;
   const finals = [];
   const memo = new Map();
   function rec(stateIn, steps, depth) {
     let state = stateIn;
-    const key = `${state.oppGusts}|${(state.benchLost ?? []).join(',')}|${state.bank}|${state.gustsUsed}|${state.energySpent}|${state.myTaken}|${state.oppTaken}|${state.active?.card.name}|${state.active?.dmgTaken}|${[...state.shown].sort()}|${state.oppActive}|${state.gusts}|${[...state.myLeft.values()]}|${[...state.oppLeft.values()]}|${state.denialLeft}`;
+    const key = `${JSON.stringify(state.benchDmg)}|${state.oppCooldown}|${state.capeLeft}|${state.myCapeLeft}|${state.hammer}|${state.stampLeft}|${state.stamped}|${state.active?.cool}|${state.active?.needEnergy}|${state.oppGusts}|${(state.benchLost ?? []).join(',')}|${state.bank}|${state.gustsUsed}|${state.energySpent}|${state.myTaken}|${state.oppTaken}|${state.active?.card.name}|${state.active?.dmgTaken}|${[...state.shown].sort()}|${state.oppActive}|${state.gusts}|${[...state.myLeft.values()]}|${[...state.oppLeft.values()]}|${state.denialLeft}`;
     if (memo.has(key) && memo.get(key) <= depth) return;
     memo.set(key, depth);
     if (state.myTaken >= 6 || state.oppTaken >= 6 || depth >= maxTurns) {
@@ -141,28 +251,37 @@ export function simulateRace(me, opp, { extraAttackers = [], denial = null, ener
     const choices = state.active ? [state.active.att, ...pool.filter((p) => p !== state.active.att)] : pool;
     for (const att of choices) {
       if (!state.myLeft.get(att.card.name)) continue;
+      if (state.benchLost?.includes(att.card.name) && state.myLeft.get(att.card.name) <= 1 && state.active?.att !== att) continue; // nocauteado no banco
+      // Desvantagem do ataque anterior: este atacante não pode atacar agora → precisa trocar
+      if (state.active?.att === att && state.active.cool) continue;
       const continuing = state.active?.att === att;
-      // Opções de alvo: o Ativo dele (de graça) ou o melhor alvo com Boss
+      const reEnergize = continuing ? (state.active.needEnergy ?? 0) : 0;
       const options = [];
-      // Só ataques que dá para energizar: o atacante atual já está pronto; um novo precisa sair do "banco de energia"
-      const payable = (a) => continuing || (a.cost ?? []).length <= state.bank;
-      const ko = (t) => { let r = null; for (const a of att.atks) { if (!payable(a)) continue; const x = myDamage(att.card, a, t, state, meX, eng); if (x.dmg >= (t.hp ?? 999) && (!r || (a.cost ?? []).length < (r.a.cost ?? []).length || x.dmg > r.r.dmg)) r = { a, r: x }; } return r; };
-      if (!continuing && !att.atks.some(payable)) continue;
+      const payable = (a) => (continuing ? reEnergize <= state.bank : (a.cost ?? []).length <= state.bank);
+      const ko = (t) => {
+        let r = null;
+        for (const a of att.atks) {
+          if (!payable(a)) continue;
+          const x = myDamage(att.card, a, t, state, meX, eng, { weaknessOverride: myWO, reduction: reductionOn(t, att.card) });
+          if (x.dmg >= effHp(t, state) && (!r || (a.cost ?? []).length < (r.a.cost ?? []).length || x.dmg > r.r.dmg)) r = { a, r: x };
+        }
+        return r;
+      };
+      if (!att.atks.some(payable)) continue;
       const act = targets.find((t) => t.name === state.oppActive && state.oppLeft.get(t.name));
       const kAct = act && ko(act);
       if (kAct) options.push({ t: act, ...kAct, gust: false });
-      if (state.gusts > 0) {
+      if (state.gusts > 0 && !state.stamped) { // depois do Unfair Stamp, sem Boss na mão
         let g = null;
+        const alts = [];
         for (const t of targets) {
           if (!state.oppLeft.get(t.name) || t.name === state.oppActive || !(benchy.has(t.name) || state.shown.has(t.name))) continue;
           const k = ko(t);
-          // Entre alvos de mesmo valor, prefere quem mata o seu atacante principal
           const rank = (x) => x.t.prizeValue * 10 + (killsMain.has(x.t.name) ? 1 : 0);
           if (k && (!g || rank({ t }) > rank(g))) g = { t, ...k, gust: true };
-          if (k) (state.__alts ??= []).push(t);
+          if (k) alts.push(t);
         }
-        if (g) g.alts = [...new Set((state.__alts ?? []).filter((t) => t.prizeValue === g.t.prizeValue).map((t) => t.name))];
-        delete state.__alts;
+        if (g) g.alts = [...new Set(alts.filter((t) => t.prizeValue === g.t.prizeValue).map((t) => t.name))];
         if (g && (!kAct || g.t.prizeValue > act.prizeValue)) options.push(g);
       }
       if (!options.length) options.push(null);
@@ -171,9 +290,10 @@ export function simulateRace(me, opp, { extraAttackers = [], denial = null, ener
         const oppLeft = new Map(state.oppLeft);
         let myTaken = state.myTaken;
         let gustsLeft = state.gusts;
-        const step = { attacker: att.card.name, prizeValue: att.card.prizeValue, vsActive: state.oppActive, activeValue: targets.find((t) => t.name === state.oppActive)?.prizeValue };
+        let capeLeft = state.capeLeft;
+        const step = { attacker: att.card.name, prizeValue: att.card.prizeValue, vsActive: state.oppActive, activeValue: targets.find((t) => t.name === state.oppActive)?.prizeValue, stamped: state.stamped };
         const used = pick?.a ?? att.atks.filter(payable).sort((a, b) => (a.cost ?? []).length - (b.cost ?? []).length)[0];
-        const spend = continuing ? 0 : (used?.cost ?? []).length;
+        const spend = continuing ? reEnergize : (used?.cost ?? []).length;
         step.newAttacker = !continuing;
         step.energy = spend;
         step.killsMain = pick && killsMain.has(pick.t.name);
@@ -181,56 +301,82 @@ export function simulateRace(me, opp, { extraAttackers = [], denial = null, ener
           myTaken += pick.t.prizeValue;
           oppLeft.set(pick.t.name, oppLeft.get(pick.t.name) - 1);
           if (pick.gust) gustsLeft--;
-          Object.assign(step, { alts: pick.alts, attack: pick.a.name, target: pick.t.name, gust: pick.gust, dmg: Math.round(pick.r.dmg), hp: pick.t.hp, notes: pick.r.notes, prizes: pick.t.prizeValue });
+          if (pick.t.name === capeOn && capeLeft) { capeLeft = false; step.capeBroken = oppCape.name; }
+          Object.assign(step, { alts: pick.alts, attack: pick.a.name, target: pick.t.name, gust: pick.gust, dmg: Math.round(pick.r.dmg), hp: effHp(pick.t, state), notes: pick.r.notes, prizes: pick.t.prizeValue });
         } else Object.assign(step, { attack: null, target: null, prizes: 0, vs: state.oppActive });
         step.myTotal = myTaken;
         const bankAfter = state.bank - spend;
         const gustsUsed = state.gustsUsed + (pick?.gust ? 1 : 0);
         const energySpent = state.energySpent + spend;
-        if (myTaken >= 6) { rec({ ...state, myTaken, myLeft, oppLeft, gusts: gustsLeft, gustsUsed, energySpent, bank: bankAfter }, [...steps, step], depth + 1); continue; }
-        // Atacante que depende de estar ferido (ex.: Hungry Jaws) entra no ataque já com dano
+        if (myTaken >= 6) { rec({ ...state, myTaken, myLeft, oppLeft, gusts: gustsLeft, gustsUsed, energySpent, bank: bankAfter, capeLeft }, [...steps, step], depth + 1); continue; }
+        // Desvantagem do MEU ataque (vale no turno do oponente / no meu próximo turno)
+        const myDb = drawbackOf(used);
         const selfHurt = pick && eng.selfDamage && /if this pok[eé]mon has any damage counters/i.test(pick.a.effect ?? '') ? eng.selfDmgAmount : 0;
         const prevHits = (state.active?.att === att ? state.active.dmgTaken : 0) + (state.active?.att === att ? 0 : selfHurt);
-        const hit = oppChoose(att.card, opp, oppLeft, prevHits, used ? attackWalls(att.card, used.name) : []);
+        const myHpBonus = myCape && state.myCapeLeft && att.card.name === me.mainAttacker?.name ? myCape.amount : 0;
+        const hit = oppChoose(att.card, opp, oppLeft, prevHits, used ? attackWalls(att.card, used.name) : [], { cooldown: state.oppCooldown, wo: oppWO, hpBonus: myHpBonus, takesMore: myDb.takesMore, oppTurn: depth + 1 });
         let oppTaken = state.oppTaken;
         let active = null;
         let denialLeft = state.denialLeft;
+        let myCapeLeft = state.myCapeLeft;
+        const benchDmg = { ...state.benchDmg };
+        let benchLost = [...(state.benchLost ?? [])];
         if (hit?.ko) {
           let gain = att.card.prizeValue;
           if (denial && denialLeft > 0 && denialApplies(denial, att.card, hit.card)) { gain -= denial.amount; denialLeft--; step.denial = denial.label; }
           oppTaken += gain;
           myLeft.set(att.card.name, myLeft.get(att.card.name) - 1);
+          if (myHpBonus) myCapeLeft = false;
           Object.assign(step, { ko: true, oppAttacker: hit.card.name, oppDmg: Math.round(hit.dmg), oppGain: gain, oppWeak: hit.weak, oppValue: hit.card.prizeValue });
         } else {
-          active = { att, card: att.card, dmgTaken: prevHits + (hit?.dmg ?? 0) };
-          Object.assign(step, { ko: false, oppAttacker: hit?.card.name, oppDmg: Math.round(hit?.dmg ?? 0) });
+          active = { att, card: att.card, dmgTaken: prevHits + (hit?.dmg ?? 0), cool: myDb.noAttack, needEnergy: myDb.discardEnergy ? (used?.cost ?? []).length : 0 };
+          Object.assign(step, { ko: false, oppAttacker: hit?.card.name, oppDmg: Math.round(hit?.dmg ?? 0), myCool: myDb.noAttack ? used?.name : null });
           // Contorna com Boss: nocauteia um Pokémon do seu banco
-          if (state.oppGusts > 0) {
+          if (state.oppGusts > 0 && !spreadOf(hit?.atk)) {
             let g = null;
             for (const b of myBench) {
-              if (state.benchLost?.includes(b.name)) continue;
-              const h = oppChoose(b, opp, oppLeft, 0);
+              if (benchLost.includes(b.name) || b.name === att.card.name) continue;
+              const h = oppChoose(b, opp, oppLeft, benchDmg[b.name] ?? 0, [], { cooldown: state.oppCooldown, wo: oppWO, oppTurn: depth + 1 });
               if (h?.ko && (!g || b.prizeValue > g.b.prizeValue)) g = { b, h };
             }
             if (g) {
               oppTaken += g.b.prizeValue;
               step.oppGust = { target: g.b.name, by: g.h.card.name, gain: g.b.prizeValue };
-              state = { ...state, oppGusts: state.oppGusts - 1, benchLost: [...(state.benchLost ?? []), g.b.name] };
+              benchLost.push(g.b.name);
+              state = { ...state, oppGusts: state.oppGusts - 1 };
             }
           }
         }
+        // Dano espalhado no seu banco (ex.: Phantom Dive) — nocautes no banco também dão prêmio
+        const spread = spreadOf(hit?.atk);
+        if (spread) {
+          const kos = applySpread(spread, myBench.filter((b) => b.name !== att.card.name), benchDmg, benchLost);
+          for (const b of kos) { oppTaken += b.prizeValue; benchLost.push(b.name); }
+          step.spread = { by: hit.card.name, amount: spread.amount, kos: kos.map((b) => `${b.name} (+${b.prizeValue})`) };
+        }
+        // Desvantagem do ataque do oponente: não ataca no próximo turno
+        const oppDb = drawbackOf(hit?.atk);
+        const oppCooldown = oppDb.noAttack ? hit.card.name : null;
+        // Disrupção do oponente: Unfair Stamp depois do seu nocaute; Crushing Hammer tira energia
+        let stampLeft = state.stampLeft;
+        let stamped = false;
+        if (pick && stampLeft > 0) { stampLeft--; stamped = true; step.stamp = dis.stampName; }
+        let hammer = state.hammer;
+        let hammerHit = 0;
+        if (hammer > 0) { hammer--; hammerHit = 1; step.hammer = dis.hammerName; }
         step.oppTotal = oppTaken;
         const shown = new Set(state.shown); if (hit?.card) shown.add(hit.card.name);
-        rec({ myTaken, oppTaken, myLeft, oppLeft, active, oppActive: hit?.card.name ?? state.oppActive, gusts: gustsLeft, denialLeft, shown, gustsUsed, energySpent, bank: Math.min(6, bankAfter + income), oppGusts: state.oppGusts, benchLost: state.benchLost }, [...steps, step], depth + 1);
+        const nextBank = Math.max(0, Math.min(6, bankAfter + income - (stamped ? 1 : 0) - hammerHit));
+        rec({ myTaken, oppTaken, myLeft, oppLeft, active, oppActive: hit?.card.name ?? state.oppActive, gusts: gustsLeft, denialLeft, shown, gustsUsed, energySpent, bank: nextBank, oppGusts: state.oppGusts, benchLost, benchDmg, oppCooldown, capeLeft, myCapeLeft, hammer, stampLeft, stamped }, [...steps, step], depth + 1);
       }
     }
   }
   const myLeft = new Map(pool.map((p) => [p.card.name, p.count]));
-  rec({ myTaken: 0, oppTaken: 0, myLeft, oppLeft: oppLeft0, active: null, oppActive: opener, gusts, denialLeft: denial ? (denial.uses ?? 1) : 0, shown: new Set([opener]), gustsUsed: 0, energySpent: 0, bank: SETUP_BANK, oppGusts: oppGusts0, benchLost: [] }, [], 0);
+  rec({ myTaken: 0, oppTaken: 0, myLeft, oppLeft: oppLeft0, active: null, oppActive: opener, gusts, denialLeft: denial ? (denial.uses ?? 1) : 0, shown: new Set([opener]), gustsUsed: 0, energySpent: 0, bank: SETUP_BANK, oppGusts: oppGusts0, benchLost: [], benchDmg: benchDmg0, oppCooldown: null, capeLeft: !!oppCape, myCapeLeft: !!myCape, hammer: dis.hammerBudget, stampLeft: dis.stampLeft, stamped: false }, [], 0);
   // Linha alternativa: melhor resultado que usa um conjunto diferente de atacantes
   const sig = (r) => [...new Set(r.steps.map((x) => x.attacker))].sort().join('+');
   const alt = best && finals.filter((r) => r.win === best.win && sig(r) !== sig(best)).sort((a, b) => b.score - a.score)[0];
-  return { best, alt: alt ?? null, pool: pool.map((p) => p.card.name), engine: eng, gusts, opener, income };
+  return { best, alt: alt ?? null, pool: pool.map((p) => p.card.name), engine: eng, gusts, opener, income, effects: { disruption: dis, oppCape: oppCape && { ...oppCape, on: capeOn }, oppWO, ruins: dis.ruins } };
 }
 
 function denialApplies(d, mine, theirs) {
@@ -277,10 +423,19 @@ export function planText(plan) {
       const why = s.activeValue < s.prizes ? `o Ativo dele vale só ${pz(s.activeValue)}` : 'o Ativo dele não cai';
       mine = `Como ${why}: Boss's Orders num Pokémon de ${pz(s.prizes)} que você nocauteia (${opts}) e ataque com ${who} (~${s.dmg}). Você: ${s.myTotal}/6.`;
     } else mine = `${who} nocauteia o Ativo dele, ${s.target} (${pz(s.prizes)}), sem gastar Boss (~${s.dmg}). Você: ${s.myTotal}/6.`;
-    const theirs = s.myTotal >= 6 ? '🏆 Você pega o último prêmio.' : s.ko
+    if (s.stamped) mine = `(Depois do Unfair Stamp você está com 2 cartas: sem Boss neste turno.) ${mine}`;
+    if (s.capeBroken) mine += ` (Ele tinha ${s.capeBroken}: +HP considerado.)`;
+    const extras = [];
+    if (s.spread) extras.push(`${s.spread.by} espalha ${s.spread.amount} no seu banco${s.spread.kos.length ? ` e nocauteia ${s.spread.kos.join(', ')}` : ''}`);
+    if (s.stamp) extras.push(`seu nocaute libera ${s.stamp}: você fica com 2 cartas`);
+    if (s.hammer) extras.push(`${s.hammer} tira 1 energia sua`);
+    if (s.myCool) extras.push(`"${s.myCool}" não pode ser usado no seu próximo turno`);
+    const tail = extras.length ? ` Além disso: ${extras.join('; ')}. Ele: ${s.oppTotal}/6.` : '';
+    const theirs0 = s.myTotal >= 6 ? '🏆 Você pega o último prêmio.' : s.ko
       ? `Ele responde: ${s.oppAttacker} nocauteia ${s.attacker}${s.oppWeak ? ' (fraqueza)' : ''} → +${s.oppGain}${s.denial ? ` (${s.denial}: −1)` : ''}. Ele: ${s.oppTotal}/6.`
       : s.oppGust ? `Ele não passa pelo ${s.attacker}, então usa Boss's Orders: ${s.oppGust.by} nocauteia o seu ${s.oppGust.target} no banco → +${s.oppGust.gain}. Ele: ${s.oppTotal}/6.`
       : `Ele não consegue nocautear ${s.attacker} neste turno.`;
+    const theirs = s.myTotal >= 6 ? theirs0 : theirs0 + tail;
     return { turn: i + 1, mine, theirs };
   });
 }

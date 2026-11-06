@@ -83,3 +83,19 @@ test('Estágio 2 traz a linha inteira (Gastly → Haunter → Mega Gengar ex)', 
   const g = r.suggestions.find((s) => s.card.name === 'Mega Gengar ex');
   if (g) assert.deepEqual(g.pkg.adds.map((a) => a.card.name), ['Gastly', 'Haunter', 'Mega Gengar ex']);
 });
+
+test('Ferramenta de HP: Hero\'s Cape faz o Sharpedo aguentar Ogerpon/Iron Leaves; Cynthia\'s Power Weight (só Pokémon de Cynthia) não entra', () => {
+  const r = analyze(read('sharpedo.txt'), read('basic-box.txt'), db, { limit: 15, context: PAIN });
+  const cape = r.suggestions.find((s) => s.card.name === "Hero's Cape");
+  assert.ok(cape && /sobreviver/.test(cape.relevance));
+  assert.ok(Object.values(cape.notes).flat().some((n) => /concorre com 3x Binding Mochi/.test(n)), 'conflito de Ferramenta');
+  assert.ok(!r.suggestions.some((s) => s.card.name === "Cynthia's Power Weight"));
+});
+
+test('simulador × Dragapult: Budew abre no Ativo, Dragapult (Estágio 2) só no 2º turno, e o dano espalhado conta prêmio', () => {
+  const r = analyze(read('sharpedo.txt'), read('dragapult.txt'), db, { limit: 5 });
+  const plan = r.race.best.plan;
+  assert.match(plan[0].mine, /vale só 1 prêmio|Budew/);
+  assert.doesNotMatch(plan[0].theirs, /Dragapult ex nocauteia/);
+  assert.ok(plan.some((t) => /espalha 60 no seu banco/.test(t.theirs)));
+});

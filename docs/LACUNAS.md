@@ -1,6 +1,27 @@
 # PokeMatch — o que a ferramenta ainda NÃO valida ou classifica
 
-Levantamento de 06/11/2026. Números da auditoria `npm run audit:coverage` (texto de todas as cartas legais)
+## Progresso
+| Rodada | Frases de efeito entendidas | Dano variável | Testes |
+|---|---|---|---|
+| Levantamento inicial | 36% | 65% | 42 |
+| Rodada 1 (simulador, texto, consistência, custos) | **56%** | 65% | **49** |
+
+### Coberto na rodada 1
+- **Simulador:** prêmios pelo banco (dano espalhado e contadores, Risky Ruins), desvantagens de ataque dos dois lados,
+  HP extra de Ferramenta (Hero's Cape), redução de dano por habilidade, fraqueza alterada (Lillie's Clefairy ex),
+  cópia de ataques (Mew ex), disrupção do oponente (Crushing Hammer, Unfair Stamp após o seu nocaute, trava de Itens no 1º turno),
+  tempo do oponente (Estágio 2 só no 2º turno; Básico que trava Itens abre no Ativo).
+- **Texto:** desvantagem de ataque, condições especiais, cura, troca/recuo, prender no Ativo, mover energia,
+  colocar contadores, HP extra, descarte da mão do oponente.
+- **Regra do jogo:** "colocar contadores" ≠ "causar dano" (Battle Cage × Shadowy Darkness Energy).
+- **Diagnóstico:** eixo "prender no Ativo"; dano no banco conta quem cai em 2 ataques; HP extra que faz o atacante sobreviver.
+- **Consistência:** habilidades de compra, buscas feitas por Pokémon, custo de descarte do Ultra Ball.
+- **Custos:** conflito de Ferramenta (1 por Pokémon) e de Estádio (seu × oponente); Ferramenta restrita a um Pokémon.
+- **Listas e contexto:** nomes em português nas listas; negação, inglês e gírias no contexto; arquétipo provável do oponente.
+
+---
+
+Levantamento de 06/11/2026 (tabela original abaixo; números atualizados pela auditoria a cada rodada). Números da auditoria `npm run audit:coverage` (texto de todas as cartas legais)
 e `npm run audit` (dano variável). Prioridade = impacto na sugestão × frequência no meta.
 
 ## 1. Leitura do texto das cartas
@@ -76,6 +97,17 @@ Dano variável: **65%** dos 468 ataques com "+"/"×" são calculados com precis�
 - Sem dados de torneio (Limitless): sem taxa de vitória real, sem "o que os vencedores jogam", sem lista base.
 - Sem camada de IA na hora da consulta (aguardando chave da API do Claude).
 - Sem botão "reportar erro", sem link para compartilhar uma análise, sem análise contra o meta inteiro.
+
+## Ainda em aberto depois da rodada 1
+- **Texto (44% restantes):** "Outros" (380 frases de texto fora do padrão), energia (120), recuo/troca (78), contadores (76),
+  voltar à mão (66), condições (60, as condicionais), mão (55), moinho (54), imunidade (51), evolução (37).
+- **Simulador:** dano de veneno/queimadura entre turnos e confusão; cura durante a corrida; custo de recuo/troca;
+  1 Supporter por turno (Boss × compra); quem começa e sorte de compra; tempo de evolução do SEU lado.
+- **Consistência:** trava de Itens e reset de mão do oponente dentro da simulação de mão; Rare Candy.
+- **Custos:** impacto do corte em outros matchups; comparação numérica da ACE SPEC atual × sugerida; recuo da tech.
+- **Diagnóstico:** velocidade, cura/stall, moinho, lock de paralisia, mecânicas de virada (Rosa's, Briar).
+- **Dados:** listas Tera/Ancient/Future manuais.
+- **Produto:** IA na hora da consulta, dados da Limitless, botão "reportar erro", link de análise, análise contra o meta.
 
 ## Ordem sugerida
 1. Simulador: prêmios pelo banco, desvantagens de ataque, HP extra/redução de dano, disrupção do oponente.

@@ -328,7 +328,7 @@ function render(d) {
   status($('#mineStatus'), d.me); status($('#oppStatus'), d.opp);
   const c = d.opp.counts;
   $('#profile').innerHTML = `
-    <div class="box"><h3>O que importa</h3>${d.insights.map((i) => `<div class="insight">${esc(i)}</div>`).join('') || '<div class="insight">Nada fora do comum.</div>'}</div>
+    <div class="box"><h3>O que importa${d.opp.archetype ? ` · arquétipo provável: ${esc(d.opp.archetype)}` : ''}</h3>${d.insights.map((i) => `<div class="insight">${esc(i)}</div>`).join('') || '<div class="insight">Nada fora do comum.</div>'}</div>
     <div class="box"><h3>Quem bate (poder de ataque)</h3>${bars(d.opp.topThreats.map((t) => ({ label: `${t.count}x ${t.name}`, value: t.share })))}</div>
     <div class="box"><h3>Fraquezas (peso no ataque)</h3>${bars(d.opp.weakness.slice(0, 5).map((w) => ({ label: w.typePt, value: w.share })))}
       <h3 style="margin-top:14px">Composição</h3><div class="chips">

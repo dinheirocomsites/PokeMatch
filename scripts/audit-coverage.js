@@ -21,6 +21,11 @@ const KNOWN = [
   /if you go (first|second)|during your first turn/i, /if you have \d+ or (more|fewer) cards in your hand/i,
   /attacks used by the poisoned/i, /provides? (every type of )?\{?[a-z]*\}? ?energy/i, /if this pok[eé]mon has any damage counters/i,
   /for each prize card/i, /is now poisoned/i,
+  // usados pelo simulador
+  /put \d+ damage counters on your opponent.s benched/i, /damage to (1|2|each) of your opponent.s benched/i,
+  /during your next turn, this pok[eé]mon can.t/i, /discard (all|\d+|an?) energy from this pok[eé]mon/i, /this pok[eé]mon takes \d+ more damage/i,
+  /gets \+\d+ hp/i, /can use the attacks of any of your benched/i, /weakness of each of your opponent/i,
+  /whenever any player puts a basic/i, /can.t play any item cards/i,
 ];
 
 const FAMILIES = [

@@ -53,6 +53,8 @@ export function parseDeck(text, db) {
     }
     // Legalidade vale pelo nome: impressão antiga é legal se existe reimpressão legal.
     if (!card) card = db.byName.get(normName(name))?.[0] ?? null;
+    // Nome em português ("Folhas Férreas ex" → Iron Leaves ex)
+    if (!card && db.ptNames?.has(normName(name))) card = db.byName.get(normName(db.ptNames.get(normName(name))))?.[0] ?? null;
     if (!card && setCode) {
       // O regex pode ter "comido" parte do nome achando que era set+número
       card = db.byName.get(normName(`${name} ${setCode} ${num}`))?.[0] ?? null;

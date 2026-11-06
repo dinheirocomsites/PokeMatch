@@ -189,7 +189,29 @@ export function extractTags(card) {
       const fewer = s.match(/takes? (\d+) fewer prize/i);
       if (fewer) tags.push({ ...base, kind: 'PRIZE_DENIAL', amount: +fewer[1], once: /can.t be applied more than once/i.test(full) });
       // 9) Disrupção de mão
-      if (/your opponent (shuffles|reveals) their hand/i.test(s) || /opponent shuffles their hand/i.test(s)) tags.push({ ...base, kind: 'HAND_DISRUPT' });
+      if (/your opponent (shuffles|reveals) their hand/i.test(s) || /opponent shuffles their hand/i.test(s) || /discard (a random card|\d+ cards?) from your opponent.s hand|your opponent discards (a|\d+) cards?/i.test(s)) tags.push({ ...base, kind: 'HAND_DISRUPT' });
+      // 10) Condições especiais no Ativo do oponente
+      const st = s.match(/your opponent.s active pok[eé]mon is now (asleep|paralyzed|confused|burned|poisoned)/i) || s.match(/the defending pok[eé]mon is now (asleep|paralyzed|confused|burned|poisoned)/i);
+      if (st) tags.push({ ...base, kind: 'STATUS', status: st[1].toLowerCase() });
+      // 11) Desvantagem do próprio ataque
+      if (b.source === 'attack' && (/during your next turn, this pok[eé]mon can.t (attack|use)/i.test(s) || (/discard (all|\d+|an?) energy from this pok[eé]mon/i.test(s) && !/you may/i.test(s)) || /this pok[eé]mon takes \d+ more damage/i.test(s) || /this pok[eé]mon also does \d+ damage to itself/i.test(s))) {
+        tags.push({ ...base, kind: 'DRAWBACK', what: /can.t (attack|use)/i.test(s) ? 'noAttack' : /discard/i.test(s) ? 'discardEnergy' : /takes/i.test(s) ? 'takesMore' : 'selfDamage' });
+      }
+      // 12) Cura
+      const heal = s.match(/heal (\d+|all) damage from (1 of your|each of your|this|your active|all of your)/i);
+      if (heal) tags.push({ ...base, kind: 'HEAL', amount: heal[1] === 'all' ? 999 : +heal[1], scope: /each of your|all of your/i.test(heal[2]) ? 'all' : 'one' });
+      // 13) Troca/recuo dos seus Pokémon e prender o do oponente
+      if (/switch (your active pok[eé]mon|this pok[eé]mon) with 1 of your benched/i.test(s) || /your (basic )?pok[eé]mon in play have no retreat cost|retreat cost is .*less/i.test(s)) tags.push({ ...base, kind: 'SWITCH' });
+      if (/the defending pok[eé]mon can.t retreat|your opponent.s active pok[eé]mon can.t retreat/i.test(s)) tags.push({ ...base, kind: 'TRAP' });
+      // 14) Mover energia entre os seus Pokémon
+      if (/move (a|an|up to \d+|any amount of|all) (basic )?(\{[a-z]\} )?energy from (1 of )?your/i.test(s)) tags.push({ ...base, kind: 'ENERGY_MOVE' });
+      // 15) Colocar contadores de dano no oponente (fora "mover")
+      const pc = s.match(/put (\d+) damage counters? on (1 of )?your opponent.s (pok[eé]mon|benched pok[eé]mon|active pok[eé]mon)/i) || s.match(/place (\d+) damage counters? on (1 of )?your opponent.s (pok[eé]mon|benched pok[eé]mon|active pok[eé]mon)/i);
+      if (pc && !/in any way you like/i.test(s)) tags.push({ ...base, kind: 'PLACE_COUNTERS', amount: +pc[1] * 10, where: pc[3].toLowerCase() });
+      else if (pc) tags.push({ ...base, kind: 'PLACE_COUNTERS', amount: +pc[1] * 10, where: 'any', spread: true });
+      // 16) HP extra (Ferramenta)
+      const hpb = s.match(/gets \+(\d+) hp/i);
+      if (hpb) tags.push({ ...base, kind: 'HP_BOOST', amount: +hpb[1] });
     }
   }
   // Estádios sempre "removem" o estádio do oponente ao serem jogados

@@ -17,8 +17,14 @@ test('esquema: só tipos que o motor usa; objetos fechados; poucos campos com un
   assert.deepEqual(eff.properties.kind.enum, Object.keys(KINDS));
   assert.equal(eff.additionalProperties, false);
   assert.equal(RESPONSE_SCHEMA.properties.items.items.additionalProperties, false);
-  const unions = Object.values(eff.properties).filter((p) => Array.isArray(p.type)).length;
-  assert.ok(unions <= 16, `${unions} campos com união`);
+  // a API recusa enum com null misturado a tipo-lista: o esquema não usa null nem união de tipos
+  const unions = Object.values(eff.properties).filter((p) => Array.isArray(p.type) || p.anyOf).length;
+  assert.equal(unions, 0);
+  for (const p of Object.values(eff.properties)) if (p.enum) assert.ok(p.enum.every((v) => typeof v === 'string'));
+  // "vazio" (0 / "" / "none") é aceito e vira ausente
+  const v = validateEffect('Flip a coin. If heads, this attack does 60 more damage.', { kind: 'EXTRA_DMG', amount: 60, target: '', status: 'none', scope: 'none', conditions: [] });
+  assert.equal(v.ok, true);
+  assert.equal(v.effect.target, undefined);
 });
 
 test('validador: aceita o que o texto diz e recusa número inventado, tipo errado e condição trocada', () => {

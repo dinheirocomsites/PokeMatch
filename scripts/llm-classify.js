@@ -44,10 +44,10 @@ const SYSTEM = `Você classifica efeitos de cartas do Pokémon TCG (formato Stan
 Para cada frase, responda com os efeitos táticos que ela tem, usando SÓ estes tipos:
 ${KIND_DOC}
 Regras:
-- "amount" é sempre em pontos de dano (contadores × 10); para PRIZE_DENIAL, número de prêmios. Use null quando não houver número.
-- "target": quem é afetado, em inglês do próprio texto (ex.: "Pokémon ex", "Basic Pokémon", "{R} Pokémon"); null se for qualquer um.
-- "status": só para STATUS (asleep, paralyzed, confused, burned, poisoned).
-- "scope": one/all/active/bench quando fizer sentido; senão null.
+- "amount" é sempre em pontos de dano (contadores × 10); para PRIZE_DENIAL, número de prêmios. Use 0 quando não houver número.
+- "target": quem é afetado, em inglês do próprio texto (ex.: "Pokémon ex", "Basic Pokémon", "{R} Pokémon"); "" se for qualquer um.
+- "status": só para STATUS (asleep, paralyzed, confused, burned, poisoned); nos outros tipos, "none".
+- "scope": one/all/active/bench quando fizer sentido; senão "none".
 - "conditions": coin (moeda), active (só no Ativo), bench (só no banco), once (1 vez por jogo), afterKO (depois de um nocaute).
 - Se a frase não tem efeito que se encaixe, use [{"kind":"NONE",...}] e explique no resumo.
 - Nunca invente números que não estão no texto.

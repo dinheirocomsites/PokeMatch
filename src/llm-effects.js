@@ -53,12 +53,13 @@ export const RESPONSE_SCHEMA = {
               type: 'object',
               additionalProperties: false,
               required: ['kind', 'amount', 'target', 'status', 'scope', 'conditions'],
+              // sem null: a API não aceita enum com null misturado a tipo-lista → "vazio" é 0 / "" / "none"
               properties: {
                 kind: { type: 'string', enum: Object.keys(KINDS) },
-                amount: { type: ['integer', 'null'] },
-                target: { type: ['string', 'null'] },
-                status: { type: ['string', 'null'], enum: [...STATUSES, null] },
-                scope: { type: ['string', 'null'], enum: ['one', 'all', 'active', 'bench', null] },
+                amount: { type: 'integer' },
+                target: { type: 'string' },
+                status: { type: 'string', enum: [...STATUSES, 'none'] },
+                scope: { type: 'string', enum: ['one', 'all', 'active', 'bench', 'none'] },
                 conditions: { type: 'array', items: { type: 'string', enum: CONDS } },
               },
             },
@@ -70,7 +71,9 @@ export const RESPONSE_SCHEMA = {
 };
 
 // Confere um efeito contra a frase. Devolve { ok, effect } ou { ok: false, why }.
-export function validateEffect(sentence, e) {
+export function validateEffect(sentence, e0) {
+  // "vazio" do esquema (0, "", "none") vira ausente
+  const e = e0 && { ...e0, amount: e0.amount || null, target: e0.target || null, status: e0.status === 'none' ? null : e0.status, scope: e0.scope === 'none' ? null : e0.scope };
   const spec = KINDS[e?.kind];
   if (!spec) return { ok: false, why: `tipo desconhecido: ${e?.kind}` };
   const s = sentence ?? '';

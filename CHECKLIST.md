@@ -57,7 +57,7 @@ Legenda: [x] feito · [~] em andamento · [ ] a fazer
 - [x] Corrigidos falsos positivos: "dano de 40 ou menos" (Roggenrola), "só se nocautear" (Golisopod/Marshadow)
 - [x] **Correção (feedback):** simulador agora considera energia por turno (atacante novo precisa ser energizado), custo de Boss/energia, nocautear o Ativo antes de gastar Boss, e mostra quem está no Ativo em cada turno → linha certa: Pecharunt ex mata o Ogerpon (60×3+30) sem Boss
 - [x] Linha alternativa de jogo + anti-sinergia detectada: Legacy Energy reduz o dano do Pecharunt ex (menos prêmios tomados)
-- [x] Cada erro apontado pelo jogador vira **teste permanente** (36 testes ✅)
+- [x] Cada erro apontado pelo jogador vira **teste permanente** (42 testes ✅)
 - [x] **Passo para trás (feedback):** diagnóstico primeiro — "por que ESTE deck perde ESTE matchup" (quem mata seu atacante, troca de prêmios, banco cheio)
 - [x] **Filtro de relevância:** só sugere o que bloqueia quem mata seu atacante, vira a corrida na simulação ou reduz prêmios entregues; o resto vai para "descartadas" com o motivo
 - [x] **Espaço no banco** do plano do deck entra no peso (Sharpedo: banco cheio com Pecharunt, Toxtricity, Munkidori, Fezandipiti + Carvanha)
@@ -82,6 +82,9 @@ Legenda: [x] feito · [~] em andamento · [ ] a fazer
 - [x] Simulador: muralha por ataque (Covert Flight) + **oponente usa Boss para contornar muralhas**
 - [x] Corrida pesa mais na nota (10 pontos por prêmio de margem); tech que quase não muda a corrida perde impacto
 - [x] **Custo total da troca** (feedback): vagas, papel de cada carta que sai (ex.: Judge = disrupção + compra), tempo, banco, energia de outro tipo, prêmios, ACE SPEC e consistência medida
+- [x] **Validações pendentes implementadas** (verificador genérico, em toda tech): Tera/Ancient/Future, custo de descarte, "não soma" (1 habilidade por turno), 1x por jogo, 1º turno/quem começa, tabuleiro do oponente, tamanho da mão (42 testes ✅)
+- [x] **Site em arquivo único** (`npm run build:single` → `dist-single/pokematch.html`, 2 MB): motor + cartas + exemplos, roda em qualquer hospedagem (Lovable, Netlify…) ou direto do disco
+- [ ] Cérebro com IA (API do Claude): aguardando a chave do Felipe
 - [ ] Validar contra Hydrapple — aguardando a lista do Felipe
 - [ ] Ensinar as frases restantes do relatório de lacunas (cauda longa)
 - [ ] Caminho "⭐ ACE SPEC de consistência" (ex.: Secret Box × Unfair Stamp) medido no simulador de consistência
@@ -99,7 +102,7 @@ Legenda: [x] feito · [~] em andamento · [ ] a fazer
 - [x] Visual UAAAU 🔥: carta holográfica que inclina com o mouse, anéis de nota animados, confete, Pokébola de loading
 
 ## Fase 7 — Validação
-- [x] Caso de teste real: Mega Sharpedo ex × Basic Box → **#1 Farigiraf ex** com o pacote Girafarig TWM + Energia Psíquica e todos os combos (36 testes ✅)
+- [x] Caso de teste real: Mega Sharpedo ex × Basic Box → **#1 Farigiraf ex** com o pacote Girafarig TWM + Energia Psíquica e todos os combos (42 testes ✅)
 - [ ] Testar com mais 3 matchups do meta
 - [x] Publicar: versão privada no claude.ai ✅
 - [x] Repositório no GitHub: https://github.com/dinheirocomsites/PokeMatch

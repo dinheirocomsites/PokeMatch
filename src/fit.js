@@ -5,6 +5,7 @@
 //   risco     — o que passa pela muralha nocauteia ela? prêmios entregues? Boss contorna?
 import { attackDamage, matches, typePt, parseSelector, extractTags } from './tags.js';
 import { multiplier, damageVs } from './damage.js';
+import { requirements } from './diagnosis.js';
 
 const ENERGY_PT = { Grass: 'Planta', Fire: 'Fogo', Water: 'Água', Lightning: 'Elétrica', Psychic: 'Psíquica', Fighting: 'Lutadora', Darkness: 'Escuridão', Metal: 'Metálica' };
 const STATUS_PT = { confused: 'Confuso', poisoned: 'Envenenado', burned: 'Queimado', asleep: 'Adormecido', paralyzed: 'Paralisado' };
@@ -119,13 +120,11 @@ export function evaluateFit(card, used, reasons, meBase, opp, db, opt = null) {
     }
     add('recursos', wCard.length >= 2 ? 1 : wCard.length ? 0.92 : 0.8, `${wCard.length >= 2 ? '✓' : '⚠'} ${card.name} sai com: ${wCard.join(', ') || 'nenhuma busca'}.`);
   }
-  // Requisitos escritos na carta ("only if you have any X in play")
-  const req = card.text.match(/only if you have (?:any )?(.+?) in play/i);
-  if (req) {
-    const sel = parseSelector(req[1]);
-    const ok = me.entries.some((e) => matches(sel, e.card));
-    add('recursos', ok ? 1 : 0.1, ok ? `✓ Requisito atendido: ${req[1]}.` : `✗ Exige ${req[1]} em jogo — seu deck não tem.`);
-  }
+  // Requisitos escritos na carta (verificador genérico: Tera/Ancient/Future, energia {X}, alvo {X}/Estágio 2,
+  // custo de descarte, "não soma", 1º turno, tabuleiro do oponente, tamanho da mão, "se você tem X em jogo"…)
+  const req = requirements(card, meBase, opp);
+  if (!req.ok) add('recursos', 0.1, `✗ ${req.note}.`);
+  else if (req.note) add('recursos', req.factor, `⚠ ${req.note[0].toUpperCase()}${req.note.slice(1)}.`);
   if (card.trainerType && me.search.trainer) notes.recursos.push("✓ Buscável com Team Rocket's Petrel.");
 
   // Tempo de energização: quantas ligações para o ataque que dá o valor (1 ligação manual por turno)

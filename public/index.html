@@ -228,7 +228,8 @@ const KEY = 'techfinder:v1';
 try { const saved = JSON.parse(localStorage.getItem(KEY) || '{}'); $('#mine').value = saved.mine || ''; $('#opp').value = saved.opp || ''; $('#ctx').value = saved.context || ''; } catch {}
 
 $('#example').onclick = async () => {
-  const [a, b] = await Promise.all(['sharpedo.txt', 'basic-box.txt'].map((f) => fetch('examples/' + f).then((r) => r.text())));
+  const getEx = (f) => (window.POKEMATCH_EXAMPLES?.[f] != null ? Promise.resolve(window.POKEMATCH_EXAMPLES[f]) : fetch('examples/' + f).then((r) => r.text()));
+  const [a, b] = await Promise.all(['sharpedo.txt', 'basic-box.txt'].map(getEx));
   $('#mine').value = a; $('#opp').value = b;
   $('#ctx').value = 'Meu problema é a corrida de prêmios: morro em um hit para Ogerpon ou Folhas Férreas e entrego 3 prêmios de uma vez, enquanto quando eu mato pego só 2. Assim a conta não fecha.';
 };
@@ -297,6 +298,10 @@ async function runAnalysis(payload) {
   if (!window.TF_STATIC) {
     const res = await fetch('/api/analyze', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) });
     return { res, data: await res.json() };
+  }
+  if (!localEngine && window.TF_INLINE && window.PokeMatch) {
+    // Versão arquivo único: motor e base já estão dentro da página
+    localEngine = { db: window.PokeMatch.buildDb(window.POKEMATCH_DATA), analyze: window.PokeMatch.analyze, toJson: window.PokeMatch.toJson };
   }
   if (!localEngine) {
     $('#loadingText').textContent = 'Carregando as 3.000+ cartas do Standard (só na primeira vez)…';

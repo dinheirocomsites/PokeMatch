@@ -1,7 +1,7 @@
 // Diagnóstico por EIXOS: em vez de procurar um único tipo de problema ("quem mata meu atacante"),
 // mede cada coisa que o plano do oponente faz contra o SEU deck e quanto isso machuca.
 // Cada eixo traz evidências e os tipos de carta que respondem a ele.
-import { extractTags, matches } from './tags.js';
+import { extractTags, matches, parseSelector, TERA, ANCIENT, isFuture } from './tags.js';
 
 const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
 const list = (arr, n = 4) => [...new Set(arr)].slice(0, n).join(', ');
@@ -76,7 +76,7 @@ export function diagnoseDisruption(me, opp) {
     if (hit.length) axes.push({ key: 'ability_lock', severity: clamp(hit.length / 4), evidence: `${list(aLock.map((t) => t.card.name))} desliga habilidades de ${list(hit.map((e) => e.card.name))}.` });
   }
 
-  return { axes: axes.sort((a, b) => b.severity - a.severity), tips };
+  return { axes: axes.sort((a, b) => b.severity - a.severity), tips, opp };
 }
 
 // Counters de disrupção que uma carta oferece (etiquetas novas, lidas do texto)
@@ -98,10 +98,21 @@ export function counterTags(card) {
 
 // Requisitos escritos na carta, conferidos contra o SEU deck. Retorna { ok, factor, note }.
 const SYMT = { G: 'Grass', R: 'Fire', W: 'Water', L: 'Lightning', P: 'Psychic', F: 'Fighting', D: 'Darkness', M: 'Metal', N: 'Dragon' };
-export function requirements(card, me) {
+export function requirements(card, me, opp = null) {
   const t = (card.text ?? '').replace(/\([^)]*\)/g, ' ');
   const notes = [];
   let factor = 1;
+  // Tera / Ancient / Future: "se você tem Pokémon Tera em jogo", "no seu Pokémon Ancient", "Future Pokémon in play"
+  const trait = t.match(/(?:if you have any|your|of your) (tera|ancient|future) pok[eé]mon/i) || (/(only if|as long as) /i.test(t) && t.match(/(tera|ancient|future) pok[eé]mon in play/i));
+  if (trait) {
+    const kind = trait[1].toLowerCase();
+    const has = me.entries.some((e) => e.card.category === 'Pokemon' && (kind === 'tera' ? TERA.has(e.card.name) : kind === 'ancient' ? ANCIENT.has(e.card.name) : isFuture(e.card.name)));
+    const PT = { tera: 'Tera', ancient: 'Ancient (Antigo)', future: 'Future (Futuro)' }[kind];
+    if (!has) {
+      if (/only if|you can use this card only/i.test(t) || card.category === 'Trainer') return { ok: false, note: `exige Pokémon ${PT} — seu deck não tem` };
+      factor *= 0.5; notes.push(`parte do efeito depende de Pokémon ${PT}, que seu deck não tem`);
+    }
+  }
   const inPlay = t.match(/if you have (?:any )?([A-Z][\w' .-]+?) in play/);
   if (inPlay && !/pok[eé]mon/i.test(inPlay[1]) && !me.names.has(inPlay[1].trim())) return { ok: false, note: `exige ${inPlay[1].trim()} em jogo — seu deck não tem` };
   const discE = t.match(/discard a basic \{([A-Z])\} energy/i);
@@ -113,6 +124,30 @@ export function requirements(card, me) {
   const typedE = t.match(/basic \{([A-Z])\} energy cards? from your discard/i);
   if (typedE && !(me.energyByType?.[SYMT[typedE[1].toUpperCase()]] > 0)) return { ok: false, note: `recupera só energia ${SYMT[typedE[1].toUpperCase()]} — seu deck não tem` };
   if (/only when it is the last card in your hand/i.test(t)) { factor *= 0.55; notes.push('só quando for a última carta da mão'); }
+  // Custo de descarte ("só se descartar N cartas da mão")
+  const disc = t.match(/only if you discard (\d+) (?:other )?cards? from your hand|discard (\d+) cards? from your hand/i);
+  if (disc) { const n = +(disc[1] ?? disc[2]); factor *= n >= 3 ? 0.85 : 0.93; notes.push(`custa descartar ${n} carta${n > 1 ? 's' : ''} da mão`); }
+  // "Não soma": só 1 habilidade com esse nome por turno — se você já tem, a cópia nova não acrescenta
+  const once = t.match(/can.t use more than 1 (.+?) ability each turn/i);
+  if (once && me.entries.some((e) => e.card.name !== card.name && (e.card.abilities ?? []).some((a) => a.name.toLowerCase() === once[1].toLowerCase()))) { factor *= 0.3; notes.push(`não soma: você já tem a habilidade "${once[1]}" e só uma funciona por turno`); }
+  if (/can.t be applied more than once|once per game/i.test(t)) notes.push('efeito só 1 vez por jogo');
+  // Primeiro turno / ir primeiro ou segundo
+  if (/if you go (first|second)[^.]*can.t|during your first turn[^.]*can.t|can.t [^.]*during your first turn/i.test(t)) { factor *= 0.95; notes.push('não funciona no seu 1º turno em algumas situações (quem começa / quem vai segundo)'); }
+  // Depende do tabuleiro do oponente ("se o oponente tiver Pokémon X em jogo")
+  const oppAny = t.match(/if your opponent has any ([^,.]+?) in play/i);
+  if (oppAny && opp) {
+    const sel = parseSelector(oppAny[1]);
+    const hasIt = Object.keys(sel).length && !sel.unknown ? opp.entries.some((e) => matches(sel, e.card)) : null;
+    if (hasIt === false) {
+      if (/only if/i.test(t)) return { ok: false, note: `só funciona se o oponente tiver ${oppAny[1]} — este deck não tem` };
+      factor *= 0.5; notes.push(`parte do efeito depende de o oponente ter ${oppAny[1]} — este deck não tem`);
+    }
+  }
+  const oppBench = t.match(/if your opponent has (\d+) or more benched pok[eé]mon/i);
+  if (oppBench && opp && !opp.bigBench && +oppBench[1] > 4) { factor *= 0.8; notes.push(`depende de o oponente ter ${oppBench[1]}+ Pokémon no banco`); }
+  // Tamanho da mão
+  const hand = t.match(/if you have (\d+) or (more|fewer) cards in your hand/i);
+  if (hand) { factor *= 0.8; notes.push(`depende de você ter ${hand[1]} ou ${hand[2] === 'more' ? 'mais' : 'menos'} cartas na mão`); }
   if (/only if you have more prize cards remaining than your opponent/i.test(t)) { factor *= 0.7; notes.push('só quando você estiver atrás nos prêmios'); }
   return { ok: true, factor, note: notes.join('; ') };
 }
@@ -129,7 +164,7 @@ const WHY = {
 // Valor de uma carta contra os eixos diagnosticados
 export function disruptionValue(card, diag, me) {
   const reasons = [];
-  const req = me ? requirements(card, me) : { ok: true, factor: 1, note: '' };
+  const req = me ? requirements(card, me, diag.opp) : { ok: true, factor: 1, note: '' };
   if (!req.ok) return [];
   const itemLock = diag.axes.find((a) => a.key === 'item_lock');
   for (const t of counterTags(card)) {

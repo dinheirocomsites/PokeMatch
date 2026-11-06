@@ -8,7 +8,11 @@
     "start": "node src/server.js",
     "test": "node --test test/*.test.js",
     "build": "node scripts/build-static.js",
-    "audit": "node scripts/audit-damage.js"
+    "audit": "node scripts/audit-damage.js",
+    "build:single": "node scripts/build-single.js"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "esbuild": "^0.24.2"
+  }
 }

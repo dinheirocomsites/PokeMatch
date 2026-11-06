@@ -7,7 +7,11 @@ import { prepareStrategy, verifyStrategy } from '../src/strategist.js';
 const url = process.env.PM_URL || readFileSync(new URL('../deploy/strategist-url.txt', import.meta.url), 'utf8').trim();
 const db = loadDb();
 const read = (f) => readFileSync(new URL(`../test/decks/${f}`, import.meta.url), 'utf8');
-const prep = prepareStrategy({ myText: read('sharpedo.txt'), oppText: read('slowking.txt'), context: 'Morro para o kyurem e depois nao volto mais', db });
+// Par de decks e dor configuráveis (padrão: Sharpedo × Slowking, a dor original do Felipe)
+const mineF = process.env.PM_MINE || 'sharpedo', oppF = process.env.PM_OPP || 'slowking';
+const pain = process.env.PM_PAIN ?? 'Morro para o kyurem e depois nao volto mais';
+console.log(`Confronto: ${mineF} × ${oppF} · dor: ${pain || '(nenhuma)'}`);
+const prep = prepareStrategy({ myText: read(`${mineF}.txt`), oppText: read(`${oppF}.txt`), context: pain, db });
 console.log(`Servidor: ${url}\nFicha: ${prep.facts.length} caracteres`);
 const t0 = Date.now();
 const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', origin: 'https://dinheirocomsites.github.io' }, body: JSON.stringify({ facts: prep.facts }) });

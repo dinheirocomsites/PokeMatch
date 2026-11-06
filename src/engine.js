@@ -519,7 +519,7 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
   }
   const killerNames = killers.map((k) => k.name);
   const diagnosis = [];
-  if (killers.length) diagnosis.push(`${killers.map((k) => k.name).join(' e ')} nocauteiam ${main.name} (${main.hp} HP) em 1 ataque${killers.some((k) => k.weak) ? ` — fraqueza a ${typePt(main.weaknesses[0].type)}` : ''}.`);
+  if (killers.length) diagnosis.push(`${killers.map((k) => k.name).join(' e ')} ${killers.length > 1 ? 'nocauteiam' : 'nocauteia'} o ${main.name} (${main.hp} HP) em 1 ataque${killers.some((k) => k.weak) ? ` — fraqueza a ${typePt(main.weaknesses[0].type)}` : ''}.`);
   if (killers.length && main.prizeValue > Math.min(...killers.map((k) => k.prize))) diagnosis.push(`Troca desfavorável: você entrega ${main.prizeValue} prêmios por ${main.name} e pega ${Math.min(...killers.map((k) => k.prize))} ao nocautear ${killers.length > 1 ? 'eles' : 'ele'}.`);
   if (naive) diagnosis.push(`Jogando só com ${main.name}: ${describe(naive.best)}.${baseRace.best.win && !naive.best.win ? ` Com a melhor ordem da sua lista dá para virar (${describe(baseRace.best)}) — a tech certa deve deixar isso mais seguro.` : ''}`);
   for (const ax of disruption.axes) if (ax.severity >= 0.3) diagnosis.push(`${AXES[ax.key].label}: ${ax.evidence}`);
@@ -755,7 +755,21 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
   candidates.sort((a, b) => (b.relevance ? 1 : 0) - (a.relevance ? 1 : 0) || b.score - a.score);
   for (let i = 0; i < candidates.length; i++) { if (seenName.has(candidates[i].card.name)) { candidates.splice(i, 1); i--; } else seenName.add(candidates[i].card.name); }
   candidates.sort((a, b) => b.score - a.score);
-  // Uma carta por "família" de motivo principal dominante não é necessário; mantemos variedade simples
+  // Uma ideia por FAMÍLIA: Supporters de "mais dano" (Black Belt's Training, Kieran…) fazem a mesma coisa e apareciam
+  // juntos em quase toda análise, ocupando dois lugares com uma ideia só. Fica a melhor; as outras viram "alternativa".
+  const famOf = (c) => (c.card.trainerType === 'Supporter' && ['KO_GAP', 'EXTRA_DMG'].includes(c.reasons[0]?.kind) && extractTags(c.card).some((t) => t.kind === 'EXTRA_DMG') ? 'supporter-dano' : null);
+  const famBest = new Map();
+  for (let i = 0; i < candidates.length; i++) {
+    const fam = famOf(candidates[i]);
+    if (!fam) continue;
+    const best = famBest.get(fam);
+    if (!best) { famBest.set(fam, candidates[i]); continue; }
+    const alt = candidates[i];
+    const amt = Math.max(0, ...extractTags(alt.card).filter((t) => t.kind === 'EXTRA_DMG').map((t) => t.amount ?? 0));
+    (best.alternatives ??= []).push(alt.card.name);
+    best.reasons[0] = { ...best.reasons[0], why: `${best.reasons[0].why} Alternativa com a mesma função: ${alt.card.name}${amt ? ` (+${amt})` : ''}.` };
+    candidates.splice(i, 1); i--;
+  }
   let relevantList = candidates.filter((c) => c.relevance && c.score >= 20);
   // Nunca devolver vazio: se nada resolve com segurança, mostra as melhores ideias marcadas como tal
   if (!relevantList.length) {

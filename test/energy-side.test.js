@@ -110,3 +110,15 @@ test('foco: o que você cita na dor também é o alvo (Moltres derruba Ogerpon e
   const m = r.suggestions.find((s) => s.card.name === 'Moltres');
   assert.ok(m.reasons.some((x) => x.kind === 'MAIN_FOCUS' && /Iron Leaves ex/.test(x.why)), m.reasons.map((x) => x.why).join(' | '));
 });
+
+test('Hydrapple ex + Meganium (Felipe, Dragapult × Hydrapple): Syrup Storm conta {G} em todos os Pokémon e em dobro', () => {
+  const h = prof('hydrapple'), d = prof('dragapult-felipe');
+  assert.equal(h.mainAttacker.name, 'Hydrapple ex'); // antes: Teal Mask Ogerpon ex
+  const hy = h.entries.find((e) => e.card.name === 'Hydrapple ex').card;
+  const dg = d.entries.find((e) => e.card.name === 'Dragapult ex').card;
+  assert.ok(damageVs(atk(hy, 'Syrup Storm'), hy, dg, { deck: h, defDeck: d }).dmg >= dg.hp, 'nocauteia o Dragapult ex de uma vez');
+  const r = analyze(deckText('dragapult-felipe'), deckText('hydrapple'), db, { limit: 12 });
+  assert.ok(r.diagnosis.some((x) => /Hydrapple ex nocauteia/.test(x)), r.diagnosis.join(' | '));
+  const names = r.suggestions.map((s) => s.card.name);
+  assert.ok(!(names.includes("Black Belt's Training") && names.includes('Kieran')), 'mesma ideia não ocupa dois lugares');
+});

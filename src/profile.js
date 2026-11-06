@@ -1,9 +1,10 @@
 // Perfil de um deck: de onde vem o poder de ataque, do que ele depende,
 // fraquezas, tipos de energia, buscas disponíveis etc.
-import { maxDamage, TERA, extractTags, ownerOf, ownerSearches, copyAttackOf, topStacker } from './tags.js';
+import { maxDamage, attackDamage, TERA, extractTags, ownerOf, ownerSearches, copyAttackOf, topStacker } from './tags.js';
+import { damageVs } from './damage.js';
 
-export function threatOf(card) {
-  const d = maxDamage(card);
+export function threatOf(card, dmg = null) {
+  const d = dmg ?? maxDamage(card);
   return d ? Math.max(0.2, d / 100) : 0.1;
 }
 
@@ -55,10 +56,18 @@ export function profileDeck(parsed) {
   }
   const energySearch = entries.some((e) => /search your deck for [^.]*basic energy/i.test(e.card.text));
   const eDeck = { energyByType, anyEnergy, energySearch };
+  // Ameaça de ataque VARIÁVEL ("30+", "50×") medida com o PRÓPRIO deck — energia em jogo, aceleração, efeitos que
+  // dobram energia, banco… — e não pela regra fixa "30+ ≈ 90". Caso: Hydrapple ex "Syrup Storm" com Meganium passa de
+  // 300 e o motor achava que o atacante principal era o Ogerpon. Só corrige para cima (o fixo continua como piso).
+  const selfDeck = { entries, energyByType, anyEnergy, counts: { energy: sum(energy), basicEnergy: sum(energy.filter((e) => e.card.isBasicEnergy)), specialEnergy: sum(energy.filter((e) => e.card.isSpecialEnergy)), tool: sum(trainers.filter((e) => e.card.trainerType === 'Tool')), basic: sum(pokemon.filter((e) => (e.card.stage ?? 'Basic') === 'Basic')) } };
+  const NEUTRAL = { category: 'Pokemon', name: '?', hp: 999, types: [], weaknesses: [], resistances: [], isEx: true, stage: 'Basic' };
+  // só para dano "para cada …" (energia em jogo, banco…): bônus opcional/condicional ("pode descartar 3 {M} para +150",
+  // moeda) não é sustentável todo turno e fica na regra fixa — senão o Metagross passava o Mega Excadrill ex
+  const deckDamage = (card) => Math.max(maxDamage(card), ...(card.attacks ?? []).filter((a) => /[+×x]$/.test(String(a.damage ?? '')) && /for each/i.test(a.effect ?? '') && !/flip|coin/i.test(a.effect ?? '')).map((a) => damageVs(a, card, NEUTRAL, { deck: selfDeck, oppTaken: 3 }).dmg));
   const threat = pokemon.map((e) => {
     const atks = (e.card.attacks ?? []).filter((a) => maxDamage({ attacks: [a] }) > 0);
     const feas = atks.length ? atks.map((a) => ({ a, ...attackFeasibility(a, eDeck) })).sort((x, y) => y.f - x.f)[0] : { f: 1, missing: [] };
-    return { ...e, feas: feas.f, feasMissing: feas.missing, threat: e.count * threatOf(e.card) * (atks.length ? Math.max(feas.f, 0) : 1) };
+    return { ...e, feas: feas.f, feasMissing: feas.missing, threat: e.count * threatOf(e.card, deckDamage(e.card)) * (atks.length ? Math.max(feas.f, 0) : 1) };
   });
   // Degraus de evolução (Dreepy → Drakloak → Dragapult): quem evolui para um atacante mais forte do mesmo deck
   // passa a maior parte do jogo como degrau, não como atacante — conta só uma fração do poder de ataque

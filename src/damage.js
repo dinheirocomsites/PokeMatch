@@ -128,13 +128,24 @@ function energyEach(e, deck, ctx) {
     if (T && theirs) { const all = d.counts.energy || n; return Math.max(1, Math.round(base * Math.min(1, n / all))); } // ele liga o que o deck dele tem
     return base;
   };
-  if (/^this pok/i.test(who)) return side(deck, special ? 1 : 3, false);
+  if (/^this pok/i.test(who)) return side(deck, special ? 1 : 3, false) * (T ? doubles(deck, T) : 1);
   if (/opponent's active/i.test(who)) return side(ctx.defDeck, special ? 2 : 3, true);
   if (/opponent's/i.test(who)) return side(ctx.defDeck, 3, true);
   if (/^both active/i.test(who)) { const a = side(deck, 2, false), b = side(ctx.defDeck, 3, true); return a === null || b === null ? null : a + b; }
   if (/^all pok/i.test(who)) { const a = side(deck, 1.5, false), b = side(ctx.defDeck, 1.5, true); return a === null || b === null ? null : a + b; }
-  return side(deck, 3, false); // os seus Pokémon (inclusive "your Iono's Pokémon")
+  // os seus Pokémon (inclusive "your Iono's Pokémon"): quantas dessas energias o deck costuma ter EM JOGO, somando
+  // todos os Pokémon — mais com aceleração (Teal Dance, Ripening Charge…); em dobro se algo faz cada uma valer 2
+  // (Meganium "Wild Growth": cada {G} básica vale {G}{G} → Hydrapple ex "Syrup Storm" passa de 300)
+  const onBoard = side(deck, 3, false);
+  if (!onBoard || !deck?.entries) return onBoard;
+  const n = count(deck, kind, T) || 0;
+  const est = n ? Math.max(2, Math.min(10, Math.round(n * (accelerates(deck) ? 0.45 : 0.3)))) : onBoard;
+  return est * (T ? doubles(deck, T) : 1);
 }
+// O deck liga energia além da 1 por turno? (habilidade que liga energia da mão/deck/descarte)
+const accelerates = (deck) => ents(deck).some((x) => x.card.category === 'Pokemon' && (x.card.abilities ?? []).some((a) => /attach (a|up to \d+|\d+) (basic )?(\{[a-z]\} )?energy/i.test(a.effect ?? '')));
+// Alguma carta faz cada Energia básica {X} valer {X}{X}? (Meganium "Wild Growth")
+const doubles = (deck, T) => (ents(deck).some((x) => { const m = (x.card.text ?? '').match(/each basic \{([a-z])\} energy attached to (?:all of )?your pok[eé]mon provides \{\1\}\{\1\}/i); return m && SYMK[m[1].toUpperCase()] === T; }) ? 2 : 1);
 
 // Chance de o ataque FUNCIONAR quando o texto diz "…, this attack does nothing". Antes o motor só "lia" a frase e
 // contava o dano cheio: Ceruledge "Infernal Slash" (descarte 4 Energias {R} básicas da mão, senão não faz nada) virava

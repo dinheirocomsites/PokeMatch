@@ -9,6 +9,18 @@ on:
         description: 'Endereço do servidor (vazio = deploy/strategist-url.txt)'
         required: false
         default: ''
+      mine:
+        description: 'Seu deck (arquivo em test/decks, sem .txt)'
+        required: false
+        default: 'sharpedo'
+      opp:
+        description: 'Deck do oponente (arquivo em test/decks, sem .txt)'
+        required: false
+        default: 'slowking'
+      pain:
+        description: 'Dor do jogador (opcional)'
+        required: false
+        default: 'Morro para o kyurem e depois nao volto mais'
 
 permissions:
   contents: read
@@ -24,4 +36,7 @@ jobs:
       - name: Leitura real pelo servidor publicado
         env:
           PM_URL: ${{ inputs.url }}
+          PM_MINE: ${{ inputs.mine }}
+          PM_OPP: ${{ inputs.opp }}
+          PM_PAIN: ${{ inputs.pain }}
         run: node scripts/strategist-remote-test.js

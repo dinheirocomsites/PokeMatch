@@ -12,6 +12,18 @@
 | Rodada 6 (famílias que mudam o cálculo + buscas na simulação de mão) | 87% lido · 80% usado · 13% testado | 100% | 96 |
 | Rodada 7 (camada de IA rodando: Claude lê, motor confere) | **99% lido · 84% usado · 13% testado** (336 frases via IA) | 100% | **102** |
 
+### Padrão de erro: "medir a ameaça por regra fixa" (Hydrapple ex + Meganium)
+**Caso (Felipe, Dragapult × Hydrapple)**: o motor achou que o atacante principal era o Ogerpon e que o Dragapult vencia
+6×2 — e só sugeriu Black Belt e Kieran. O "Syrup Storm" (30 + 30 por Energia {G} em TODOS os seus Pokémon) com o Meganium
+("Wild Growth": cada {G} básica vale {G}{G}) passa de 300 e nocauteia o Dragapult ex de uma vez; a ameaça era medida por
+"30+ ≈ 90".
+**Correção geral**: energia "em todos os seus Pokémon" é contada pelo deck (quantas daquele tipo, aceleração por
+habilidade, efeito que dobra); a ameaça de ataque "para cada …" usa essa conta no próprio deck (bônus opcional/moeda
+continuam na regra fixa — senão o Metagross passava o Mega Excadrill ex).
+**E o vício "Black Belt + Kieran em toda análise"**: Supporters de "mais dano" são uma FAMÍLIA — aparece só a melhor, com
+a outra citada como alternativa (antes ocupavam dois lugares com a mesma ideia; agora nunca aparecem juntas).
+**Ainda não resolvido pelo motor**: "derrubar a peça que habilita o combo" (o Meganium) — isso a IA lê; o motor não.
+
 ### Padrão de erro: "tech de ataque que não mira quem ganha o jogo para ele" (foco no atacante principal)
 **Caso (Felipe × Mega Excadrill ex)**: Zoroark, Purugly e Tranquill "viravam a corrida" nocauteando só Drilbur, Beldum e
 Metang (Básicos de evolução); Mega Scrafty ex pegava Metagross/Genesect mas não o Excadrill. A ideia de uma tech é

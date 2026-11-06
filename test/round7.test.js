@@ -57,7 +57,9 @@ test('cache: efeito válido entra, inválido fica registrado com o motivo, id de
 });
 
 test('motor: efeito conferido vira etiqueta "via IA" na carta e sai da lista de não entendidas', () => {
-  const u = auditCoverage(db).unread.find((x) => /put 9 damage counters on the Defending/i.test(x.sentence));
+  // base só com as regras (sem data/llm-effects.json), para o teste não depender do que a IA já leu
+  const rulesOnly = buildDb(JSON.parse(readFileSync(new URL('data/cards.json', root), 'utf8')));
+  const u = auditCoverage(rulesOnly).unread.find((x) => /put 9 damage counters on the Defending/i.test(x.sentence));
   assert.ok(u, 'frase de teste deveria estar entre as não entendidas pelas regras');
   const key = effectKey(u.card, u.block, u.sentence);
   const raw = JSON.parse(readFileSync(new URL('data/cards.json', root), 'utf8'));

@@ -39,10 +39,9 @@ jobs:
         run: |
           npm install --no-audit --no-fund
           node scripts/llm-classify.js --max 400
-      - name: Testes
-        run: npm test
+      # Salva ANTES dos testes: o que já foi pago à API nunca se perde (mesmo se um teste falhar depois)
       - name: Salva a base atualizada no repositório
-        if: github.event_name != 'push'
+        if: always() && github.event_name != 'push'
         run: |
           git config user.name "pokematch-bot"
           git config user.email "actions@users.noreply.github.com"
@@ -50,6 +49,8 @@ jobs:
           if [ -f data/llm-effects.json ]; then git add data/llm-effects.json; fi
           git diff --cached --quiet || git commit -m "Atualiza base de cartas ($(date -u +%F))"
           git push
+      - name: Testes
+        run: npm test
       - name: Gera o site estático
         run: npm run build
       - uses: actions/upload-pages-artifact@v3

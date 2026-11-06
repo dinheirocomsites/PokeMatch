@@ -12,7 +12,8 @@ const DEFAULT_ORIGINS = ['https://dinheirocomsites.github.io', 'http://localhost
 const perIp = new Map(); // limite "suave": por instância do servidor (o limite firme é o do Console)
 
 function cors(origin, allowed) {
-  const ok = allowed.includes(origin) || /^https:\/\/[a-z0-9-]+\.claudeusercontent\.com$/.test(origin ?? '');
+  // o site no GitHub Pages, o app no Lovable (*.lovable.app / *.lovableproject.com) e a versão no Claude
+  const ok = allowed.includes(origin) || /^https:\/\/[a-z0-9-]+\.(claudeusercontent\.com|lovable\.app|lovableproject\.com)$/.test(origin ?? '');
   return { 'access-control-allow-origin': ok ? origin : allowed[0], 'access-control-allow-methods': 'POST, OPTIONS', 'access-control-allow-headers': 'content-type', vary: 'origin' };
 }
 const json = (body, status, headers) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json; charset=utf-8', ...headers } });

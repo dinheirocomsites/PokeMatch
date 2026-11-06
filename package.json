@@ -12,7 +12,8 @@
     "build:single": "node scripts/build-single.js",
     "audit:coverage": "node scripts/audit-coverage.js",
     "classify": "node scripts/llm-classify.js",
-    "classify:dry": "node scripts/llm-classify.js --dry-run"
+    "classify:dry": "node scripts/llm-classify.js --dry-run",
+    "build:lovable": "node scripts/build-lovable.js"
   },
   "license": "MIT",
   "devDependencies": {

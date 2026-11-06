@@ -1,0 +1,27 @@
+# Teste real do servidor do estrategista publicado (Lovable): faz o mesmo que o site e confere com o motor.
+# Disparo manual (Actions → "Estrategista (teste do servidor)" → Run workflow). Custo: ~US$ 0,15 por execução.
+name: Estrategista (teste do servidor)
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'Endereço do servidor (vazio = deploy/strategist-url.txt)'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Leitura real pelo servidor publicado
+        env:
+          PM_URL: ${{ inputs.url }}
+        run: node scripts/strategist-remote-test.js

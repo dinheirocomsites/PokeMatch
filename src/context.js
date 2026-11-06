@@ -7,6 +7,7 @@ export const CLUSTERS = {
   protecao: { icon: '🛡️', title: 'Muralha / proteção', desc: 'Pokémon e efeitos que o oponente não consegue atacar ou que reduzem o dano.' },
   disrupcao: { icon: '🚫', title: 'Disrupção no oponente', desc: 'Travar habilidades, itens, estádio, energia ou a mão do oponente.' },
   dano: { icon: '💥', title: 'Dano e fraqueza', desc: 'Bater mais forte nos alvos certos: fraqueza, dano extra contra ex, banco grande.' },
+  contra: { icon: '🧱', title: 'Contra-disrupção', desc: 'Continuar jogando apesar da trava de Itens, do reset da mão, da remoção de energia ou do dano no banco.' },
   acespec: { icon: '⭐', title: 'Troca de ACE SPEC', desc: 'ACE SPECs que resolvem melhor este matchup do que a sua atual.' },
 };
 
@@ -14,13 +15,13 @@ const PAINS = [
   { key: 'premios', label: 'corrida de prêmios', re: /pr[eê]mio|prize|corrida|troca de|conta n[aã]o fecha|3 de uma vez|tr[eê]s de uma vez|entrego \d|pega(r)? \d/ },
   { key: 'protecao', label: 'seu atacante cai rápido', re: /morr|um hit|1 hit|one ?shot|ohko|de primeira|n[aã]o aguent|muito dano|bate muito|mata (o )?meu/ },
   { key: 'disrupcao', label: 'quer atrapalhar o oponente', re: /travar|atrapalh|disrup[cç][aã]o nele|quero (travar|disrup)|lock nele|tirar (a )?energia|desligar/ },
-  { key: 'contra', label: 'o oponente te atrapalha', re: /iono|judge|me trava|minha m[aã]o|travam? (os )?meus|perco a m[aã]o|me disrupt|disrup[cç][aã]o (dele|do oponente)/ },
+  { key: 'contra', label: 'o oponente te atrapalha (disrupção)', re: /iono|judge|juiz|carimbo|stamp|martelo|hammer|me trava|trava(m)? (os )?(meus )?ite|item lock|minha m[aã]o|travam? (os )?meus|perco (a m[aã]o|energia)|tira(m)? (minha )?energia|me disrupt|disrup[cç][aã]o (dele|do oponente)|budew/ },
   { key: 'consistencia', label: 'setup / consistência', re: /lento|setup|consist|brick|n[aã]o monto|n[aã]o compro|demora|m[aã]o ruim/ },
   { key: 'dano', label: 'falta dano', re: /falta dano|n[aã]o mato|n[aã]o consigo matar|pouco dano|hp alto|n[aã]o chego|bater mais/ },
   { key: 'acespec', label: 'ACE SPEC', re: /ace ?spec|legacy|energia legado/ },
 ];
 
-const GENERIC = new Set(['energy', 'energia', 'pokemon', 'mascara', 'team', 'rocket', 'rocket\'s', 'turquesa']);
+const GENERIC = new Set(['energy', 'energia', 'pokemon', 'mascara', 'team', 'rocket', 'rocket\'s', 'turquesa', 'orders', 'ordens', 'chefe', 'determination', 'determinacao', 'stretcher', 'maca']);
 const short = (s) => normName(s).replace(/^mega /, '').replace(/ ex$/, '').trim();
 
 export function readContext(text, me, opp, db) {
@@ -33,10 +34,12 @@ export function readContext(text, me, opp, db) {
   const find = (deck) => {
     const out = new Set();
     for (const e of deck.entries) {
-      if (e.card.category !== 'Pokemon') continue;
+      if (e.card.category === 'Energy') continue;
       for (const n of [e.card.name, e.card.namePt].filter(Boolean)) {
         const k = short(n);
         const words = [k, ...k.split(' ').filter((w) => w.length >= 6 && !GENERIC.has(w))];
+        // nomes de Treinador em PT costumam ser citados pela 1ª palavra ("carimbo", "martelo")
+        if (e.card.category === 'Trainer') { const first = k.split(' ')[0]; if (first.length >= 6 && !GENERIC.has(first)) words.push(first); }
         if (words.some((w) => w.length >= 4 && new RegExp(`\\b${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(raw))) out.add(e.card.name);
       }
     }
@@ -57,6 +60,7 @@ export function readContext(text, me, opp, db) {
 export function clusterOf(s) {
   const k = s.reasons[0]?.kind;
   if (k === 'PRIZE_RACE' || k === 'PRIZE_DENIAL' || k === 'KO_TRADE') return 'premios';
+  if (k?.startsWith('ANTI_')) return 'contra';
   if (['WALL_SELF', 'WALL_TEAM', 'WALL_CHOSEN', 'REDUCE', 'BENCH_WALL'].includes(k)) return 'protecao';
   if (['ABILITY_LOCK', 'ITEM_LOCK', 'SUPPORTER_LOCK', 'HAND_DISRUPT', 'ENERGY_DISRUPT', 'STADIUM_HATE', 'STADIUM_REPLACE', 'TOOL_HATE', 'SPECIAL_ENERGY_HATE'].includes(k)) return 'disrupcao';
   return 'dano';

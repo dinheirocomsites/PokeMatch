@@ -7,7 +7,7 @@ const slimCard = (c) => c && ({
 export function toJson(r, db) {
   return {
     me: r.me, opp: r.opp, insights: r.insights, locked: r.locked, context: r.context, clusters: r.clusters, race: r.race,
-    diagnosis: r.diagnosis, others: r.others,
+    diagnosis: r.diagnosis, tips: r.tips, others: r.others,
     already: r.already.map((a) => ({ card: slimCard(a.card), count: a.count, reasons: a.reasons.map((x) => x.why) })),
     suggestions: r.suggestions.map((s) => ({
       card: slimCard(s.card), score: s.score, impact: s.impact, fit: s.fit, parts: s.parts, slots: s.slots,
@@ -17,7 +17,7 @@ export function toJson(r, db) {
         combos: s.pkg.combos.map((c) => c.text), unlocks: s.pkg.unlocks,
         damage: s.pkg.damage && { attack: s.pkg.damage.attack.name, base: s.pkg.damage.base, boost: s.pkg.damage.boost, passive: s.pkg.damage.passive, total: s.pkg.damage.total, kos: s.pkg.damage.kos },
       },
-      swap: s.swap, cluster: s.cluster, boosted: s.boosted, race: s.race, relevance: s.relevance, consistency: s.consistency, costs: s.costs,
+      swap: s.swap, cluster: s.cluster, boosted: s.boosted, race: s.race, relevance: s.relevance, lowConfidence: s.lowConfidence, consistency: s.consistency, costs: s.costs,
     })),
     db: { syncedAt: db.syncedAt, marks: db.marks },
   };

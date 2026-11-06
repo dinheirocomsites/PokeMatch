@@ -9,6 +9,7 @@ import { buildOptions } from './synergy.js';
 import { simulateRace, planText, parseDenial } from './prizes.js';
 import { readContext, clusterOf, CLUSTERS } from './context.js';
 import { consistencyImpact } from './consistency.js';
+import { diagnoseDisruption, disruptionValue, counterTags, AXES } from './diagnosis.js';
 
 const pct = (x) => `${Math.round(x * 100)}%`;
 const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
@@ -212,6 +213,8 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
     if (m) myStatuses.add(m[1].toLowerCase());
   }
   const ctx = { lockedByMe: locksFromMyDeck(me, opp), oppSpecialEnergy: opp.counts.specialEnergy > 0, myStatuses };
+  // Diagnóstico por eixos de disrupção (trava de Itens, mão, energia, banco, habilidades)
+  const disruption = diagnoseDisruption(me, opp);
 
   // Troca de nocaute: este Pokémon nocauteia atacantes importantes do oponente entregando MENOS prêmios?
   // (Pega casos como Moltres × Ogerpon: 1 energia, 110 contra ex, ×2 na fraqueza = 220.)
@@ -261,6 +264,7 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
     if (w) reasons.push(w);
     const kt = koTradeValue(card);
     if (kt) reasons.push(kt);
+    for (const r of disruptionValue(card, disruption, me)) reasons.push(r);
     if (!reasons.length) return null;
     reasons.sort((a, b) => b.value - a.value);
     // retornos decrescentes para várias razões
@@ -380,11 +384,17 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
   if (killers.length) diagnosis.push(`${killers.map((k) => k.name).join(' e ')} nocauteiam ${main.name} (${main.hp} HP) em 1 ataque${killers.some((k) => k.weak) ? ` — fraqueza a ${typePt(main.weaknesses[0].type)}` : ''}.`);
   if (killers.length && main.prizeValue > Math.min(...killers.map((k) => k.prize))) diagnosis.push(`Troca desfavorável: você entrega ${main.prizeValue} prêmios por ${main.name} e pega ${Math.min(...killers.map((k) => k.prize))} ao nocautear ${killers.length > 1 ? 'eles' : 'ele'}.`);
   if (naive) diagnosis.push(`Jogando só com ${main.name}: ${describe(naive.best)}.${baseRace.best.win && !naive.best.win ? ` Com a melhor ordem da sua lista dá para virar (${describe(baseRace.best)}) — a tech certa deve deixar isso mais seguro.` : ''}`);
+  for (const ax of disruption.axes) if (ax.severity >= 0.3) diagnosis.push(`${AXES[ax.key].label}: ${ax.evidence}`);
+  if (!killers.length && !disruption.axes.some((a) => a.severity >= 0.3)) diagnosis.push(`Não encontrei um ponto fraco claro do seu deck neste matchup pelas regras atuais — as sugestões abaixo são ideias, avalie com cuidado.`);
   if (me.board?.benchNeeded >= 5) diagnosis.push(`Seu banco já fica cheio no plano normal (${me.board.pieces.join(', ')} + ${me.board.backup} de reserva): techs que ocupam banco custam caro.`);
 
   // Uma tech só é RELEVANTE se resolve o diagnóstico
   const relevanceOf = (c) => {
     for (const r of c.reasons) {
+      if (r.kind?.startsWith('ANTI_')) {
+        const ax = disruption.axes.find((a) => a.key === r.axis);
+        if (ax && ax.severity >= 0.3) return `responde a ${AXES[r.axis].label.toLowerCase()}`;
+      }
       // Melhorar só a margem não basta para quem pesa no banco/lista; virar derrota em vitória sim
       if (r.kind === 'PRIZE_RACE' && r.value >= 8 && (r.flip || (c.parts?.peso ?? 100) >= 70)) return r.flip ? 'vira a corrida de prêmios (derrota → vitória) na simulação' : 'melhora a corrida de prêmios na simulação';
       if (r.kind === 'PRIZE_DENIAL') return 'reduz os prêmios que você entrega';
@@ -423,7 +433,12 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
   for (let i = 0; i < candidates.length; i++) { if (seenName.has(candidates[i].card.name)) { candidates.splice(i, 1); i--; } else seenName.add(candidates[i].card.name); }
   candidates.sort((a, b) => b.score - a.score);
   // Uma carta por "família" de motivo principal dominante não é necessário; mantemos variedade simples
-  const relevantList = candidates.filter((c) => c.relevance && c.score >= 20);
+  let relevantList = candidates.filter((c) => c.relevance && c.score >= 20);
+  // Nunca devolver vazio: se nada resolve com segurança, mostra as melhores ideias marcadas como tal
+  if (!relevantList.length) {
+    relevantList = candidates.filter((c) => c.relevance && c.score >= 8).slice(0, 5);
+    if (relevantList.length < 3) relevantList = [...relevantList, ...candidates.filter((c) => !relevantList.includes(c) && c.score >= 8).slice(0, 5 - relevantList.length).map((c) => Object.assign(c, { relevance: 'ideia — não resolve com segurança o problema principal', lowConfidence: true }))];
+  }
   const others = candidates.filter((c) => !relevantList.includes(c)).slice(0, 6).map((c) => ({ name: c.card.name, score: c.score, why: c.reasons[0]?.why ?? '', missing: 'não resolve o problema principal deste matchup' }));
   const top = relevantList.slice(0, limit);
   for (const s of top) {
@@ -444,6 +459,10 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
     const rs = tags.map((t) => tagValue(t, opp, me, rawCtx)).filter((v) => v && v.value >= 8).sort((a, b) => b.value - a.value);
     if (rs.length && !tags.every((t) => t.kind === 'STADIUM_REPLACE' && rs.length === 1 && rs[0].value < 15)) already.push({ card: entry.card, count: entry.count, reasons: rs });
   }
+  for (const e of me.entries) {
+    const rs = disruptionValue(e.card, disruption, me);
+    if (rs.length && !already.some((a) => a.card.name === e.card.name)) already.push({ card: e.card, count: e.count, reasons: rs });
+  }
   const locked = [...ctx.lockedByMe].map(([oppCard, by]) => ({ oppCard, by }));
 
   const clusters = Object.entries(CLUSTERS).map(([key, c]) => {
@@ -459,6 +478,8 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
 
   return {
     diagnosis,
+    tips: disruption.tips,
+    axes: disruption.axes,
     killers,
     others,
     context: ctxRead,

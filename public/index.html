@@ -330,7 +330,8 @@ function render(d) {
       ${[[c.basic, 'Básicos'], [c.ex, 'ex'], [c.mega, 'Mega'], [c.withAbility, 'c/ Habilidade'], [c.item, 'Itens'], [c.supporter, 'Supporters'], [c.tool, 'Ferramentas'], [c.stadium, 'Estádios'], [c.specialEnergy, 'En. Especial']].filter(([n]) => n).map(([n, l]) => `<span class="chip"><b>${n}</b> ${l}</span>`).join('')}
       </div></div>`;
 
-  $('#diag').innerHTML = `<ul style="margin:0;padding-left:18px">${(d.diagnosis || []).map((x) => `<li>${esc(x)}</li>`).join('')}</ul>`;
+  $('#diag').innerHTML = `<ul style="margin:0;padding-left:18px">${(d.diagnosis || []).map((x) => `<li>${esc(x)}</li>`).join('')}</ul>`
+    + (d.tips?.length ? `<h3 style="margin:12px 0 6px;color:#9fe3c2">🎯 Como jogar esse matchup</h3><ul style="margin:0;padding-left:18px">${d.tips.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : '');
   $('#others').innerHTML = (d.others || []).map((o) => `<li><b>${esc(o.name)}</b> — ${esc(o.missing)}. <i>${esc(o.why)}</i></li>`).join('');
   $('#othersWrap').style.display = d.others?.length ? '' : 'none';
   $('#understood').innerHTML = d.context && !d.context.empty ? `<div class="understood">🧠 <b>Entendi:</b> ${d.context.summary.map(esc).join(' ')}</div>` : '';
@@ -369,7 +370,7 @@ function render(d) {
       <div class="cardwrap"><div class="holo">${s.card.image ? `<img ${IMG(s.card.image)} alt="${esc(s.card.name)}" data-type="${esc(s.card.types?.[0] || '')}" style="width:100%;height:100%">` : ''}<div class="fallback" style="z-index:-1">${esc(s.card.name)}</div></div></div>
       <div>
         <h3>${esc(s.card.name)}${s.cluster ? `<span class="badge ${s.boosted ? 'up' : ''}">${CLUSTER_ICON[s.cluster] || ''} ${esc(CLUSTER_NAME[s.cluster] || '')}${s.boosted ? ' · ↑ sua dor' : ''}</span>` : ''}</h3>
-        ${s.relevance ? `<div class="why-rel">✔ Por que resolve: ${esc(s.relevance)}</div>` : ''}
+        ${s.relevance ? `<div class="why-rel" style="${s.lowConfidence ? 'color:var(--warn);border-color:#ffb54766;background:#ffb54714' : ''}">${s.lowConfidence ? '⚠ ' : '✔ Por que resolve: '}${esc(s.relevance)}</div>` : ''}
         <div class="meta">${esc(s.card.setCode || '')} ${esc(s.card.localId || '')} · ${esc(s.card.category === 'Pokemon' ? `${STAGE[s.card.stage] || s.card.stage} · ${s.card.hp} HP` : s.card.trainerType || s.card.category)} · ${s.slots} slot${s.slots > 1 ? 's' : ''}</div>
         <div class="scores">
           <div><div class="ring" data-v="${s.score}"><b>${s.score}</b></div><div class="ring-label">Nota</div></div>

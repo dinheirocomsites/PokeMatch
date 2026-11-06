@@ -57,7 +57,7 @@ Legenda: [x] feito · [~] em andamento · [ ] a fazer
 - [x] Corrigidos falsos positivos: "dano de 40 ou menos" (Roggenrola), "só se nocautear" (Golisopod/Marshadow)
 - [x] **Correção (feedback):** simulador agora considera energia por turno (atacante novo precisa ser energizado), custo de Boss/energia, nocautear o Ativo antes de gastar Boss, e mostra quem está no Ativo em cada turno → linha certa: Pecharunt ex mata o Ogerpon (60×3+30) sem Boss
 - [x] Linha alternativa de jogo + anti-sinergia detectada: Legacy Energy reduz o dano do Pecharunt ex (menos prêmios tomados)
-- [x] Cada erro apontado pelo jogador vira **teste permanente** (32 testes ✅)
+- [x] Cada erro apontado pelo jogador vira **teste permanente** (36 testes ✅)
 - [x] **Passo para trás (feedback):** diagnóstico primeiro — "por que ESTE deck perde ESTE matchup" (quem mata seu atacante, troca de prêmios, banco cheio)
 - [x] **Filtro de relevância:** só sugere o que bloqueia quem mata seu atacante, vira a corrida na simulação ou reduz prêmios entregues; o resto vai para "descartadas" com o motivo
 - [x] **Espaço no banco** do plano do deck entra no peso (Sharpedo: banco cheio com Pecharunt, Toxtricity, Munkidori, Fezandipiti + Carvanha)
@@ -85,7 +85,12 @@ Legenda: [x] feito · [~] em andamento · [ ] a fazer
 - [ ] Validar contra Hydrapple — aguardando a lista do Felipe
 - [ ] Ensinar as frases restantes do relatório de lacunas (cauda longa)
 - [ ] Caminho "⭐ ACE SPEC de consistência" (ex.: Secret Box × Unfair Stamp) medido no simulador de consistência
-- [ ] Caminho "contra-disrupção" (quando o oponente te atrapalha: Iono, item lock…) — precisa de um deck de teste com disrupção
+- [x] **Diagnóstico por eixos** (caso Dragapult): trava de Itens, reset da mão (e o que dispara), remoção de energia, dano no banco, trava de habilidades — antes só "quem mata seu atacante" (dava 0 sugestões)
+- [x] Caminho **🧱 Contra-disrupção**: compra por habilidade, Supporter que busca, aceleração/recuperação de energia, proteção de banco
+- [x] **Verificador de requisitos genérico** (Solrock em jogo, energia {X}, Pokémon {X}/Estágio 2, última carta da mão); Item perde força sob trava de Itens
+- [x] **Dicas de jogo** geradas dos gatilhos das cartas do oponente ("cada nocaute seu libera Unfair Stamp")
+- [x] Nunca devolve zero sugestões (ideias de baixa confiança marcadas)
+- [x] Contexto entende Treinadores em PT ("carimbo", "martelo") (quando o oponente te atrapalha: Iono, item lock…) — precisa de um deck de teste com disrupção
 - [ ] Usar IA (LLM) para ler a dor com mais nuance e escrever o plano de jogo em linguagem natural
 
 ## Fase 6 — Interface web
@@ -94,7 +99,7 @@ Legenda: [x] feito · [~] em andamento · [ ] a fazer
 - [x] Visual UAAAU 🔥: carta holográfica que inclina com o mouse, anéis de nota animados, confete, Pokébola de loading
 
 ## Fase 7 — Validação
-- [x] Caso de teste real: Mega Sharpedo ex × Basic Box → **#1 Farigiraf ex** com o pacote Girafarig TWM + Energia Psíquica e todos os combos (32 testes ✅)
+- [x] Caso de teste real: Mega Sharpedo ex × Basic Box → **#1 Farigiraf ex** com o pacote Girafarig TWM + Energia Psíquica e todos os combos (36 testes ✅)
 - [ ] Testar com mais 3 matchups do meta
 - [x] Publicar: versão privada no claude.ai ✅
 - [x] Repositório no GitHub: https://github.com/dinheirocomsites/PokeMatch

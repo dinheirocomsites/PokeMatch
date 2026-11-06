@@ -9,66 +9,11 @@ import { spreadOf } from './prizes.js';
 import { requirements } from './diagnosis.js';
 import { normName } from './db-core.js';
 
-export const DEFAULT_MODEL = 'claude-opus-5-5';
+import { DEFAULT_MODEL, STRATEGY_SCHEMA, SYSTEM_PT, requestStrategy } from './strategist-core.js';
+export { DEFAULT_MODEL, STRATEGY_SCHEMA, SYSTEM_PT };
 const SYM = { Grass: 'G', Fire: 'R', Water: 'W', Lightning: 'L', Psychic: 'P', Fighting: 'F', Darkness: 'D', Metal: 'M', Dragon: 'N', Colorless: 'C' };
 const cost = (c) => (c ?? []).map((x) => `{${SYM[x] ?? x[0]}}`).join('');
 const short = (s, n = 260) => String(s ?? '').replace(/\s+/g, ' ').slice(0, n);
-
-// Esquema da resposta (sem null: "vazio" é "" ou 0)
-export const STRATEGY_SCHEMA = {
-  type: 'object', additionalProperties: false,
-  required: ['opponent_plan', 'my_problem', 'claims', 'tech_ideas', 'play_tips_pt', 'disagreements', 'uncertainty_pt'],
-  properties: {
-    opponent_plan: {
-      type: 'object', additionalProperties: false, required: ['summary_pt', 'damage_sources', 'enablers', 'key_turns_pt'],
-      properties: {
-        summary_pt: { type: 'string' },
-        damage_sources: {
-          type: 'array',
-          items: {
-            type: 'object', additionalProperties: false, required: ['attacker', 'attack', 'copied_from', 'targets', 'why_pt'],
-            properties: { attacker: { type: 'string' }, attack: { type: 'string' }, copied_from: { type: 'string' }, targets: { type: 'string', enum: ['active', 'bench', 'several'] }, why_pt: { type: 'string' } },
-          },
-        },
-        enablers: { type: 'array', items: { type: 'string' } },
-        key_turns_pt: { type: 'string' },
-      },
-    },
-    my_problem: { type: 'object', additionalProperties: false, required: ['summary_pt', 'mechanism_pt'], properties: { summary_pt: { type: 'string' }, mechanism_pt: { type: 'string' } } },
-    claims: {
-      type: 'array',
-      items: {
-        type: 'object', additionalProperties: false, required: ['id', 'kind', 'attacker', 'attack', 'target', 'text_pt'],
-        properties: { id: { type: 'string' }, kind: { type: 'string', enum: ['ko', 'can_attack', 'in_deck'] }, attacker: { type: 'string' }, attack: { type: 'string' }, target: { type: 'string' }, text_pt: { type: 'string' } },
-      },
-    },
-    tech_ideas: {
-      type: 'array',
-      items: { type: 'object', additionalProperties: false, required: ['card', 'why_pt', 'answers'], properties: { card: { type: 'string' }, why_pt: { type: 'string' }, answers: { type: 'array', items: { type: 'string' } } } },
-    },
-    play_tips_pt: { type: 'array', items: { type: 'string' } },
-    // Discordância com o motor: precisa citar o trecho EXATO do texto da carta em que se apoia (o motor confere a citação)
-    disagreements: {
-      type: 'array',
-      items: { type: 'object', additionalProperties: false, required: ['text_pt', 'card', 'quote'], properties: { text_pt: { type: 'string' }, card: { type: 'string' }, quote: { type: 'string' } } },
-    },
-    uncertainty_pt: { type: 'string' },
-  },
-};
-
-export const SYSTEM_PT = `Você é um jogador experiente de Pokémon TCG (Standard) ajudando a preparar um matchup.
-Você recebe uma FICHA DE FATOS montada por um motor de regras (listas, textos das cartas, contas e simulação do motor) e a DOR do jogador.
-Sua tarefa:
-1. Entender o PLANO REAL do oponente: quem causa o dano, com qual ataque, como paga a energia (inclusive ataques copiados de outras cartas, do deck, do banco), quais cartas habilitam o plano e em que turno ele chega.
-2. Explicar o problema do jogador (a dor) pelo mecanismo do jogo.
-3. Fazer AFIRMAÇÕES VERIFICÁVEIS em "claims" (o motor vai conferir cada uma):
-   - kind "ko": attacker = nome exato do Pokémon do oponente que ataca; attack = nome exato do ataque usado (se for copiado, o nome do ataque original); target = nome exato do Pokémon do jogador que cai.
-   - kind "can_attack": o attacker consegue usar o attack neste deck.
-   - kind "in_deck": a carta (attacker) está na lista do oponente.
-4. Sugerir techs em "tech_ideas": cartas legais no Standard atual, com o nome exato em inglês; em "answers", os ids das claims que a tech responde. Prefira poucas e certeiras.
-5. Dicas de jogo em "play_tips_pt" (o que fazer na partida, não só no deck).
-6. Se você discordar da análise do motor, registre em "disagreements": o porquê (text_pt), a carta em que se apoia (card, nome exato) e o trecho EXATO do texto dessa carta, em inglês, copiado da ficha (quote). Sem citação exata, não discorde: o motor vai conferir a citação.
-Regras: use só nomes de cartas que existem; nunca invente números nem efeitos — o texto das cartas está na ficha, confira antes de afirmar; escreva em português do Brasil; seja direto, sem preâmbulo.`;
 
 // ---------- Ficha de fatos (o que a IA lê) ----------
 function cardFacts(e) {
@@ -145,24 +90,18 @@ export function verifyStrategy(s, { me, opp, r, db }) {
   return { claims, techs, disagreements, summary: { claims: claims.length, confirmed: ok, refuted: claims.filter((c) => c.status === 'erro').length, unknown: claims.filter((c) => c.status === '?').length } };
 }
 
-// ---------- Execução completa ----------
-export async function runStrategist({ client, myText, oppText, context = '', db, model = DEFAULT_MODEL, maxTokens = 16000 }) {
+// ---------- Execução ----------
+// No navegador: monta a ficha com o motor (rápido, sem chave) — depois manda só a ficha ao servidor.
+export function prepareStrategy({ myText, oppText, context = '', db }) {
   const r = analyze(myText, oppText, db, { limit: 12, context });
   const me = profileDeck(parseDeck(myText, db));
   const opp = profileDeck(parseDeck(oppText, db));
-  const facts = buildFacts(r, me, opp, context);
-  const stream = client.messages.stream({
-    model,
-    max_tokens: maxTokens,
-    system: SYSTEM_PT,
-    output_config: { format: { type: 'json_schema', schema: STRATEGY_SCHEMA } },
-    messages: [{ role: 'user', content: `FICHA DE FATOS DO MATCHUP\n\n${facts}` }],
-  });
-  const msg = await stream.finalMessage();
-  if (msg.stop_reason === 'refusal') throw new Error('a IA recusou responder');
-  if (msg.stop_reason === 'max_tokens') throw new Error('resposta da IA cortada (max_tokens)');
-  const strategy = JSON.parse(msg.content.filter((b) => b.type === 'text').map((b) => b.text).join(''));
+  return { r, me, opp, facts: buildFacts(r, me, opp, context) };
+}
+// Tudo num lugar só (servidor Node local, avaliação no GitHub)
+export async function runStrategist({ client, myText, oppText, context = '', db, model = DEFAULT_MODEL, maxTokens = 16000 }) {
+  const { r, me, opp, facts } = prepareStrategy({ myText, oppText, context, db });
+  const { strategy, usage } = await requestStrategy(client, facts, { model, maxTokens });
   const verification = verifyStrategy(strategy, { me, opp, r, db });
-  const u = msg.usage ?? {};
-  return { strategy, verification, engine: r, usage: { input: u.input_tokens ?? 0, output: u.output_tokens ?? 0, usd: ((u.input_tokens ?? 0) * 4 + (u.output_tokens ?? 0) * 20) / 1e6 }, model };
+  return { strategy, verification, engine: r, usage, model };
 }

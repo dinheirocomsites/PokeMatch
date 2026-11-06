@@ -24,6 +24,8 @@ try {
   for (const f of await readdir('data/img')) await copyFile(`data/img/${f}`, `${OUT}/img/${f}`);
 } catch { console.log('(sem pacotes de imagens — rode scripts/pack-images.py)'); }
 let html = await readFile('public/index.html', 'utf8');
-html = html.replace('<script>', '<script>window.TF_STATIC = true;</script>\n<script>');
+let stratUrl = '';
+try { stratUrl = (await readFile('deploy/strategist-url.txt', 'utf8')).trim(); } catch { /* servidor ainda não publicado */ }
+html = html.replace('<script>', `<script>window.TF_STATIC = true; window.POKEMATCH_STRATEGIST_URL = ${JSON.stringify(stratUrl)};</script>\n<script>`);
 await writeFile(`${OUT}/index.html`, html);
 console.log('dist/ pronto');

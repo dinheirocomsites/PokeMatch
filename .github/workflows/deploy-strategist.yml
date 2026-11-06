@@ -1,0 +1,39 @@
+# Publica o servidor do estrategista no Cloudflare Workers (plano grátis).
+# Precisa dos segredos CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID e ANTHROPIC_API_KEY no GitHub.
+# O servidor só guarda a chave e chama o Claude; o motor roda no navegador.
+name: Estrategista (servidor)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['deploy/**', 'src/strategist-core.js']
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - name: Testes do servidor
+        run: node --test test/proxy.test.js
+      - name: Publica no Cloudflare e guarda a chave como segredo do servidor
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        working-directory: deploy
+        run: |
+          npx -y wrangler@4 deploy 2>&1 | tee deploy.log
+          printf '%s' "$ANTHROPIC_API_KEY" | npx -y wrangler@4 secret put ANTHROPIC_API_KEY
+          echo "Endereço do servidor: $(grep -oE 'https://[a-z0-9.-]+\.workers\.dev' deploy.log | head -1)"
+      - name: Sem segredos do Cloudflare
+        if: env.CLOUDFLARE_API_TOKEN == '' || env.CLOUDFLARE_ACCOUNT_ID == ''
+        run: echo "Faltam os segredos CLOUDFLARE_API_TOKEN e CLOUDFLARE_ACCOUNT_ID — nada publicado."

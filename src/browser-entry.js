@@ -2,4 +2,5 @@
 import { buildDb } from './db-core.js';
 import { analyze } from './engine.js';
 import { toJson } from './serialize.js';
-globalThis.PokeMatch = { buildDb, analyze, toJson };
+import { prepareStrategy, verifyStrategy } from './strategist.js';
+globalThis.PokeMatch = { buildDb, analyze, toJson, prepareStrategy, verifyStrategy };

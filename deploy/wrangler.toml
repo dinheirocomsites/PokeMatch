@@ -1,0 +1,8 @@
+# Cloudflare Workers — publicado automaticamente pelo GitHub Actions (.github/workflows/deploy-strategist.yml)
+name = "pokematch-estrategista"
+main = "strategist-proxy.js"
+compatibility_date = "2026-10-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+PM_STRATEGIST_LIMIT = "20"

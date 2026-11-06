@@ -340,12 +340,23 @@ function renderStrategy(o) {
 document.addEventListener('click', async (ev) => {
   if (ev.target?.id !== 'stratGo') return;
   const out = $('#stratOut');
-  if (!STRAT_URL) { out.innerHTML = '<p>O estrategista precisa de um servidor com a chave da API (a chave nunca fica no site). Ele ainda não está ligado nesta versão — veja docs/ESTRATEGISTA.md.</p>'; return; }
+  if (!STRAT_URL) { out.innerHTML = '<p>O estrategista precisa de um servidor com a chave da API (a chave nunca fica no site). Ele ainda não está ligado nesta versão.</p>'; return; }
   ev.target.disabled = true; out.innerHTML = '<p>🧠 Lendo o matchup (leva uns 20–60 s)…</p>';
   try {
-    const res = await fetch(STRAT_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ mine: $('#mine').value, opp: $('#opp').value, context: $('#ctx').value }) });
-    const data = await res.json();
-    out.innerHTML = res.ok ? renderStrategy(data) : `<p>⚠ ${esc(data.error ?? 'erro')}</p>`;
+    if (window.TF_STATIC && localEngine) {
+      // Site estático: o motor (aqui no navegador) monta a ficha; o servidor só guarda a chave e chama a IA;
+      // a conferência das afirmações volta a ser feita aqui, pelo motor.
+      const st = window.TF_INLINE ? window.PokeMatch : await import('./src/strategist.js');
+      const prep = st.prepareStrategy({ myText: $('#mine').value, oppText: $('#opp').value, context: $('#ctx').value.slice(0, 2000), db: localEngine.db });
+      const res = await fetch(STRAT_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ facts: prep.facts }) });
+      const data = await res.json();
+      if (!res.ok) { out.innerHTML = `<p>⚠ ${esc(data.error ?? 'erro')}</p>`; }
+      else out.innerHTML = renderStrategy({ ...data, verification: st.verifyStrategy(data.strategy, { me: prep.me, opp: prep.opp, r: prep.r, db: localEngine.db }) });
+    } else {
+      const res = await fetch(STRAT_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ mine: $('#mine').value, opp: $('#opp').value, context: $('#ctx').value }) });
+      const data = await res.json();
+      out.innerHTML = res.ok ? renderStrategy(data) : `<p>⚠ ${esc(data.error ?? 'erro')}</p>`;
+    }
   } catch (e) { out.innerHTML = `<p>⚠ ${esc(e.message)}</p>`; }
   ev.target.disabled = false;
 });

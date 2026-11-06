@@ -18,6 +18,15 @@ só {P}{C}). O estrategista coloca uma IA para **entender o plano** e deixa o mo
    ✅ confirmado, ❌ derrubado ou ❔ não deu para conferir.
 4. **Resposta**: só o que tem ✅ é tratado como fato; o resto aparece como hipótese.
 
+## Servidor (Cloudflare Workers, plano grátis)
+O motor é pesado para servidor grátis, então ele **continua no navegador**: o navegador monta a ficha de fatos,
+manda **só a ficha** ao servidor, o servidor chama o Claude (com o prompt e o esquema que ficam nele) e devolve a
+resposta; o navegador confere cada afirmação com o motor. O servidor (`deploy/strategist-proxy.js`) só aceita o site
+como origem, só aceita a ficha do PokeMatch, limita leituras por IP por dia (`PM_STRATEGIST_LIMIT`, padrão 20) e
+nunca expõe a chave. Publicação: `.github/workflows/deploy-strategist.yml` (segredos `CLOUDFLARE_API_TOKEN`,
+`CLOUDFLARE_ACCOUNT_ID`, `ANTHROPIC_API_KEY`). Depois da 1ª publicação, o endereço vai em `deploy/strategist-url.txt`
+e os builds ligam o site a ele. **Proteção de custo principal**: limite mensal de gastos no Console da Anthropic.
+
 ## Onde roda
 A chave da API **nunca** vai para o site. O estrategista precisa de um servidor:
 - **Local / qualquer servidor Node**: `ANTHROPIC_API_KEY=… npm start` → `POST /api/strategist`

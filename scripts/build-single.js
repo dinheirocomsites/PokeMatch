@@ -27,7 +27,9 @@ const safe = (obj) => JSON.stringify(obj).replace(/<\//g, '<\\/');
 
 let html = await readFile('public/index.html', 'utf8');
 // Função como substituição: o código minificado contém "$&", "$'"… que replace() trataria como padrões especiais
-const inject = `<script>window.TF_STATIC = true; window.TF_INLINE = true;
+let stratUrl = '';
+try { stratUrl = (await readFile('deploy/strategist-url.txt', 'utf8')).trim(); } catch { /* servidor ainda não publicado */ }
+const inject = `<script>window.TF_STATIC = true; window.TF_INLINE = true; window.POKEMATCH_STRATEGIST_URL = ${JSON.stringify(stratUrl)};
 window.POKEMATCH_DATA = ${safe(raw)};
 window.POKEMATCH_EXAMPLES = ${safe(examples)};
 </script>

@@ -437,7 +437,8 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
   // ---------- Corrida de prêmios: simula e testa techs ----------
   // Resultado da corrida: vencer importa mais; depois, cada prêmio de margem vale bastante
   const outcome = (b) => (b.win ? 100 - b.turns * 5 + (6 - b.oppTaken) * 10 : b.myTaken * 5 - 50);
-  const describe = (b) => `${b.win ? 'vitória' : 'derrota'} ${b.win ? `${b.myTaken}×${b.oppTaken}` : `${b.myTaken}×${b.oppTaken}`}`;
+  // placar de prêmios nunca passa de 6 (nocautear um Mega ex com 5 já pegos fecha o jogo em 6, não em 8)
+  const describe = (b) => `${b.win ? 'vitória' : 'derrota'} ${Math.min(6, b.myTaken)}×${Math.min(6, b.oppTaken)}`;
   const naive = me.mainAttacker ? simulateRace(me, opp, { only: [me.mainAttacker.name] }) : null;
   const baseRace = simulateRace(me, opp);
   const baseScore = outcome(baseRace.best);

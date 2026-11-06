@@ -136,6 +136,18 @@ function energyEach(e, deck, ctx) {
   return side(deck, 3, false); // os seus Pokémon (inclusive "your Iono's Pokémon")
 }
 
+// Quantos Pokémon o oponente costuma ter no banco (para "para cada Pokémon no banco dele"). Antes era sempre 5 — o
+// máximo —, e o Zeraora "Combat Thunder" (20 + 20 por Pokémon no banco) virava 120 sempre, 240 com fraqueza.
+// Estimativa: as peças que o deck dele mantém no banco + reserva, ou metade dos Básicos que ele joga; ~80% disso
+// (nem tudo está em jogo ao mesmo tempo), entre 3 e o limite do banco (5, ou 8 com Area Zero).
+export function benchEstimate(d) {
+  if (!d?.entries) return 4;
+  const cap = d.bigBench ? 8 : 5;
+  const basics = new Set(d.entries.filter((e) => e.card.category === 'Pokemon' && (e.card.stage ?? 'Basic') === 'Basic').map((e) => e.card.name)).size;
+  const plan = Math.max(d.board?.benchNeeded ?? 0, Math.ceil(basics / 2));
+  return Math.max(3, Math.min(cap, Math.round(plan * 0.8)));
+}
+
 // Quantas vezes um "for each" costuma contar, no contexto do deck que ataca
 export function multiplier(effect, deck, defenderBench = 5, ctx = {}) {
   const maxInPlay = deck?.bigBench ? 9 : 6;
@@ -234,16 +246,19 @@ export function multiplier(effect, deck, defenderBench = 5, ctx = {}) {
  * ctx: { deck: perfil do deck que ataca, oppTaken: prêmios que o OPONENTE de quem ataca já pegou,
  *        selfDamaged: o atacante tem contadores de dano, targetDamaged, defenderBench }
  */
-export function damageVs(attack, attacker, target, ctx = {}) {
+export function damageVs(attack, attacker, target, ctx0 = {}) {
+  // banco do defensor: o que ele costuma ter (estimado do deck dele), não o máximo
+  const ctx = ctx0.defenderBench == null ? { ...ctx0, defenderBench: benchEstimate(ctx0.defDeck) } : ctx0;
   const d = String(attack.damage ?? '');
   const n = parseInt(d, 10) || 0;
   const eff = (attack.effect ?? '').replace(/\([^)]*\)/g, ' ');
   const notes = [];
+  const benchNote = () => { if (/for each of your opponent.s benched|for each benched pok[eé]mon/i.test(eff)) notes.push(`com ~${ctx.defenderBench} Pokémon no banco dele`); };
   let dmg = 0;
 
   if (/[×x]$/.test(d)) {
     if (/for each prize card your opponent has taken/i.test(eff)) { dmg = n * (ctx.oppTaken ?? 0); notes.push(`${n}×${ctx.oppTaken ?? 0} prêmios`); }
-    else dmg = n * multiplier(eff, ctx.deck, ctx.defenderBench, { ...ctx, target, attacker });
+    else { dmg = n * multiplier(eff, ctx.deck, ctx.defenderBench, { ...ctx, target, attacker }); benchNote(); }
   } else if (d.endsWith('+')) {
     dmg = n;
     const cond = eff.match(/if (?:your opponent.s active pok[eé]mon|the defending pok[eé]mon) (?:already )?(is|has) ([^,]+?), this attack does (\d+) more damage/i);
@@ -283,6 +298,7 @@ export function damageVs(attack, attacker, target, ctx = {}) {
       if (ctx.selfDamaged) { dmg += +self[1]; notes.push('ferido'); }
     } else if (each) {
       dmg += +each[1] * multiplier(eff, ctx.deck, ctx.defenderBench, { ...ctx, target, attacker });
+      benchNote();
     } else if (/flip a coin until you get tails/i.test(eff)) {
       dmg += +(eff.match(/(\d+) more damage/i)?.[1] ?? 0);
     } else if (/if this pok[eé]mon was damaged by an attack during your opponent.s last turn, this attack does that much more damage/i.test(eff)) {

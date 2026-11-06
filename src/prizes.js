@@ -621,9 +621,9 @@ export function planText(plan) {
     else if (s.gust) {
       const opts = (s.alts?.length ? s.alts : [s.target]).slice(0, 3).join(', ');
       const why = s.activeValue < s.prizes ? `o Ativo dele vale só ${pz(s.activeValue)}` : 'o Ativo dele não cai';
-      mine = `Como ${why}: Boss's Orders num Pokémon de ${pz(s.prizes)} que você nocauteia (${opts}) e ataque com ${who} (~${s.dmg}). Você: ${s.myTotal}/6.`;
-    } else if (s.pulled) mine = `${who} usa "${s.attack}": puxa ${s.target} do banco dele e nocauteia (${pz(s.prizes)}, ~${s.dmg}) sem gastar Boss. Você: ${s.myTotal}/6.`;
-    else mine = `${who} nocauteia o Ativo dele, ${s.target} (${pz(s.prizes)}), sem gastar Boss (~${s.dmg}). Você: ${s.myTotal}/6.`;
+      mine = `Como ${why}: Boss's Orders num Pokémon de ${pz(s.prizes)} que você nocauteia (${opts}) e ataque com ${who} (~${s.dmg}). Você: ${Math.min(6, s.myTotal)}/6.`;
+    } else if (s.pulled) mine = `${who} usa "${s.attack}": puxa ${s.target} do banco dele e nocauteia (${pz(s.prizes)}, ~${s.dmg}) sem gastar Boss. Você: ${Math.min(6, s.myTotal)}/6.`;
+    else mine = `${who} nocauteia o Ativo dele, ${s.target} (${pz(s.prizes)}), sem gastar Boss (~${s.dmg}). Você: ${Math.min(6, s.myTotal)}/6.`;
     if (s.target && s.had) mine += ` (Ele já tinha ${s.had} de dano.)`;
     if (s.target && s.checkup) mine += ` (Cai no Checkup: +${s.checkup.dmg} de ${s.checkup.why}.)`;
     if (s.stamped) mine = `(Depois do Unfair Stamp você está com 2 cartas: sem Boss neste turno.) ${mine}`;
@@ -638,14 +638,14 @@ export function planText(plan) {
     if (s.hammer) extras.push(`${s.hammer} tira 1 energia sua`);
     if (s.myCool) extras.push(`"${s.myCool}" não pode ser usado no seu próximo turno`);
     if (s.oppCheckup) extras.push(`o ${s.attacker} toma +${s.oppCheckup} no Checkup (veneno/queimadura)`);
-    if (s.retaliate) extras.push(`${s.attacker} devolve ${s.retaliate.amount} em contadores no ${s.retaliate.on}${s.retaliate.ko ? ` e nocauteia → você: ${s.myTotal}/6` : ''}`);
+    if (s.retaliate) extras.push(`${s.attacker} devolve ${s.retaliate.amount} em contadores no ${s.retaliate.on}${s.retaliate.ko ? ` e nocauteia → você: ${Math.min(6, s.myTotal)}/6` : ''}`);
     if (s.theirRetaliate) extras.push(`${s.theirRetaliate.from} devolveu ${s.theirRetaliate.amount} em contadores no ${s.attacker}`);
     if (s.locked) extras.push(`o ${s.locked} não pode atacar no turno dele ("${s.attack}")`);
     if (s.shield && !s.ko) extras.push(`"${s.attack}" protege o ${s.attacker} (${s.shield >= 999 ? 'sem dano' : `−${s.shield}`}) no turno dele`);
-    const tail = extras.length ? ` Além disso: ${extras.join('; ')}. Ele: ${s.oppTotal}/6.` : '';
+    const tail = extras.length ? ` Além disso: ${extras.join('; ')}. Ele: ${Math.min(6, s.oppTotal)}/6.` : '';
     const theirs0 = s.myTotal >= 6 ? '🏆 Você pega o último prêmio.' : s.ko
-      ? `Ele responde: ${s.oppAttacker} nocauteia ${s.attacker}${s.oppWeak ? ' (fraqueza)' : ''} → +${s.oppGain}${s.denial ? ` (${s.denial}: −1)` : ''}. Ele: ${s.oppTotal}/6.`
-      : s.oppGust ? `Ele não passa pelo ${s.attacker}, então usa Boss's Orders: ${s.oppGust.by} nocauteia o seu ${s.oppGust.target} no banco → +${s.oppGust.gain}. Ele: ${s.oppTotal}/6.`
+      ? `Ele responde: ${s.oppAttacker} nocauteia ${s.attacker}${s.oppWeak ? ' (fraqueza)' : ''} → +${s.oppGain}${s.denial ? ` (${s.denial}: −1)` : ''}. Ele: ${Math.min(6, s.oppTotal)}/6.`
+      : s.oppGust ? `Ele não passa pelo ${s.attacker}, então usa Boss's Orders: ${s.oppGust.by} nocauteia o seu ${s.oppGust.target} no banco → +${s.oppGust.gain}. Ele: ${Math.min(6, s.oppTotal)}/6.`
       : `Ele não consegue nocautear ${s.attacker} neste turno.`;
     const theirs = s.myTotal >= 6 ? theirs0 : theirs0 + (/\/6\.$/.test(theirs0) ? tail.replace(/ Ele: \d+\/6\.$/, '') : tail);
     return { turn: i + 1, mine, theirs };

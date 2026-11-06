@@ -12,6 +12,15 @@
 | Rodada 6 (famílias que mudam o cálculo + buscas na simulação de mão) | 87% lido · 80% usado · 13% testado | 100% | 96 |
 | Rodada 7 (camada de IA rodando: Claude lê, motor confere) | **99% lido · 84% usado · 13% testado** (336 frases via IA) | 100% | **102** |
 
+### Padrão de erro: "supor o máximo e mostrar como se fosse o normal" (banco do oponente)
+**Caso (Felipe)**: Zeraora "Combat Thunder" (*20 + 20 para cada Pokémon no banco do oponente*) aparecia com
+*"240 + 30 = 270 de dano"*. O motor supunha **sempre 5** no banco dele (o máximo) → 120, e o quadro mostrava o ×2 da
+fraqueza do Mega Skarmory ex como se fosse o dano normal, sem dizer contra quem.
+**Correção geral**: `benchEstimate` (src/damage.js) estima o banco que o deck dele costuma ter (peças que ficam no banco +
+reserva, ou metade dos Básicos; ~80% disso; entre 3 e o limite — 5, ou 8 com Area Zero) e vale para toda carta que conta
+"Pokémon no banco dele". O quadro de dano agora diz **contra quem** é o número e **a conta** ("com ~4 Pokémon no banco
+dele; ×2 pela fraqueza"). O placar da corrida não passa mais de 6 (antes aparecia "derrota 5×8").
+
 ### Padrão de erro: "contar energia sem olhar de QUEM e QUAL" (corrigido para todas as cartas)
 **Caso (Felipe, espelho do Sharpedo)**: Diancie sugerida com *"240 + 30 = 270 → nocauteia em 1 ataque"*. O texto é *"40 damage for each **Special** Energy attached to all of your **opponent's** Pokémon"* — e a lista dele só tem Darkness Energy **básica**: o dano real é **0**.
 **Padrão**: o mesmo do Dragon Elixir, agora em contagens. Uma regra genérica ("para cada energia ligada" → 3) engolia 46 frases diferentes e jogava fora o **lado** (este Pokémon / os seus / os do oponente / os dois Ativos) e o **tipo** (Especial, Básica, {X}). Além disso, o cálculo de dano só recebia o deck de quem ataca — não tinha como saber o que o defensor joga.

@@ -69,3 +69,16 @@ test('motor não quebra quando nenhum atacante consegue jogar (antes: 18 de 36 c
   assert.ok(r.best, 'a simulação precisa devolver uma linha');
   assert.equal(r.best.win, false);
 });
+
+test('banco do oponente: Combat Thunder (Zeraora) conta o banco que ele costuma ter, não sempre 5, e explica a conta', async () => {
+  const { benchEstimate } = await import('../src/damage.js');
+  const z = card('Zeraora', /Combat Thunder/);
+  const sk = (db.byName.get('mega skarmory ex') ?? [])[0];
+  const opp = prof('sharpedo');
+  const n = benchEstimate(opp);
+  assert.ok(n >= 3 && n <= 5, `banco estimado ${n}`);
+  const r = damageVs(atk(z, 'Combat Thunder'), z, sk, { defDeck: opp });
+  assert.equal(r.dmg, (20 + 20 * n) * 2); // ×2 só porque o Mega Skarmory ex é fraco a Elétrico
+  assert.ok(r.notes.some((x) => x.includes(`~${n} Pokémon no banco dele`)), r.notes.join('; '));
+  assert.ok(r.notes.includes('fraqueza'));
+});

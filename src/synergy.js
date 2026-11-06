@@ -14,10 +14,10 @@ const reTypeIn = (text, re, types) => {
 };
 
 // Energias que precisariam entrar para a carta atacar
-export function missingEnergy(card, me) {
+export function missingEnergy(card, me, valueAttackName = null) {
   const options = [];
   for (const a of card.attacks ?? []) {
-    if (!attackDamage(a)) continue;
+    if (valueAttackName ? a.name !== valueAttackName : !attackDamage(a)) continue;
     const need = {};
     for (const t of a.cost ?? []) if (t !== 'Colorless' && !me.energyTypes.has(t)) need[t] = (need[t] ?? 0) + 1;
     const types = Object.keys(need);
@@ -124,12 +124,16 @@ export function realDamage(card, me, opp, energyTypes, combo) {
 }
 
 // Monta as opções de pacote (sem e com energia habilitadora) para a tech
-export function buildOptions(card, me, opp, db) {
+export function buildOptions(card, me, opp, db, valueAttackName = null) {
   const opts = [];
   const base = new Set(me.energyTypes);
-  const variants = [{ energy: null, types: base }];
-  const miss = card.category === 'Pokemon' ? missingEnergy(card, me) : null;
+  const valueAtk = valueAttackName && (card.attacks ?? []).find((a) => a.name === valueAttackName);
+  // Se o valor vem de um ataque específico, o pacote TEM que deixar esse ataque pagável
+  const valueNeedsEnergy = valueAtk && !canPay(valueAtk.cost, base);
+  const variants = valueNeedsEnergy ? [] : [{ energy: null, types: base }];
+  const miss = card.category === 'Pokemon' ? missingEnergy(card, me, valueNeedsEnergy ? valueAttackName : null) : null;
   if (miss) variants.push({ energy: miss, types: new Set([...base, miss.type]) });
+  if (!variants.length) variants.push({ energy: null, types: base }); // não dá para pagar: segue, o encaixe vai apontar
   for (const v of variants) {
     const adds = [];
     const prevo = card.stage && card.stage !== 'Basic' && !me.names.has(card.evolveFrom) ? bestPrevo(card, me, v.types, db) : null;

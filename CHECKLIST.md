@@ -57,7 +57,7 @@ Legenda: [x] feito · [~] em andamento · [ ] a fazer
 - [x] Corrigidos falsos positivos: "dano de 40 ou menos" (Roggenrola), "só se nocautear" (Golisopod/Marshadow)
 - [x] **Correção (feedback):** simulador agora considera energia por turno (atacante novo precisa ser energizado), custo de Boss/energia, nocautear o Ativo antes de gastar Boss, e mostra quem está no Ativo em cada turno → linha certa: Pecharunt ex mata o Ogerpon (60×3+30) sem Boss
 - [x] Linha alternativa de jogo + anti-sinergia detectada: Legacy Energy reduz o dano do Pecharunt ex (menos prêmios tomados)
-- [x] Cada erro apontado pelo jogador vira **teste permanente** (30 testes ✅)
+- [x] Cada erro apontado pelo jogador vira **teste permanente** (32 testes ✅)
 - [x] **Passo para trás (feedback):** diagnóstico primeiro — "por que ESTE deck perde ESTE matchup" (quem mata seu atacante, troca de prêmios, banco cheio)
 - [x] **Filtro de relevância:** só sugere o que bloqueia quem mata seu atacante, vira a corrida na simulação ou reduz prêmios entregues; o resto vai para "descartadas" com o motivo
 - [x] **Espaço no banco** do plano do deck entra no peso (Sharpedo: banco cheio com Pecharunt, Toxtricity, Munkidori, Fezandipiti + Carvanha)
@@ -77,6 +77,10 @@ Legenda: [x] feito · [~] em andamento · [ ] a fazer
 - [x] **Troca de nocaute** para todo Pokémon legal: nocauteia quem mata seu atacante entregando menos prêmios, pagável com no máx. 1 energia de outro tipo (Moltres agora aparece; Lugia de 3 tipos não)
 - [x] Versões com mesmo nome: fica a relevante (Moltres PFL × Moltres 30th)
 - [x] **Testes de ouro do dano** (`test/damage.test.js`) + **relatório de lacunas** (`npm run audit`): 65% dos 468 ataques de dano variável entendidos (era 50%)
+- [x] **Pacote paga o ataque que dá o valor** (feedback): Moltres e Centiskorch agora levam a Energia de Fogo
+- [x] **Turno de evolução** no tempo: Estágio 1 = +1 turno, Estágio 2 = +2 (ou +1 com Rare Candy)
+- [x] Simulador: muralha por ataque (Covert Flight) + **oponente usa Boss para contornar muralhas**
+- [x] Corrida pesa mais na nota (10 pontos por prêmio de margem); tech que quase não muda a corrida perde impacto
 - [ ] Ensinar as frases restantes do relatório de lacunas (cauda longa)
 - [ ] Caminho "⭐ ACE SPEC de consistência" (ex.: Secret Box × Unfair Stamp) medido no simulador de consistência
 - [ ] Caminho "contra-disrupção" (quando o oponente te atrapalha: Iono, item lock…) — precisa de um deck de teste com disrupção
@@ -88,7 +92,7 @@ Legenda: [x] feito · [~] em andamento · [ ] a fazer
 - [x] Visual UAAAU 🔥: carta holográfica que inclina com o mouse, anéis de nota animados, confete, Pokébola de loading
 
 ## Fase 7 — Validação
-- [x] Caso de teste real: Mega Sharpedo ex × Basic Box → **#1 Farigiraf ex** com o pacote Girafarig TWM + Energia Psíquica e todos os combos (30 testes ✅)
+- [x] Caso de teste real: Mega Sharpedo ex × Basic Box → **#1 Farigiraf ex** com o pacote Girafarig TWM + Energia Psíquica e todos os combos (32 testes ✅)
 - [ ] Testar com mais 3 matchups do meta
 - [x] Publicar: versão privada no claude.ai ✅
 - [x] Repositório no GitHub: https://github.com/dinheirocomsites/PokeMatch

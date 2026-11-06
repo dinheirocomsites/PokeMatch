@@ -72,13 +72,18 @@ export function evaluateFit(card, used, reasons, meBase, opp, db, opt = null) {
   const prevo = opt?.adds?.find((a) => a.role === 'pré-evolução')?.card ?? (card.evolveFrom ? db.byName.get(card.evolveFrom.toLowerCase())?.[0] : null);
 
   // ---------- RECURSOS ----------
+  const koAttackName = reasons.find((r) => r.kind === 'KO_TRADE')?.attackName;
+  const koAttack = koAttackName ? (card.attacks ?? []).find((a) => a.name === koAttackName) : null;
   if (card.category === 'Pokemon') {
     const attackTags = used.filter((t) => t.source === 'attack');
     const canAttack = (card.attacks ?? []).some((a) => attackDamage(a) > 0 && canPayCost(a.cost, me));
     if (attackTags.length && !attackTags.every((t) => canPayCost(t.cost, me))) {
       const need = [...new Set(attackTags.flatMap((t) => t.cost ?? []).filter((x) => x !== 'Colorless'))].map(typePt);
       add('recursos', 0.25, `✗ O efeito vem de um ataque que precisa de energia ${need.join('/')} — seu deck não tem.`);
-    } else if (canAttack) { if (!opt?.energy) add('recursos', 1, '✓ Consegue atacar com as energias do seu deck.'); }
+    } else if (koAttack && !canPayCost(koAttack.cost, me)) {
+      const need = [...new Set(koAttack.cost.filter((x) => x !== 'Colorless' && !me.energyTypes.has(x)))].map(typePt);
+      add('recursos', 0.3, `✗ "${koAttack.name}" (o ataque que dá o valor) precisa de energia ${need.join('/')} — o pacote não consegue pagar.`);
+    } else if (canAttack) { if (!opt?.energy) add('recursos', 1, `✓ ${koAttack ? `"${koAttack.name}" sai` : 'Consegue atacar'} com as energias do seu deck.`); }
     else {
       const need = [...new Set((card.attacks ?? []).flatMap((a) => a.cost ?? []).filter((x) => x !== 'Colorless'))].map(typePt);
       add('recursos', 0.9, `⚠ Não ataca com as suas energias${need.length ? ` (precisa de ${need.join('/')})` : ''}.`);
@@ -138,11 +143,14 @@ export function evaluateFit(card, used, reasons, meBase, opp, db, opt = null) {
         const m = (a.effect ?? '').match(/attach it to 1 of your benched \{([A-Z])\} pok[eé]mon/i);
         return m && (card.types ?? []).includes(SYMK[m[1]]);
       }));
-      const turns = Math.max(1, Math.ceil(n / (accel ? 2 : 1)));
-      let f2 = { 1: 1, 2: 0.9, 3: 0.68 }[turns] ?? 0.5;
+      const energyTurns = Math.max(1, Math.ceil(n / (accel ? 2 : 1)));
+      // Evoluir também custa turno: o Básico precisa estar em jogo desde o turno anterior
+      const evoTurns = card.stage === 'Stage1' ? 1 : card.stage === 'Stage2' ? (me.search.rareCandy ? 1 : 2) : 0;
+      const turns = Math.max(energyTurns, 1 + evoTurns);
+      let f2 = { 1: 1, 2: 0.86, 3: 0.68 }[turns] ?? 0.5;
       // Se o valor principal é uma habilidade (funciona sem energia), o ataque é bônus: pesa pela metade
       if (used.some((t) => t.source === 'ability') && reasons[0] && !['WEAKNESS', 'COMBO_DMG', 'KO_TRADE'].includes(reasons[0].kind)) f2 = (1 + f2) / 2;
-      add('peso', f2, `${turns >= 3 ? '✗' : turns === 2 ? '⚠' : '✓'} "${valueAtk.name}" custa ${n} energia${n > 1 ? 's' : ''}: ~${turns} turno${turns > 1 ? 's' : ''} para energizar${accel ? ` (com ajuda do ${accel.card.name})` : ''}.`);
+      add('peso', f2, `${turns >= 3 ? '✗' : turns === 2 ? '⚠' : '✓'} Pronto para atacar em ~${turns} turno${turns > 1 ? 's' : ''}: "${valueAtk.name}" custa ${n} energia${n > 1 ? 's' : ''}${accel ? ` (com ajuda do ${accel.card.name})` : ''}${evoTurns ? ` e ${card.stage === 'Stage1' ? 'Estágio 1' : 'Estágio 2'} precisa de +${evoTurns} turno${evoTurns > 1 ? 's' : ''} para evoluir` : ' e entra direto (Básico)'}.`);
     }
   }
   // Espaço no banco: o plano do deck já ocupa as vagas?

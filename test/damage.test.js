@@ -60,3 +60,22 @@ test('Moltres é sugerido contra a Basic Box (troca de nocaute); Lugia de 3 tipo
   assert.ok(m.reasons.some((x) => x.kind === 'KO_TRADE' && /Teal Mask Ogerpon ex \(220, fraqueza\)/.test(x.why)));
   assert.ok(!r.suggestions.some((s) => s.card.id === '30th-121'), 'Lugia (Fogo+Água+Elétrico) é impagável');
 });
+
+test('feedback: Moltres (Básico, 1 energia) acima de Centiskorch (Estágio 1) e com Energia de Fogo no pacote', () => {
+  const r = analyze(read('sharpedo.txt'), read('basic-box.txt'), db, { limit: 30, context: 'corrida dos prêmios, morro em um hit para Ogerpon ou Folhas Férreas' });
+  const m = r.suggestions.find((s) => s.card.name === 'Moltres');
+  const c = r.suggestions.find((s) => s.card.name === 'Centiskorch');
+  assert.ok(m.pkg.adds.some((a) => a.card.name === 'Fire Energy'), 'pacote do Moltres precisa da Energia de Fogo');
+  assert.ok(m.swap.in.some((x) => /Fire Energy/.test(x)));
+  if (c) {
+    assert.ok(r.suggestions.indexOf(m) < r.suggestions.indexOf(c));
+    assert.ok(c.pkg.adds.some((a) => a.card.name === 'Fire Energy'), 'Billowing Heat Wave custa {R}');
+  }
+  assert.ok(r.suggestions.indexOf(m) < 4, 'Moltres no top 4');
+});
+
+test('simulador: o oponente usa Boss para contornar muralha (Farigiraf não vence 6×2 de graça)', () => {
+  const r = analyze(read('sharpedo.txt'), read('basic-box.txt'), db, { limit: 10 });
+  const f = r.suggestions.find((s) => s.card.name === 'Farigiraf ex');
+  assert.ok(f.race && !/6×[0-2]$/.test(f.race.result), f.race?.result);
+});

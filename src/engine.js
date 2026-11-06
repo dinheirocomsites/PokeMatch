@@ -275,7 +275,8 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
     if (!ev || ev.impact < 8) continue;
     // Avalia o pacote sem e com energia habilitadora e fica com o melhor
     let best = null;
-    const options = card.category === 'Pokemon' ? buildOptions(card, me, opp, db) : [null];
+    const valueAttackName = ev.reasons.find((r) => r.kind === 'KO_TRADE')?.attackName ?? null;
+    const options = card.category === 'Pokemon' ? buildOptions(card, me, opp, db, valueAttackName) : [null];
     for (const opt of options) {
       const reasons = [...ev.reasons];
       if (opt?.damage?.kos.length) {
@@ -293,7 +294,8 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
     candidates.push(best);
   }
   // ---------- Corrida de prêmios: simula e testa techs ----------
-  const outcome = (b) => (b.win ? 100 - b.turns * 5 + (6 - b.oppTaken) * 4 : b.myTaken * 5 - 50);
+  // Resultado da corrida: vencer importa mais; depois, cada prêmio de margem vale bastante
+  const outcome = (b) => (b.win ? 100 - b.turns * 5 + (6 - b.oppTaken) * 10 : b.myTaken * 5 - 50);
   const describe = (b) => `${b.win ? 'vitória' : 'derrota'} ${b.win ? `${b.myTaken}×${b.oppTaken}` : `${b.myTaken}×${b.oppTaken}`}`;
   const naive = me.mainAttacker ? simulateRace(me, opp, { only: [me.mainAttacker.name] }) : null;
   const baseRace = simulateRace(me, opp);
@@ -304,9 +306,10 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
     const r = simulateRace(me, opp, opts);
     let delta = outcome(r.best) - baseScore;
     let rn = null;
+    // "Só com o atacante principal" vale para redutores de prêmio (Legacy Energy…). Para atacantes novos
+    // não: qualquer segundo atacante "vira" esse cenário, e a lista já tem outras saídas (ex.: Pecharunt).
     if (naive && !opts.extraAttackers?.length) {
-      const only = [me.mainAttacker.name];
-      rn = simulateRace(me, opp, { ...opts, only });
+      rn = simulateRace(me, opp, { ...opts, only: [me.mainAttacker.name] });
       delta = Math.max(delta, (outcome(rn.best) - naiveScore) * 0.6);
     }
     return { r, rn, delta };
@@ -337,17 +340,27 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
     }
   }
   // (b) atacantes novos (principalmente de 1 prêmio) — testa os melhores candidatos com dano
-  const withDmg = candidates.filter((c) => c?.pkg?.damage?.kos?.length).sort((a, b) => b.score - a.score).slice(0, 14);
+  // Testa no simulador quem nocauteia algo E quem é muralha (a muralha também precisa provar valor na corrida)
+  const isWall = (c) => c.reasons.some((x) => ['WALL_SELF', 'WALL_CHOSEN'].includes(x.kind));
+  const withDmg = candidates.filter((c) => c?.card.category === 'Pokemon' && c.pkg && (c.pkg.damage?.kos?.length || isWall(c))).sort((a, b) => b.score - a.score).slice(0, 18);
   for (const c of withDmg) {
     if (c.reasons.some((x) => x.kind === 'PRIZE_RACE')) continue; // já simulada como redutora de prêmios
     const { r, rn, delta } = raceWith({ extraAttackers: [{ card: c.card, count: 1 }], energyTypes: c.pkg.energyTypes });
+    if (!r?.best) continue;
     const uses = (x) => x?.best.steps.some((st) => st.attacker === c.card.name);
-    if (delta <= 0 || !(uses(r) || uses(rn))) continue;
-    c.reasons.push(raceReason(r, delta, `usando ${c.card.name}`, rn));
-    c.reasons.sort((a, b) => b.value - a.value);
-    c.impact = Math.round(clamp(c.reasons.reduce((s2, x, i) => s2 + x.value * (i ? 0.4 : 1), 0), 0, 100));
-    c.score = Math.round(c.impact * (c.fit / 100));
-    c.race = { plan: planText(r.best), result: describe(r.best) };
+    if (delta > 0 && (uses(r) || uses(rn))) {
+      c.reasons.push(raceReason(r, delta, `usando ${c.card.name}`, rn));
+      c.reasons.sort((a, b) => b.value - a.value);
+      c.impact = Math.round(clamp(c.reasons.reduce((s2, x, i) => s2 + x.value * (i ? 0.4 : 1), 0), 0, 100));
+      c.score = Math.round(c.impact * (c.fit / 100));
+      c.race = { plan: planText(r.best), result: describe(r.best) };
+    }
+    // Simulou e quase não mudou a corrida? A tech resolve pouco na prática: perde parte do impacto
+    if (delta * 0.8 < 8) {
+      c.impact = Math.round(c.impact * 0.82);
+      c.score = Math.round(c.impact * (c.fit / 100));
+      (c.notes.sinergia ??= []).push(`⚠ Na simulação da corrida de prêmios ela quase não muda o resultado (${describe(baseRace.best)} → ${describe(r.best)}).`);
+    }
   }
 
   // ---------- Diagnóstico: por que este deck perde este matchup? ----------

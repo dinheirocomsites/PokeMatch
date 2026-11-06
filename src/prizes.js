@@ -64,9 +64,16 @@ function wallsOf(card) {
   if (!wallCache.has(card.id)) wallCache.set(card.id, extractTags(card).filter((t) => t.kind === 'WALL_SELF' && t.source === 'ability'));
   return wallCache.get(card.id);
 }
-function oppChoose(target, opp, oppLeft, hitsTaken) {
+// Muralha criada pelo ataque usado neste turno (ex.: Golbat "Covert Flight": no próximo turno, Básicos não causam dano)
+const atkWallCache = new Map();
+function attackWalls(card, attackName) {
+  const k = `${card.id}|${attackName}`;
+  if (!atkWallCache.has(k)) atkWallCache.set(k, extractTags(card).filter((t) => t.kind === 'WALL_SELF' && t.source === 'attack' && t.name === attackName && !(t.cond ?? []).includes('coin')));
+  return atkWallCache.get(k);
+}
+function oppChoose(target, opp, oppLeft, hitsTaken, extraWalls = []) {
   const opts = [];
-  const walls = wallsOf(target);
+  const walls = [...wallsOf(target), ...extraWalls];
   for (const e of opp.threat) {
     if (!oppLeft.get(e.card.name) || e.feas < 0.3) continue;
     if (walls.some((w) => matches(w.sel, e.card))) continue; // muralha: esse atacante não causa dano
@@ -106,14 +113,20 @@ export function simulateRace(me, opp, { extraAttackers = [], denial = null, ener
   // No banco dele (alcançável com Boss): Pokémon com habilidade que funciona no banco + os que já atacaram
   const benchy = new Set(targets.filter((t) => (t.abilities ?? []).some((a) => !/in the active spot/i.test(a.effect ?? ''))).map((t) => t.name));
 
+  // O oponente também usa Boss's Orders: quando não consegue nocautear o seu Ativo (ex.: muralha),
+  // puxa do seu banco o Pokémon que vale mais prêmios e que ele nocauteia.
+  const oppGustCards = opp.entries.filter((e) => /switch in 1 of your opponent.s benched/i.test(e.card.text)).reduce((s2, e) => s2 + e.count, 0);
+  const oppGusts0 = Math.min(3, Math.ceil(oppGustCards / 2));
+  const myBench = me.entries.filter((e) => e.card.category === 'Pokemon' && (me.board?.pieces ?? []).includes(e.card.name)).map((e) => e.card);
   const income = 1 + (eng.accel ? 1 : 0); // energia por turno: 1 manual + aceleração
   const SETUP_BANK = 3; // energia montada antes do primeiro ataque
   const killsMain = new Set(me.mainAttacker ? opp.threat.filter((e) => e.feas >= 0.3 && (e.card.attacks ?? []).some((a) => damageVs(a, e.card, me.mainAttacker, { deck: opp, oppTaken: 3 }).dmg >= me.mainAttacker.hp - 20)).map((e) => e.card.name) : []);
   let best = null;
   const finals = [];
   const memo = new Map();
-  function rec(state, steps, depth) {
-    const key = `${state.bank}|${state.gustsUsed}|${state.energySpent}|${state.myTaken}|${state.oppTaken}|${state.active?.card.name}|${state.active?.dmgTaken}|${[...state.shown].sort()}|${state.oppActive}|${state.gusts}|${[...state.myLeft.values()]}|${[...state.oppLeft.values()]}|${state.denialLeft}`;
+  function rec(stateIn, steps, depth) {
+    let state = stateIn;
+    const key = `${state.oppGusts}|${(state.benchLost ?? []).join(',')}|${state.bank}|${state.gustsUsed}|${state.energySpent}|${state.myTaken}|${state.oppTaken}|${state.active?.card.name}|${state.active?.dmgTaken}|${[...state.shown].sort()}|${state.oppActive}|${state.gusts}|${[...state.myLeft.values()]}|${[...state.oppLeft.values()]}|${state.denialLeft}`;
     if (memo.has(key) && memo.get(key) <= depth) return;
     memo.set(key, depth);
     if (state.myTaken >= 6 || state.oppTaken >= 6 || depth >= maxTurns) {
@@ -178,7 +191,7 @@ export function simulateRace(me, opp, { extraAttackers = [], denial = null, ener
         // Atacante que depende de estar ferido (ex.: Hungry Jaws) entra no ataque já com dano
         const selfHurt = pick && eng.selfDamage && /if this pok[eé]mon has any damage counters/i.test(pick.a.effect ?? '') ? eng.selfDmgAmount : 0;
         const prevHits = (state.active?.att === att ? state.active.dmgTaken : 0) + (state.active?.att === att ? 0 : selfHurt);
-        const hit = oppChoose(att.card, opp, oppLeft, prevHits);
+        const hit = oppChoose(att.card, opp, oppLeft, prevHits, used ? attackWalls(att.card, used.name) : []);
         let oppTaken = state.oppTaken;
         let active = null;
         let denialLeft = state.denialLeft;
@@ -191,15 +204,29 @@ export function simulateRace(me, opp, { extraAttackers = [], denial = null, ener
         } else {
           active = { att, card: att.card, dmgTaken: prevHits + (hit?.dmg ?? 0) };
           Object.assign(step, { ko: false, oppAttacker: hit?.card.name, oppDmg: Math.round(hit?.dmg ?? 0) });
+          // Contorna com Boss: nocauteia um Pokémon do seu banco
+          if (state.oppGusts > 0) {
+            let g = null;
+            for (const b of myBench) {
+              if (state.benchLost?.includes(b.name)) continue;
+              const h = oppChoose(b, opp, oppLeft, 0);
+              if (h?.ko && (!g || b.prizeValue > g.b.prizeValue)) g = { b, h };
+            }
+            if (g) {
+              oppTaken += g.b.prizeValue;
+              step.oppGust = { target: g.b.name, by: g.h.card.name, gain: g.b.prizeValue };
+              state = { ...state, oppGusts: state.oppGusts - 1, benchLost: [...(state.benchLost ?? []), g.b.name] };
+            }
+          }
         }
         step.oppTotal = oppTaken;
         const shown = new Set(state.shown); if (hit?.card) shown.add(hit.card.name);
-        rec({ myTaken, oppTaken, myLeft, oppLeft, active, oppActive: hit?.card.name ?? state.oppActive, gusts: gustsLeft, denialLeft, shown, gustsUsed, energySpent, bank: Math.min(6, bankAfter + income) }, [...steps, step], depth + 1);
+        rec({ myTaken, oppTaken, myLeft, oppLeft, active, oppActive: hit?.card.name ?? state.oppActive, gusts: gustsLeft, denialLeft, shown, gustsUsed, energySpent, bank: Math.min(6, bankAfter + income), oppGusts: state.oppGusts, benchLost: state.benchLost }, [...steps, step], depth + 1);
       }
     }
   }
   const myLeft = new Map(pool.map((p) => [p.card.name, p.count]));
-  rec({ myTaken: 0, oppTaken: 0, myLeft, oppLeft: oppLeft0, active: null, oppActive: opener, gusts, denialLeft: denial ? (denial.uses ?? 1) : 0, shown: new Set([opener]), gustsUsed: 0, energySpent: 0, bank: SETUP_BANK }, [], 0);
+  rec({ myTaken: 0, oppTaken: 0, myLeft, oppLeft: oppLeft0, active: null, oppActive: opener, gusts, denialLeft: denial ? (denial.uses ?? 1) : 0, shown: new Set([opener]), gustsUsed: 0, energySpent: 0, bank: SETUP_BANK, oppGusts: oppGusts0, benchLost: [] }, [], 0);
   // Linha alternativa: melhor resultado que usa um conjunto diferente de atacantes
   const sig = (r) => [...new Set(r.steps.map((x) => x.attacker))].sort().join('+');
   const alt = best && finals.filter((r) => r.win === best.win && sig(r) !== sig(best)).sort((a, b) => b.score - a.score)[0];
@@ -252,6 +279,7 @@ export function planText(plan) {
     } else mine = `${who} nocauteia o Ativo dele, ${s.target} (${pz(s.prizes)}), sem gastar Boss (~${s.dmg}). Você: ${s.myTotal}/6.`;
     const theirs = s.myTotal >= 6 ? '🏆 Você pega o último prêmio.' : s.ko
       ? `Ele responde: ${s.oppAttacker} nocauteia ${s.attacker}${s.oppWeak ? ' (fraqueza)' : ''} → +${s.oppGain}${s.denial ? ` (${s.denial}: −1)` : ''}. Ele: ${s.oppTotal}/6.`
+      : s.oppGust ? `Ele não passa pelo ${s.attacker}, então usa Boss's Orders: ${s.oppGust.by} nocauteia o seu ${s.oppGust.target} no banco → +${s.oppGust.gain}. Ele: ${s.oppTotal}/6.`
       : `Ele não consegue nocautear ${s.attacker} neste turno.`;
     return { turn: i + 1, mine, theirs };
   });

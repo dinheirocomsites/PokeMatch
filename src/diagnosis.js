@@ -3,6 +3,7 @@
 // Cada eixo traz evidências e os tipos de carta que respondem a ele.
 import { extractTags, matches, parseSelector, TERA, ANCIENT, isFuture, ownerRefs, OWNER_PT } from './tags.js';
 import { damageVs } from './damage.js';
+import { parseTarget, restricts, matchesTarget, describeTarget, targetCoverage } from './target.js';
 
 const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
 const list = (arr, n = 4) => [...new Set(arr)].slice(0, n).join(', ');
@@ -77,7 +78,7 @@ export function diagnoseDisruption(me, opp) {
     const share = opp.threat.filter((e) => spreadAtk.some((x) => x.by === e.card.name)).reduce((s2, e) => s2 + e.threat, 0) / (opp.totalThreat || 1);
     const sev = clamp(((fragile.length + fragile2.length * 0.5) / Math.max(2, bench.length) + (max >= 60 ? 0.2 : 0)) * clamp(share * 3));
     const kinds = [...new Set(spreadAtk.map((x) => x.kind))];
-    if (sev > 0.15) axes.push({ key: 'spread', severity: sev, kinds, evidence: `${list(spreadAtk.map((s) => s.by))} espalha até ${max} de dano no seu banco (${kinds.map((k) => (k === 'counters' ? 'colocando contadores' : 'causando dano')).join(' e ')}); ${fragile.length ? `caem de uma vez: ${list(fragile.map((e) => `${e.card.name} (${e.card.hp} HP)`))}` : 'seu banco aguenta um ataque'}${fragile2.length ? `; caem em 2 ataques: ${list(fragile2.map((e) => `${e.card.name} (${e.card.hp} HP)`))}` : ''}.` });
+    if (sev > 0.15) axes.push({ key: 'spread', severity: sev, kinds, oneShot: fragile.length / Math.max(1, bench.length), evidence: `${list(spreadAtk.map((s) => s.by))} espalha até ${max} de dano no seu banco (${kinds.map((k) => (k === 'counters' ? 'colocando contadores' : 'causando dano')).join(' e ')}); ${fragile.length ? `caem de uma vez: ${list(fragile.map((e) => `${e.card.name} (${e.card.hp} HP)`))}` : 'seu banco aguenta um ataque'}${fragile2.length ? `; caem em 2 ataques: ${list(fragile2.map((e) => `${e.card.name} (${e.card.hp} HP)`))}` : ''}.` });
   }
 
   // 5) Prender o seu Pokémon no Ativo (não pode recuar)
@@ -204,27 +205,28 @@ export function counterTags(card) {
   const out = [];
   for (const a of card.abilities ?? []) {
     const t = a.effect ?? '';
+    const tgtOf = (re) => { const sent = t.split(/(?<=[.!])\s+/).find((x) => re.test(x)); return sent ? parseTarget(sent) : null; };
     const draw = t.match(/draw (\d+) cards|draw cards until you have (\d+)/i);
     if (draw) out.push({ kind: 'DRAW_ABILITY', name: a.name, amount: +(draw[1] ?? draw[2]), repeat: /once during your turn/i.test(t) && !/only if|if any of your/i.test(t) });
-    if (/attach/i.test(t) && /energy/i.test(t) && /(from your deck|from your discard|search your deck)/i.test(t)) out.push({ kind: 'ENERGY_ACCEL', name: a.name });
+    if (/attach/i.test(t) && /energy/i.test(t) && /(from your deck|from your discard|search your deck)/i.test(t)) out.push({ kind: 'ENERGY_ACCEL', name: a.name, target: tgtOf(/attach/i) });
     if (/prevent all damage (counters )?(from being placed )?on (your )?benched|damage counters .*your benched pok[eé]mon/i.test(t) && /prevent/i.test(t)) out.push({ kind: 'BENCH_SHIELD', name: a.name });
   }
   if (card.trainerType === 'Supporter' && /search your deck for (up to \d+ )?(basic )?pok[eé]mon|search your deck for (up to \d+ )?(cards|a card)/i.test(card.text)) out.push({ kind: 'SUPPORTER_SEARCH', name: card.name });
-  if (card.category === 'Trainer' && /attach (up to \d+ )?basic .*energy cards? from your discard pile|basic energy cards? from your discard pile into your hand/i.test(card.text)) out.push({ kind: 'ENERGY_RECOVERY', name: card.name });
+  if (card.category === 'Trainer' && /attach (up to \d+ )?basic .*energy cards? from your discard pile|basic energy cards? from your discard pile into your hand/i.test(card.text)) out.push({ kind: 'ENERGY_RECOVERY', name: card.name, target: /attach/i.test(card.text) ? parseTarget(card.text.split(/(?<=[.!])\s+/).find((x) => /attach/i.test(x)) ?? '') : null });
   if (card.category === 'Trainer' && /prevent all damage counters from being placed on .*benched|damage counters .*benched pok[eé]mon/i.test(card.text) && /prevent/i.test(card.text)) out.push({ kind: 'BENCH_SHIELD', name: card.name });
   if (/(shuffle|put) [^.]*from your discard pile into your deck/i.test(card.text ?? '')) out.push({ kind: 'DECK_RECOVERY', name: card.name });
   // Cura de condição que vale para o SEU atacante (não "este Pokémon não pode ser afetado", como os Fósseis Antigos)
-  if (/recovers? from all special conditions|your pok[eé]mon[^.]*can.t be affected by (any )?special conditions|pok[eé]mon with [^.]*attached[^.]*can.t be affected by (any )?special conditions/i.test((card.text ?? '').replace(/this pok[eé]mon can.t be affected by (any )?special conditions/gi, ''))) out.push({ kind: 'STATUS_CURE', name: card.name });
+  if (/recovers? from all special conditions|your pok[eé]mon[^.]*can.t be affected by (any )?special conditions|pok[eé]mon with [^.]*attached[^.]*can.t be affected by (any )?special conditions/i.test((card.text ?? '').replace(/this pok[eé]mon can.t be affected by (any )?special conditions/gi, ''))) out.push({ kind: 'STATUS_CURE', name: card.name, target: parseTarget((card.text ?? '').split(/(?<=[.!])\s+/).find((x) => /special condition|heal/i.test(x)) ?? '') });
   if (/can.t be healed/i.test(card.text ?? '')) out.push({ kind: 'HEAL_BLOCK', name: card.name });
   // Bom Pokémon inicial: Básico sem Rule Box, HP alto e recuo barato (aguenta o ataque cedo)
   if (card.category === 'Pokemon' && card.stage === 'Basic' && !card.isRuleBox && (card.retreat ?? 9) <= 1 && card.hp >= 100) out.push({ kind: 'STARTER', name: card.name, hp: card.hp });
   if (/switch in 1 of your opponent.s benched pok[eé]mon to the active spot/i.test(card.text ?? '') && !/flip a coin/i.test(card.text ?? '')) out.push({ kind: 'GUST', name: card.name });
   for (const t of extractTags(card)) {
     if (t.kind === 'FORCE_SWITCH') out.push({ kind: 'FORCE_SWITCH', name: t.name });
-    if (t.kind === 'BENCH_WALL') out.push({ kind: 'BENCH_WALL', name: t.name, team: !!t.team, protectsNoRuleBox: !!t.protectsNoRuleBox });
-    if (t.kind === 'HEAL' && t.source !== 'attack') out.push({ kind: 'HEAL', name: t.name, amount: t.amount, scope: t.scope });
-    if (t.kind === 'SWITCH' && t.source !== 'attack') out.push({ kind: 'SWITCH', name: t.name });
-    if (t.kind === 'ENERGY_MOVE' && t.source !== 'attack') out.push({ kind: 'ENERGY_MOVE', name: t.name });
+    if (t.kind === 'BENCH_WALL') out.push({ kind: 'BENCH_WALL', name: t.name, team: !!t.team, protectsNoRuleBox: !!t.protectsNoRuleBox, target: t.target ?? null });
+    if (t.kind === 'HEAL' && t.source !== 'attack') out.push({ kind: 'HEAL', name: t.name, amount: t.amount, scope: t.scope, target: t.target ?? null });
+    if (t.kind === 'SWITCH' && t.source !== 'attack') out.push({ kind: 'SWITCH', name: t.name, target: t.target ?? null });
+    if (t.kind === 'ENERGY_MOVE' && t.source !== 'attack') out.push({ kind: 'ENERGY_MOVE', name: t.name, target: t.target ?? null });
   }
   return out;
 }
@@ -375,6 +377,27 @@ export function requirements(card, me, opp = null) {
   const hand = t.match(/if you have (\d+) or (more|fewer) cards in your hand/i);
   if (hand) { factor *= 0.8; notes.push(`depende de você ter ${hand[1]} ou ${hand[2] === 'more' ? 'mais' : 'menos'} cartas na mão`); }
   if (/only if you have more prize cards remaining than your opponent/i.test(t)) { factor *= 0.7; notes.push('só quando você estiver atrás nos prêmios'); }
+  // ALVO dos efeitos de apoio (cura, troca, energia, HP): algum Pokémon seu serve? E fica onde o efeito age?
+  const MINE = new Set(['HEAL', 'SWITCH', 'ENERGY_MOVE', 'HP_BOOST']);
+  const attackersOf = new Set(me.threat?.filter((e) => e.feas >= 0.3 && (e.card.attacks ?? []).some((a) => /\d/.test(String(a.damage ?? '')))).map((e) => e.card.name) ?? []);
+  if (me.mainAttacker) attackersOf.add(me.mainAttacker.name);
+  const checked = new Set();
+  for (const tg of extractTags(card)) {
+    const tt = tg.target;
+    if (!MINE.has(tg.kind) || !tt || tt.where === 'self' || tt.owner || !restricts(tt)) continue; // dono já é conferido acima
+    const key = JSON.stringify(tt);
+    if (checked.has(key)) continue;
+    checked.add(key);
+    const fits = me.entries.filter((e) => matchesTarget(tt, e.card)).map((e) => e.card.name);
+    if (!fits.length) return { ok: false, note: `só funciona em ${describeTarget(tt)} — seu deck não tem`, good: [] };
+    // O que importa é alcançar quem precisa: o seu atacante principal (ou outro atacante)
+    const coversMain = me.mainAttacker && fits.includes(me.mainAttacker.name);
+    const coversAttacker = fits.some((n) => attackersOf.has(n));
+    if (coversMain) continue;
+    if (tt.where === 'active' && !coversAttacker) { factor *= 0.3; notes.push(`só age no Ativo e o seu Pokémon ${describeTarget({ ...tt, where: 'any' }).replace(/^Pokémon /, '')} (${[...new Set(fits)].slice(0, 3).join(', ')}) não costuma ficar no Ativo`); }
+    else if (!coversAttacker) { factor *= 0.6; notes.push(`só alcança ${describeTarget(tt)}: ${[...new Set(fits)].slice(0, 3).join(', ')} — não o seu atacante`); }
+    else { factor *= 0.85; notes.push(`só alcança ${describeTarget(tt)}: ${[...new Set(fits)].slice(0, 3).join(', ')} — não o ${me.mainAttacker?.name ?? 'seu atacante principal'}`); }
+  }
   return { ok: true, factor, note: notes.join('; '), good };
 }
 
@@ -409,11 +432,21 @@ export function disruptionValue(card, diag, me) {
       if (ax.key === 'spread' && t.kind === 'BENCH_WALL' && !(ax.kinds ?? []).includes('damage')) continue;
       if (ax.key === 'spread' && t.kind === 'BENCH_SHIELD' && !(ax.kinds ?? []).includes('counters')) continue;
       if (t.kind === 'STARTER' && t.hp <= (ax.maxDmg ?? 0)) continue; // não aguenta o ataque cedo
+      // ALVO: o efeito alcança os Pokémon certos? (Dragon Elixir cura só o Ativo {N}: não responde a dano no banco)
+      const purpose = ax.key === 'spread' ? 'bench' : ['status_lock', 'trap', 'energy_removal'].includes(ax.key) ? 'active' : null;
+      let cov = null;
+      if (purpose && t.target && !(t.kind === 'BENCH_WALL' && !t.team)) {
+        cov = targetCoverage(t.target, me ?? { entries: [], threat: [] }, purpose, card);
+        if (!cov.ok) continue;
+      }
       if (t.kind === 'SWITCH' && ax.key === 'status_lock' && card.category === 'Pokemon') continue;
       let strength = req.factor;
       if (t.kind === 'DRAW_ABILITY') strength *= clamp(t.amount / 3) * (t.repeat ? 1 : 0.6);
       if (t.kind === 'BENCH_WALL') strength *= t.team ? 1.5 : 0.45; // proteger o banco inteiro × só a si mesmo
+      if (cov && cov.frac < 1 && t.target?.where !== 'self') strength *= 0.4 + 0.6 * cov.frac; // só parte dos seus Pokémon é alcançada
       if (t.kind === 'HEAL') strength *= clamp((t.amount >= 999 ? 120 : t.amount) / 60) * (t.scope === 'all' ? 1 : 0.6);
+      // curar não salva quem cai de UM golpe só: contra dano no banco, só vale pelos Pokémon que sobrevivem ao golpe
+      if (t.kind === 'HEAL' && ax.key === 'spread') strength *= 1 - (ax.oneShot ?? 0);
       if (t.kind === 'ENERGY_MOVE') strength *= 0.6;
       // Item é justamente o que a trava de Itens bloqueia
       const lockedItem = card.trainerType === 'Item' && itemLock && itemLock.severity >= 0.3;
@@ -426,7 +459,7 @@ export function disruptionValue(card, diag, me) {
       }
       const value = 42 * ax.severity * strength;
       if (value >= 6) reasons.push({ kind: 'ANTI_' + ax.key.toUpperCase(), axis: ax.key, value,
-        why: WHY[t.kind](t, { ...AXES[ax.key], ...ax }) + (t.finds ? ` No seu deck, encontra: ${[...new Set(t.finds)].slice(0, 3).join(', ')}.` : '') + (req.note ? ` (Atenção: ${req.note}.)` : '') + (lockedItem ? ' (Mas é Item: fica travado pela própria trava de Itens.)' : '') });
+        why: WHY[t.kind](t, { ...AXES[ax.key], ...ax }) + (cov && t.target && restricts(t.target) ? ` Alcança: ${cov.covered.slice(0, 4).join(', ')} (${describeTarget(t.target)}).` : '') + (t.finds ? ` No seu deck, encontra: ${[...new Set(t.finds)].slice(0, 3).join(', ')}.` : '') + (req.note ? ` (Atenção: ${req.note}.)` : '') + (lockedItem ? ' (Mas é Item: fica travado pela própria trava de Itens.)' : '') });
     }
   }
   // um motivo por eixo (o mais forte)

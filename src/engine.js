@@ -10,6 +10,7 @@ import { simulateRace, planText, parseDenial, spreadOf } from './prizes.js';
 import { readContext, clusterOf, CLUSTERS } from './context.js';
 import { consistencyImpact } from './consistency.js';
 import { diagnoseDisruption, disruptionValue, counterTags, AXES } from './diagnosis.js';
+import { restricts, matchesTarget } from './target.js';
 
 const pct = (x) => `${Math.round(x * 100)}%`;
 const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
@@ -587,6 +588,8 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
       if (me.names.has(card.name) || card.trainerType !== 'Tool') continue;
       const hb = extractTags(card).find((t) => t.kind === 'HP_BOOST');
       if (!hb) continue;
+      // o alvo da Ferramenta precisa servir no SEU atacante (tipo, estágio, Rule Box, dono)
+      if (hb.target && restricts(hb.target) && !matchesTarget(hb.target, main)) continue;
       // Ferramenta restrita a um Pokémon ("the Cynthia's Pokémon this card is attached to", "the Pikachu ex…")
       const only = card.text.match(/the (.+?) this card is attached to/i)?.[1];
       if (only && !/^pok[eé]mon$/i.test(only)) {

@@ -1,3 +1,4 @@
+import { parseTarget } from './target.js';
 // Classificador de mecânicas: lê o texto (inglês) de habilidades, ataques e
 // treinadores e extrai "etiquetas de counter" estruturadas, incluindo QUEM é
 // afetado (seletor). Ex.: Farigiraf ex → WALL_SELF { stage: Basic, ex: true }.
@@ -181,6 +182,8 @@ export function extractTags(card) {
     const base = { source: b.source, name: b.name, cost: b.cost, cond };
 
     for (const s of sentences(b.text)) {
+      const before = tags.length;
+      // (no fim da frase: cada etiqueta nova leva o ALVO — em quem o efeito age e onde)
       // 1) Muralha: previne dano
       if (/prevent all damage/i.test(s) && !/damage counters/i.test(s)) {
         const after = s.split(/attacks/i).slice(1).join('attacks') || s;
@@ -281,6 +284,8 @@ export function extractTags(card) {
       // 16) HP extra (Ferramenta)
       const hpb = s.match(/gets \+(\d+) hp/i);
       if (hpb) tags.push({ ...base, kind: 'HP_BOOST', amount: +hpb[1] });
+      const tgt = parseTarget(s);
+      if (tgt) for (let i = before; i < tags.length; i++) tags[i].target ??= tgt;
       // 17) Retaliação: quem ataca este Pokémon leva contadores ("put 3 damage counters on the Attacking Pokémon")
       const ret = s.match(/(?:is (?:damaged|knocked out) by (?:damage from )?an attack|damaged by an attack)[^,]*,\s*(?:put|place) (\d+) damage counters on the attacking pok[eé]mon/i);
       if (ret && !/flip a coin/i.test(full)) tags.push({ ...base, kind: 'RETALIATE', amount: +ret[1] * 10, whenKO: /knocked out/i.test(s), nextTurnOnly: /during your opponent.s next turn/i.test(s) });

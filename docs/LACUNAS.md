@@ -12,6 +12,16 @@
 | Rodada 6 (famílias que mudam o cálculo + buscas na simulação de mão) | 87% lido · 80% usado · 13% testado | 100% | 96 |
 | Rodada 7 (camada de IA rodando: Claude lê, motor confere) | **99% lido · 84% usado · 13% testado** (336 frases via IA) | 100% | **102** |
 
+### Padrão de erro: "ler o efeito e esquecer o alvo" (corrigido para todas as cartas)
+**Caso**: Dragon Elixir aparecia como resposta ao dano no banco do Slowking. O texto é *"Heal 60 damage from your **Active** **{N}** Pokémon"*: só cura o **Ativo**, só **Dragão** — e o único Dragão do Sharpedo (Tatsugiri) fica no banco.
+**Padrão**: o motor guardava *o que* o efeito faz (cura 60) e jogava fora *em quem* e *onde*; quem usava o efeito supunha o alvo mais favorável. O mesmo erro já tinha aparecido no Seviper ("ataques **deste** Pokémon"), nos Fósseis Antigos ("**este** Pokémon não é afetado") e na Lilligant ("seus **{G} e {R}**") — cada um tinha sido remendado sozinho.
+**Correção geral** (`src/target.js`): todo efeito de apoio/defesa leva um **alvo** lido do texto — lado, posição (Ativo / banco / ele mesmo / quem tem a carta / qualquer), tipo, estágio, Rule Box, dono — e todo uso confere:
+- **requisito**: nenhum Pokémon seu serve → bloqueado; só serve um Pokémon que não fica no Ativo (efeito "no Ativo") → peso baixo; não alcança o seu atacante → peso menor;
+- **resposta a dano no banco** só conta se o efeito alcança o banco e os Pokémon certos; **cura** só ajuda contra o que não nocauteia de um golpe;
+- **resposta a paralisia/prender/perder energia** só conta se alcança quem fica no Ativo;
+- **HP extra** só vale se a Ferramenta serve no seu atacante (tipo/estágio/dono).
+Varredura: das 323 cartas de apoio/defesa, no deck Sharpedo 7 mudaram de veredito (2 bloqueadas: Magnetic Metal Energy, Growing Grass Energy; 5 com peso menor: Dragon Elixir, Latias ex…); nos matchups de referência só mudaram as sugestões que estavam erradas (curas contra o Trifrost, energias de tipo que o deck não tem).
+
 ### Rodada 7 — primeira leitura real (06/11/2026)
 - **336 frases** classificadas (24 ficaram de fora da resposta e vão na próxima sincronização, automaticamente).
 - **263 efeitos aceitos** pelo validador: 91 frases com efeito tático (contadores, dano extra, desvantagem, mão do oponente, prêmios, redução, trava, condição, troca…) e o resto com resumo "sem efeito tático na análise".

@@ -12,6 +12,7 @@ import { consistencyImpact } from './consistency.js';
 import { diagnoseDisruption, disruptionValue, counterTags, AXES } from './diagnosis.js';
 import { restricts, matchesTarget } from './target.js';
 import { explainDeck } from './explain.js';
+import { gamePlan } from './gameplan.js';
 
 const pct = (x) => `${Math.round(x * 100)}%`;
 const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
@@ -223,6 +224,8 @@ function tagValue(t, opp, me, ctx) {
     case 'HP_DOWN': {
       const { cov, covered } = coverage(t.sel, opp, ctx);
       if (cov < 0.2) return null;
+      // vale para os DOIS lados (Gravity Mountain) e pega o seu atacante principal: o ganho praticamente se anula
+      if (t.both && me?.mainAttacker && matches(t.sel, me.mainAttacker)) return { value: 18 * cov * 0.25, why: `"${t.name}": ${selectorPt(t.sel)} ficam com −${t.amount} HP — mas vale para os dois lados: o seu ${me.mainAttacker.name} também perde ${t.amount} HP.` };
       return { value: 18 * cov, why: `"${t.name}": ${selectorPt(t.sel)} ficam com −${t.amount} HP (${names(covered)}) — equivale a +${t.amount} de dano seu contra eles.` };
     }
     case 'STATUS': {
@@ -567,7 +570,7 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
   if (koGap?.need > 0) {
     for (const c of candidates) {
       if (!c || c.reasons.some((r) => r.kind === 'KO_GAP')) continue;
-      const bonus = extractTags(c.card).filter((t) => (t.kind === 'EXTRA_DMG' && matches(t.sel, oppMain) && (!t.onlyFor || t.onlyFor === main.name) && (!t.ownerFor || t.ownerFor === main.owner) && (!t.typeFor || (main.types ?? []).some((x) => t.typeFor.includes(x))) && !(t.needsNoRuleBox && main.isRuleBox)) || (t.kind === 'HP_DOWN' && matches(t.sel, oppMain)));
+      const bonus = extractTags(c.card).filter((t) => (t.kind === 'EXTRA_DMG' && matches(t.sel, oppMain) && (!t.onlyFor || t.onlyFor === main.name) && (!t.ownerFor || t.ownerFor === main.owner) && (!t.typeFor || (main.types ?? []).some((x) => t.typeFor.includes(x))) && !(t.needsNoRuleBox && main.isRuleBox)) || (t.kind === 'HP_DOWN' && matches(t.sel, oppMain) && !(t.both && matches(t.sel, main))));
       if (!bonus.length) continue;
       const amt = Math.max(...bonus.map((t) => t.amount));
       const piecesSaved = koGap.minSet ? koGap.minSet.filter((p) => p.amount <= amt).length : 0;
@@ -829,6 +832,7 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
     me: summarize(me, myParsed),
     opp: summarize(opp, oppParsed),
     explain: explainDeck(me, opp, { koGap, raceResult: race.best?.result ?? null }),
+    gameplan: gamePlan(me, opp, { gusts: baseRace.gusts ?? 0, koGap }),
     insights: insightsFor(opp, me, ctx),
     already,
     locked,

@@ -30,6 +30,12 @@ export function buildFacts(r, me, opp, context) {
   const plan = (x) => (x?.plan ?? []).slice(0, 4).map((t) => `  T${t.turn}: ${t.mine} / ${t.theirs}`).join('\n');
   // Revisão: a IA recebe o TEXTO de cada tech sugerida e confere se ela funciona neste matchup (caso Diancie:
   // "for each Special Energy attached to all of your opponent's Pokémon" contra um deck sem Energia Especial).
+  // Plano de jogo (o foco da ferramenta): alvos prioritários conferidos pelo motor + o formato das dicas
+  const gp = r.gameplan;
+  const planBlock = [
+    `\nPLANO DE JOGO — é a parte MAIS IMPORTANTE desta leitura. Em "play_tips_pt", escreva o plano em ordem, de 6 a 10 itens, cada um começando com a fase entre colchetes: [Abertura], [Alvos], [Meio de jogo], [Fim de jogo] ou [Evitar]. Diga quem derrubar, em que ordem e com o quê — use os ALVOS PRIORITÁRIOS abaixo (as contas já foram conferidas pelo motor; não invente outras). Todo número que você usar numa dica (dano, HP, nocaute, contadores) precisa estar numa afirmação em "claims", que o motor confere. Dano espalhado "em qualquer combinação" é um TOTAL (6 contadores = 60 somando todos os alvos).`,
+    gp?.targets?.length ? `\nALVOS PRIORITÁRIOS (conferidos pelo motor; atacante principal dele: ${gp.main}):\n${gp.targets.map((t, i) => `${i + 1}. ${t.name} (${t.hp} HP, ${t.prize} prêmio${t.prize > 1 ? 's' : ''}, ${t.count}x): ${t.why}. Como o jogador derruba: ${t.how}.`).join('\n')}` : '',
+  ].join('\n');
   const top = (r.suggestions ?? []).slice(0, REVIEW_TOP);
   const review = top.length ? [
     `\nREVISE AS SUGESTÕES DO MOTOR: para cada carta abaixo, confira no texto dela se funciona NESTE matchup — de quem é a energia/o alvo que ela conta, se a lista do oponente ou a do jogador tem o que ela pede, se o número que o motor deu é possível. Se alguma NÃO funciona, registre em "disagreements" com card = nome exato da sugestão e quote = trecho exato do texto dela que mostra o problema. Se funciona, não registre nada.`,
@@ -42,7 +48,8 @@ export function buildFacts(r, me, opp, context) {
     `\nDIAGNÓSTICO DO MOTOR:\n${(r.diagnosis ?? []).map((d) => `- ${d}`).join('\n')}`,
     r.tips?.length ? `\nDICAS DO MOTOR:\n${r.tips.map((d) => `- ${d}`).join('\n')}` : '',
     `\nSIMULAÇÃO DO MOTOR (corrida de prêmios, modelo simplificado):\n- Só com o atacante principal: ${r.race?.naive?.result ?? '?'}\n${plan(r.race?.naive)}\n- Melhor linha: ${r.race?.best?.result ?? '?'}`,
-    `\nSUGESTÕES DO MOTOR: ${(r.suggestions ?? []).slice(0, 8).map((s) => `${s.card.name} (${s.score}; ${s.relevance ?? ''})`).join(' · ')}`,
+    planBlock,
+    `\nSUGESTÕES DO MOTOR (ajustes na lista — secundário): ${(r.suggestions ?? []).slice(0, 8).map((s) => `${s.card.name} (${s.score}; ${s.relevance ?? ''})`).join(' · ')}`,
     review,
   ].join('\n');
 }

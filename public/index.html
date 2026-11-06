@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PokeMatch — a tech card certa para o seu matchup</title>
+<title>PokeMatch — como ganhar o seu matchup</title>
 <style>
   :root {
     --bg: #0b0d17; --panel: #141829; --panel2: #1b2036; --line: #2a3150; --text: #e9ecf7; --muted: #8f97b8;
@@ -76,6 +76,27 @@
   .reveal img { width: 120px; border-radius: 8px; }
   .ctx-hint:not(:empty) { margin-top: 8px; font-size: 13px; color: var(--warn); }
   .reviewed { font-size: 13.5px; color: var(--good); margin: 10px 0 0; }
+  /* Como ganhar este matchup */
+  #plan { line-height: 1.55; }
+  .plan-head { font-size: 15.5px; }
+  .plan-head p { margin: 4px 0; }
+  .plan-h { font-size: 17px; margin: 18px 0 8px; color: var(--accent); }
+  .plan-h small { color: var(--muted); font-weight: 500; font-size: 13px; }
+  .targets { margin: 0; padding-left: 22px; }
+  .targets li { margin: 0 0 10px; padding: 8px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+  .targets li::marker { color: var(--accent); font-weight: 800; }
+  .tg-meta { color: var(--muted); font-size: 13px; margin-left: 6px; }
+  .tg-how { margin-top: 4px; font-size: 14px; }
+  .tg-how.ok { color: var(--good); } .tg-how.mid { color: var(--accent); } .tg-how.hard { color: var(--warn); }
+  .phase { display: grid; grid-template-columns: 130px 1fr; gap: 10px; padding: 8px 0; border-bottom: 1px dashed var(--line); }
+  .phase:last-child { border-bottom: 0; }
+  .ph-name { font-weight: 800; color: var(--accent2); }
+  .phase ul { margin: 0; padding-left: 18px; }
+  .ai-fail { color: var(--warn); }
+  .sub-title { font-size: 18px; margin: 22px 0 12px; }
+  .sub-title small { color: var(--muted); font-weight: 500; font-size: 13px; }
+  .section-title.adj { margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--line); }
+  @media (max-width: 640px) { .phase { grid-template-columns: 1fr; gap: 2px; } }
 
   #results { display: none; margin-top: 30px; }
   .section-title { font-size: 22px; margin: 34px 0 14px; display: flex; align-items: center; gap: 10px; }
@@ -199,7 +220,7 @@
 <canvas id="confetti"></canvas>
 <header>
   <h1 class="logo">PokeMatch</h1>
-  <p class="tagline">Cole a sua lista e a do deck que te amassa. A gente lê <b>cada carta do Standard</b> e encontra a tech que vira o matchup.</p>
+  <p class="tagline">Cole a sua lista e a do deck que te amassa. A gente lê <b>cada carta</b>, entende o plano dele e monta <b>o seu plano de jogo</b> — quem derrubar primeiro, com o quê e em que ordem. E ainda sugere ajustes na lista.</p>
 </header>
 <main>
   <section class="decks">
@@ -224,7 +245,7 @@
     <div id="ctxHint" class="ctx-hint"></div>
   </div>
   <div class="actions">
-    <button class="go" id="go">⚡ Encontrar tech cards</button>
+    <button class="go" id="go">🎯 Como ganhar este matchup</button>
     <button class="ghost" id="example">Carregar exemplo: Mega Sharpedo ex × Basic Box</button>
   </div>
 
@@ -245,30 +266,31 @@
   </section>
 
   <section id="results">
-    <h2 class="section-title">🔍 Raio-X do oponente</h2>
-    <div class="profile" id="profile"></div>
-
+    <!-- O foco da ferramenta: como jogar este matchup (plano conferido pelo motor); a lista vem depois, como ajuste -->
+    <h2 class="section-title">🎯 Como ganhar este matchup <small>plano de jogo — as contas foram conferidas pelo motor</small></h2>
+    <div id="plan"></div>
     <div id="understood"></div>
 
-    <h2 class="section-title">🩺 Diagnóstico <small>por que o seu deck perde este matchup</small></h2>
+    <h2 class="section-title">🩺 Diagnóstico <small>como o matchup se desenrola hoje</small></h2>
     <div class="diag" id="diag"></div>
-
-    <h2 class="section-title" id="stratTitle">🧠 Estrategista <small>a IA leu o matchup e revisou as techs; o motor conferiu cada afirmação</small></h2>
-    <div class="diag" id="strat"><div id="stratOut"></div></div>
-
-    <h2 class="section-title">🧭 Caminhos para virar o matchup <small>agrupados pelo tipo de solução</small></h2>
-    <div class="clusters" id="clusters"></div>
 
     <h2 class="section-title">🏁 Corrida de prêmios <small>simulação turno a turno com a sua lista atual</small></h2>
     <div class="race" id="race"></div>
     <p class="assump" id="assump"></p>
 
+    <h2 class="section-title">🔍 Raio-X do oponente</h2>
+    <div class="profile" id="profile"></div>
+
+    <h2 class="section-title adj">🧰 Ajustes na lista <small>opcional — cartas que podem ajudar neste matchup</small></h2>
+    <h3 class="sub-title">🧭 Caminhos para virar o matchup</h3>
+    <div class="clusters" id="clusters"></div>
+
     <div id="alreadyWrap">
-      <h2 class="section-title">✅ Você já tem <small>counters que já estão na sua lista</small></h2>
+      <h3 class="sub-title">✅ Você já tem <small>counters que já estão na sua lista</small></h3>
       <div class="box already" id="already"></div>
     </div>
 
-    <h2 class="section-title">🃏 Tech cards sugeridas <small>nota = impacto × recursos × peso × sinergia × risco (× peso da sua dor)</small></h2>
+    <h3 class="sub-title">🃏 Tech cards sugeridas <small>nota = impacto × recursos × peso × sinergia × risco (× peso da sua dor)</small></h3>
     <div class="grid" id="suggestions"></div>
     <details class="others" id="othersWrap"><summary>Cartas que analisamos e descartamos</summary><ul id="others"></ul></details>
     <p class="disclaimer" id="disclaimer"></p>
@@ -321,7 +343,7 @@ async function analyzeAll({ fresh = false } = {}) {
     if (me.aborted) return w.stop();
     w.close();
     render(final);
-    renderReview(review, final);
+    renderPlan(final, review);
   } catch (e) {
     w.close();
     $('#oppStatus').className = 'status err'; $('#oppStatus').textContent = e.message;
@@ -448,43 +470,67 @@ function finalize(data, v) {
     others: [...removed.map((s) => { const f = flagged.get(s.card.name); return { name: s.card.name, missing: 'saiu na revisão da IA', why: `${f.text_pt} (texto da carta: “${f.quote}”)` }; }), ...(data.others ?? [])],
   };
 }
-// Seção do estrategista: só o que foi confirmado à vista; a conferência completa fica nos bastidores (recolhida)
-function renderStrategy(o, cached, final) {
+// ---------- "Como ganhar este matchup" (o foco da ferramenta) ----------
+// Alvos prioritários (conferidos pelo motor) + plano de jogo por fase (IA) + o que o motor confirmou. Sem a IA, o plano
+// vem do motor (alvos + simulação). A conferência completa fica em "Bastidores" (recolhido).
+const PHASES = [['abertura', 'Abertura'], ['alvo', 'Alvos'], ['meio', 'Meio de jogo'], ['fim', 'Fim de jogo'], ['evitar', 'Evitar']];
+function groupTips(tips) {
+  const groups = new Map();
+  for (const tip of tips) {
+    const m = String(tip).match(/^\s*\[([^\]]+)\]\s*(.*)$/);
+    const raw = m ? m[1].trim() : '';
+    const ph = PHASES.find(([k]) => raw.toLowerCase().startsWith(k));
+    const key = ph ? ph[1] : raw || 'Dicas';
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(m ? m[2] : tip);
+  }
+  return [...PHASES.map(([, n]) => n).filter((n) => groups.has(n)), ...[...groups.keys()].filter((k) => !PHASES.some(([, n]) => n === k))].map((k) => [k, groups.get(k)]);
+}
+function renderPlan(final, review) {
+  const ai = review?.ok ? review.full : null;
+  const s = ai?.strategy, v = ai?.verification;
+  const gp = final.gameplan;
+  const out = [];
+  const theirs = s?.opponent_plan?.summary_pt || (final.diagnosis ?? []).find((x) => /nocauteia/.test(x)) || '';
+  out.push(`<div class="box plan-head">${theirs ? `<p><b>O plano dele:</b> ${esc(theirs)}</p>` : ''}${s?.my_problem?.summary_pt ? `<p><b>O seu problema:</b> ${esc(s.my_problem.summary_pt)}${s.my_problem.mechanism_pt ? ` <i>${esc(s.my_problem.mechanism_pt)}</i>` : ''}</p>` : ''}</div>`);
+  if (gp?.targets?.length) {
+    const icon = { sim: '✅', '2 ataques': '⚔️', 'difícil': '⚠' }, cls = { sim: 'ok', '2 ataques': 'mid', 'difícil': 'hard' };
+    out.push(`<h3 class="plan-h">🎯 Quem derrubar primeiro <small>(contas conferidas pelo motor)</small></h3><ol class="targets">${gp.targets.map((t) => `<li><b>${esc(t.name)}</b><span class="tg-meta">${t.hp} HP · ${t.prize} prêmio${t.prize > 1 ? 's' : ''} · ele joga ${t.count}</span><div>${esc(t.why)}.</div><div class="tg-how ${cls[t.ko] ?? 'hard'}">${icon[t.ko] ?? '⚠'} ${esc(t.how)}.</div></li>`).join('')}</ol>`);
+  }
+  if (s?.play_tips_pt?.length) {
+    out.push(`<h3 class="plan-h">🗺️ Plano de jogo <small>(da IA; os números passam pela conferência abaixo)</small></h3><div class="box">${groupTips(s.play_tips_pt).map(([k, xs]) => `<div class="phase"><div class="ph-name">${esc(k)}</div><ul>${xs.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>`).join('')}</div>`);
+  } else if (final.race?.best?.plan?.length) {
+    out.push(`<h3 class="plan-h">🗺️ Plano de jogo <small>(simulação do motor)</small></h3><div class="box"><ol style="margin:0;padding-left:20px">${final.race.best.plan.slice(0, 5).map((t) => `<li><b>T${t.turn}:</b> ${esc(t.mine)}</li>`).join('')}</ol></div>`);
+  }
+  const ok = v?.claims?.filter((c) => c.status === 'ok') ?? [];
+  if (ok.length) out.push(`<h3 class="plan-h">✅ Confirmado nas contas do motor</h3><ul style="margin:0;padding-left:18px">${ok.map((c) => `<li>${esc(c.text_pt)} <small style="opacity:.75">— ${esc(c.check)}</small></li>`).join('')}</ul>`);
+  if (s?.uncertainty_pt) out.push(`<p style="opacity:.8"><b>Incerteza:</b> ${esc(s.uncertainty_pt)}</p>`);
+  if (STRAT_URL) out.push(ai ? reviewFooter(ai, review.cached, final) : `<p class="ai-fail">⚠ A leitura da IA não ficou pronta desta vez (${esc(review?.error ?? 'sem resposta')}). O plano acima vem só do motor. <button class="ghost sm" id="stratFresh">🔄 Tentar de novo</button></p>`);
+  $('#plan').innerHTML = out.join('');
+}
+// Rodapé: o que a revisão tirou da lista, techs extras da IA e os bastidores da conferência
+function reviewFooter(o, cached, final) {
   const icon = { ok: '✅', erro: '❌', '?': '❔' };
-  const s = o.strategy, v = o.verification;
+  const v = o.verification;
   const shown = new Set(final.suggestions.map((x) => x.card.name));
-  const okClaims = v.claims.filter((c) => c.status === 'ok');
   const okTechs = v.techs.filter((t) => t.status === 'ok' && !shown.has(t.name));
   const removed = final.removed ?? [];
   const ul = (items) => `<ul style="margin:0;padding-left:18px">${items.join('')}</ul>`;
-  return `<div style="line-height:1.55">
-    <p><b>Plano do oponente:</b> ${esc(s.opponent_plan.summary_pt)}</p>
-    <p><b>O seu problema:</b> ${esc(s.my_problem.summary_pt)}${s.my_problem.mechanism_pt ? ` <i>${esc(s.my_problem.mechanism_pt)}</i>` : ''}</p>
-    ${okClaims.length ? `<h3 style="margin:10px 0 4px">Confirmado nas contas do motor</h3>${ul(okClaims.map((c) => `<li>✅ ${esc(c.text_pt)} <small style="opacity:.75">— ${esc(c.check)}</small></li>`))}` : ''}
-    ${okTechs.length ? `<h3 style="margin:10px 0 4px">A IA também sugere <small style="opacity:.7">(legal no Standard e funciona no seu deck)</small></h3>${ul(okTechs.map((t) => `<li><b>${esc(t.name ?? t.card)}</b> — ${esc(t.why_pt)} <small style="opacity:.75">— ${esc(t.check)}</small></li>`))}` : ''}
-    ${s.play_tips_pt.length ? `<h3 style="margin:10px 0 4px">Como jogar</h3>${ul(s.play_tips_pt.map((x) => `<li>${esc(x)}</li>`))}` : ''}
-    ${s.uncertainty_pt ? `<p style="opacity:.8"><b>Incerteza:</b> ${esc(s.uncertainty_pt)}</p>` : ''}
-    <p class="reviewed">🔍 Revisada pela IA antes de chegar a você: ${removed.length ? `${removed.length} tech${removed.length > 1 ? 's' : ''} que não funciona${removed.length > 1 ? 'm' : ''} neste matchup saiu${removed.length > 1 ? 'ram' : ''} da lista (${removed.map((r) => esc(r.name)).join(', ')} — o motivo está em "Cartas que analisamos e descartamos").` : 'as techs sugeridas passaram na revisão.'}</p>
+  return `${okTechs.length ? `<h3 class="plan-h">🧰 A IA também sugere para a lista <small>(legal no Standard e funciona no seu deck)</small></h3>${ul(okTechs.map((t) => `<li><b>${esc(t.name ?? t.card)}</b> — ${esc(t.why_pt)} <small style="opacity:.75">— ${esc(t.check)}</small></li>`))}` : ''}
+    <p class="reviewed">🔍 Revisado pela IA antes de chegar a você: ${removed.length ? `${removed.length} tech${removed.length > 1 ? 's' : ''} que não funciona${removed.length > 1 ? 'm' : ''} neste matchup saiu${removed.length > 1 ? 'ram' : ''} da lista (${removed.map((r) => esc(r.name)).join(', ')} — o motivo está em "Cartas que analisamos e descartamos").` : 'as techs sugeridas passaram na revisão.'}</p>
     <details style="margin-top:8px"><summary style="cursor:pointer;opacity:.75">Bastidores da conferência</summary>
       <h4 style="margin:8px 0 4px">Afirmações da IA (${v.summary.confirmed}/${v.summary.claims} confirmadas)</h4>${ul(v.claims.map((c) => `<li>${icon[c.status]} ${esc(c.text_pt)} <small style="opacity:.75">— ${esc(c.check)}</small></li>`))}
       ${v.techs.length ? `<h4 style="margin:8px 0 4px">Techs da IA</h4>${ul(v.techs.map((t) => `<li>${icon[t.status]} <b>${esc(t.card)}</b> — ${esc(t.why_pt)} <small style="opacity:.75">— ${esc(t.check)}</small></li>`))}` : ''}
       ${v.disagreements?.length ? `<h4 style="margin:8px 0 4px">Onde a IA discordou do motor (a citação da carta é conferida)</h4>${ul(v.disagreements.map((x) => `<li>${icon[x.status]} ${esc(x.text_pt)} <small style="opacity:.75">— ${esc(x.check)}</small></li>`))}` : ''}
       <p style="opacity:.6;font-size:12px">${cached ? 'Leitura guardada (mesmas listas e mesma dor): sem custo novo.' : `Custo desta leitura: ~US$ ${o.usage.usd.toFixed(3)} (${esc(o.model)}).`} <button class="ghost sm" id="stratFresh">🔄 Refazer a leitura da IA</button></p>
-    </details></div>`;
-}
-function renderReview(review, final) {
-  $('#stratTitle').style.display = $('#strat').style.display = STRAT_URL ? '' : 'none';
-  if (!STRAT_URL) return;
-  $('#stratOut').innerHTML = review?.ok
-    ? renderStrategy(review.full, review.cached, final)
-    : `<p>⚠ A leitura da IA não ficou pronta desta vez (${esc(review?.error ?? 'sem resposta')}). Esta é a análise do motor, sem a revisão da IA. <button class="ghost sm" id="stratFresh">🔄 Tentar de novo</button></p>`;
+    </details>`;
 }
 
 // ---------- Tela de espera ----------
 const STEPS = [
   '📚 Lendo as duas listas e as cartas do Standard',
   '🎲 Calculando dano, simulando a corrida de prêmios e milhares de mãos',
-  '🧠 A IA lê o plano do oponente e revisa cada tech sugerida',
+  '🧠 A IA monta o plano de jogo e revisa as techs sugeridas',
   '🔍 O motor confere cada afirmação da IA nas contas',
 ];
 let readyResolve = null;

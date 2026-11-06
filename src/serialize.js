@@ -6,7 +6,7 @@ const slimCard = (c) => c && ({
 
 export function toJson(r, db) {
   return {
-    me: r.me, opp: r.opp, explain: r.explain, insights: r.insights, locked: r.locked, context: r.context, clusters: r.clusters, race: r.race,
+    me: r.me, opp: r.opp, explain: r.explain, gameplan: r.gameplan, insights: r.insights, locked: r.locked, context: r.context, clusters: r.clusters, race: r.race,
     diagnosis: r.diagnosis, tips: r.tips, others: r.others, warnings: r.warnings ?? [], confidence: r.confidence ?? 'normal',
     already: r.already.map((a) => ({ card: slimCard(a.card), count: a.count, reasons: a.reasons.map((x) => x.why) })),
     suggestions: r.suggestions.map((s) => ({

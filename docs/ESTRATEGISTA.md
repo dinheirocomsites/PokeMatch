@@ -1,5 +1,20 @@
 # Estrategista (passo 3) — a IA pensa, o motor confere
 
+## Foco da ferramenta: como ganhar este matchup (decisão do Felipe, 06/11/2026)
+Nos testes reais, a melhor resposta muitas vezes **não era uma carta nova, era um plano de jogo** (Dragapult × Hydrapple:
+desmontar o combo do Meganium e da linha Applin → Dipplin). O resultado agora abre com **"🎯 Como ganhar este matchup"**:
+1. **O plano dele / o seu problema** (IA; sem IA, a linha do motor de quem te nocauteia).
+2. **Quem derrubar primeiro** (`src/gameplan.js`, conferido pelo motor): linha de evolução do atacante principal dele,
+   peças que dobram/aceleram energia ou dão dano, quem copia ataques, outros atacantes de verdade — e **como o seu deck
+   derruba cada um**: dano espalhado no banco (+ contadores do Munkidori) sem gastar Boss, no Ativo com Boss, em 2 ataques,
+   ou "com tudo montado" no atacante principal.
+3. **Plano de jogo por fase** (IA): [Abertura], [Alvos], [Meio de jogo], [Fim de jogo], [Evitar] — a ficha leva os alvos
+   conferidos e pede uma afirmação verificável para todo número (dano espalhado "em qualquer combinação" é TOTAL).
+   Sem a IA: o plano da simulação do motor.
+4. **Confirmado nas contas do motor** (só as afirmações ✅) e os bastidores recolhidos.
+Depois vêm diagnóstico, corrida de prêmios, raio-X e, por último, **"🧰 Ajustes na lista (opcional)"** com as techs.
+Nada disso mudou o servidor do Lovable (o formato das dicas vai na ficha de fatos).
+
 ## Por que existe
 O motor de regras lê carta por carta. Ele erra quando o deck do oponente funciona por **combinação** de cartas
 que nenhuma regra previu (ex.: Slowking + Academy at Night + Kyurem: o Slowking usa o Trifrost do Kyurem pagando

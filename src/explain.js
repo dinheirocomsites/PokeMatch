@@ -16,8 +16,8 @@ const SELF_HURT = /place \d+ damage counters on that pok[eé]mon|also does \d+ d
 // Valor de um ataque para listar: dano × alvos (Trifrost: 110 em 3 Pokémon)
 const anyOne = (a) => +((a.effect ?? '').match(/(\d+) damage to 1 of your opponent.s pok[eé]mon/i)?.[1] ?? 0); // Cruel Arrow
 const atkValue = (a) => {
-  const sp = spreadOf(a), base = attackDamage(a) || anyOne(a);
-  if (!sp) return base;
+  const sp = spreadOf(a), base = (a.damage ? attackDamage(a) : 0) || anyOne(a);
+  if (!sp) return base || attackDamage(a);
   if (sp.withActive) return sp.amount * (sp.count + 1);
   if (sp.mode === 'each') return base + sp.amount * 3;
   if (sp.mode === 'distribute') return base + sp.amount;

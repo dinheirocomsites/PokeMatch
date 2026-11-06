@@ -280,7 +280,8 @@ export function extractTags(card) {
       }
       // 18) HP reduzido: "cada Pokémon Estágio 2 em jogo recebe -30 HP"
       const hpd = s.match(/each (.+?) in play[^.]*gets -(\d+) hp/i) || s.match(/your opponent.s (.+?) gets? -(\d+) hp/i);
-      if (hpd) tags.push({ ...base, kind: 'HP_DOWN', sel: parseSelector(hpd[1]), amount: +hpd[2], both: /both yours and your opponent/i.test(s) });
+      // "(both yours and your opponent's)" vem entre parênteses e a frase limpa perde isso: confere no texto inteiro
+      if (hpd) tags.push({ ...base, kind: 'HP_DOWN', sel: parseSelector(hpd[1]), amount: +hpd[2], both: /both yours and your opponent/i.test(`${s} ${b.text ?? ''}`) });
       // 16) HP extra (Ferramenta)
       const hpb = s.match(/gets \+(\d+) hp/i);
       if (hpb) tags.push({ ...base, kind: 'HP_BOOST', amount: +hpb[1] });

@@ -28,10 +28,11 @@ test('leitor de alvo: Ativo, banco, tipo, Rule Box, dono, quem tem a Ferramenta,
   assert.ok(!matchesTarget(parseTarget('Heal 60 damage from your Active {N} Pokémon.'), card('Mega Sharpedo ex')));
 });
 
-test('Dragon Elixir: quase inútil no Sharpedo (o único Dragão fica no banco), inteiro no Dragapult (cura o atacante)', () => {
+test('Dragon Elixir: bloqueado no Sharpedo (deck de Escuridão; o único Dragão fica no banco), inteiro no Dragapult (cura o atacante)', () => {
+  // o deck é de Escuridão: o único Dragão (Tatsugiri) só fica no banco → carta morta, bloqueada
   const r1 = requirements(card('Dragon Elixir'), sharpedo);
-  assert.ok(r1.factor <= 0.3);
-  assert.match(r1.note, /Ativo.*Tatsugiri/);
+  assert.equal(r1.ok, false);
+  assert.match(r1.note, /Dragão no Ativo.*Tatsugiri/);
   assert.equal(requirements(card('Dragon Elixir'), prof('dragapult.txt')).factor, 1);
 });
 

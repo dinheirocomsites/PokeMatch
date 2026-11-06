@@ -394,7 +394,8 @@ export function requirements(card, me, opp = null) {
     const coversMain = me.mainAttacker && fits.includes(me.mainAttacker.name);
     const coversAttacker = fits.some((n) => attackersOf.has(n));
     if (coversMain) continue;
-    if (tt.where === 'active' && !coversAttacker) { factor *= 0.3; notes.push(`só age no Ativo e o seu Pokémon ${describeTarget({ ...tt, where: 'any' }).replace(/^Pokémon /, '')} (${[...new Set(fits)].slice(0, 3).join(', ')}) não costuma ficar no Ativo`); }
+    // Só age no Ativo e os únicos Pokémon que servem não atacam (ficam no banco): carta morta no deck → bloqueia
+    if (tt.where === 'active' && !coversAttacker) return { ok: false, note: `só funciona em ${describeTarget(tt)} — o seu deck só tem ${[...new Set(fits)].slice(0, 3).join(', ')}, que não fica no Ativo`, good: [] };
     else if (!coversAttacker) { factor *= 0.6; notes.push(`só alcança ${describeTarget(tt)}: ${[...new Set(fits)].slice(0, 3).join(', ')} — não o seu atacante`); }
     else { factor *= 0.85; notes.push(`só alcança ${describeTarget(tt)}: ${[...new Set(fits)].slice(0, 3).join(', ')} — não o ${me.mainAttacker?.name ?? 'seu atacante principal'}`); }
   }

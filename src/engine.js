@@ -6,7 +6,7 @@ import { parseDeck } from './parser.js';
 import { evaluateFit, deadInMatchup } from './fit.js';
 import { damageVs } from './damage.js';
 import { buildOptions, findCombos } from './synergy.js';
-import { simulateRace, planText, parseDenial } from './prizes.js';
+import { simulateRace, planText, parseDenial, spreadOf } from './prizes.js';
 import { readContext, clusterOf, CLUSTERS } from './context.js';
 import { consistencyImpact } from './consistency.js';
 import { diagnoseDisruption, disruptionValue, counterTags, AXES } from './diagnosis.js';
@@ -69,6 +69,14 @@ function tagValue(t, opp, me, ctx) {
       const snipers = opp.threat.filter((e) => (e.card.attacks ?? []).some((a) => /benched pok[eé]mon/i.test(a.effect ?? '') && /damage/i.test(a.effect ?? '') && !/for each/i.test(a.effect ?? '')));
       const share = snipers.reduce((s, e) => s + e.threat, 0) / (opp.totalThreat || 1);
       if (share < 0.1) return null;
+      if (t.team) {
+        // Protege o banco inteiro: vale pelas peças do SEU plano que ficam cobertas (sem Rule Box, se for o caso)
+        const pieces = [...new Set([...(me.board?.pieces ?? []), me.board?.backup].filter(Boolean))].map((n) => me.entries.find((e) => e.card.name === n)?.card).filter(Boolean);
+        const basics = me.entries.filter((e) => e.card.category === 'Pokemon' && e.card.stage === 'Basic' && !e.card.isRuleBox).map((e) => e.card);
+        const covered = [...new Map([...pieces, ...basics].filter((c) => !t.protectsNoRuleBox || !c.isRuleBox).map((c) => [c.name, c])).values()];
+        const frac = covered.length / Math.max(2, new Set([...pieces, ...basics].map((c) => c.name)).size);
+        return { value: clamp(30 * share * (1 + 1.6 * frac), 0, 60), why: `"${t.name}": protege TODO o seu banco${t.protectsNoRuleBox ? ' sem Rule Box' : ''} do dano de ataques — cobre ${names(covered.map((c) => c.name), 5)} contra ${names(snipers.map((e) => e.card.name))}.` };
+      }
       return { value: 30 * share, why: `"${t.name}": protegido enquanto estiver no banco — útil contra dano no banco de ${names(snipers.map((e) => e.card.name))}.` };
     }
     case 'WALL_TEAM': {
@@ -344,8 +352,9 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
     if (card.category !== 'Pokemon' || (card.attacks ?? []).some((a) => copyAttackOf(a))) return null;
     let best = null;
     for (const { e: cp, copy } of copiers) {
-      const { owner } = copyAttackOf(copy);
+      const { owner, noRuleBox } = copyAttackOf(copy);
       if (owner && card.owner !== owner) continue;
+      if (noRuleBox && card.isRuleBox) continue;
       if (!canPayCost(copy.cost, me)) continue;
       const tgts = opp.threat.filter((t) => t.card.hp);
       const tot = tgts.reduce((s2, t) => s2 + t.threat, 0) || 1;
@@ -622,6 +631,56 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
 
   // ---------- Contexto do jogador ----------
   const ctxRead = readContext(context, me, opp, db);
+  // ---------- A dor como hipótese: COMO o Pokémon citado causa o estrago? ----------
+  // Se o jogador diz "morro para o X", o motor precisa achar o caminho (ataque próprio pagável ou ataque copiado).
+  // Se não achar, avisa que a análise pode estar incompleta, em vez de responder com confiança.
+  const SYMC = { Grass: 'G', Fire: 'R', Water: 'W', Lightning: 'L', Psychic: 'P', Fighting: 'F', Darkness: 'D', Metal: 'M', Dragon: 'N', Colorless: 'C' };
+  const costStr = (c) => (c ?? []).map((x) => `{${SYMC[x] ?? x[0]}}`).join('') || 'nada';
+  const warnings = [];
+  const painLines = [];
+  const benchPieces = [...new Set([...(me.board?.pieces ?? []), me.board?.backup].filter(Boolean))].map((n) => me.entries.find((e) => e.card.name === n)?.card).filter(Boolean);
+  const myBasics = me.entries.filter((e) => e.card.category === 'Pokemon' && e.card.stage === 'Basic').map((e) => e.card);
+  const victims = [...new Map([...benchPieces, ...myBasics].map((c) => [c.name, c])).values()];
+  for (const name of ctxRead.mentions.opp) {
+    const entry = opp.entries.find((e) => e.card.name === name && e.card.category === 'Pokemon');
+    if (!entry) continue;
+    const baseName = (n) => n.replace(/ ex$/i, '').split(' ').pop().toLowerCase();
+    if (killerNames.some((k) => k === name || baseName(k) === baseName(name))) continue; // já explicado na linha de quem nocauteia o seu atacante
+    const x = entry.card;
+    const own = (x.attacks ?? []).filter((a) => !a.copiedFrom && (attackDamage(a) > 0 || /damage/i.test(a.effect ?? '')));
+    const th = opp.threat.find((e) => e.card.name === name);
+    const ownPayable = own.filter((a) => (a.cost ?? []).every((t) => t === 'Colorless' || opp.energyTypes.has(t)));
+    const copiers = opp.entries.filter((e) => e.card.name !== name && (e.card.attacks ?? []).some((a) => a.copiedFrom === name));
+    const killsWhat = (atk, attacker) => {
+      const sp = spreadOf(atk);
+      const hit = Math.max(0, ...victims.map(() => 0));
+      void hit;
+      const amount = sp?.amount ?? damageVs(atk, attacker, me.mainAttacker ?? victims[0], { deck: opp, oppTaken: 3 }).dmg;
+      const dead = victims.filter((v) => v.hp <= (sp ? sp.amount : amount) && (!sp?.exOnly || v.isEx));
+      return { sp, amount, dead, n: sp ? sp.count + (sp.withActive ? 1 : 0) : 1, where: sp && !sp.withActive ? `${sp.exOnly ? 'Pokémon ex ' : ''}do seu banco` : 'Pokémon seus' };
+    };
+    if (copiers.length) {
+      const cp = copiers[0].card;
+      const virt = cp.attacks.filter((a) => a.copiedFrom === name).sort((a, b) => attackDamage(b) - attackDamage(a))[0];
+      const k = killsWhat(virt, cp);
+      const via = virt.copyVia === 'deck' ? `descartando o topo do deck${virt.stackers?.length ? `, que ele mesmo escolhe com ${virt.stackers.join(' / ')}` : ''}` : 'copiando do banco';
+      const ownNote = own.length && !ownPayable.length ? ` sozinho ele não ataca (o "${own[0].name}" pede ${costStr(own[0].cost)} e o deck não tem essa energia), mas` : '';
+      painLines.push(`Como o ${name} te pega:${ownNote} o ${cp.name} usa o "${virt.copiedAttack}" dele pagando só ${costStr(virt.cost)} (${via})${k.sp ? `: ${k.amount} em ${k.n} ${k.where} — podem cair ${names(k.dead.map((v) => `${v.name} (${v.hp})`), 6)}` : `: ~${Math.round(k.amount)}${k.dead.length ? `; num ataque só, nocauteia qualquer um destes: ${names(k.dead.map((v) => `${v.name} (${v.hp})`), 6)}` : ''}`}.`);
+    } else if ((ownPayable.length || (x.attacks ?? []).some((a) => a.copiedFrom)) && th) {
+      // O ataque mais perigoso: o que derruba mais Pokémon seus de uma vez (dano em vários), senão o de mais dano.
+      // Inclui os ataques que ele COPIA (Slowking → Trifrost do Kyurem).
+      const pool = [...ownPayable, ...(x.attacks ?? []).filter((a) => a.copiedFrom)];
+      const scored = pool.map((a) => { const k = killsWhat(a, x); return { a, k, n: k.sp ? Math.min(k.n, k.dead.length) : (k.dead.length ? 1 : 0) }; })
+        .sort((p, q) => q.n - p.n || q.k.amount - p.k.amount);
+      const { a, k } = scored[0];
+      const label = a.copiedFrom ? `"${a.copiedAttack}" (copiado do ${a.copiedFrom}${a.copyVia === 'deck' && a.stackers?.length ? `, escolhendo o topo com ${a.stackers.join(' / ')}` : ''}), pagando ${costStr(a.cost)},` : `"${a.name}" (${costStr(a.cost)})`;
+      painLines.push(`Como o ${name} te pega: ${label}${k.sp ? ` faz ${k.amount} em ${k.n} ${k.where} — ${k.n > 1 ? 'caem' : 'pode cair qualquer um destes:'} ${names(k.dead.map((v) => `${v.name} (${v.hp})`), 6)}` : ` faz ~${Math.round(k.amount)} no seu ${(me.mainAttacker ?? victims[0])?.name}${k.dead.length ? `; num ataque só, nocauteia qualquer um destes: ${names(k.dead.map((v) => `${v.name} (${v.hp})`), 6)}` : ''}`}.`);
+    } else if (own.length || (x.abilities ?? []).length) {
+      warnings.push(`Você citou o ${name}, mas eu não encontrei como ele causa esse estrago neste deck${own.length ? ` (o "${own[0].name}" pede ${costStr(own[0].cost)} e o deck não tem essa energia)` : ''}. A análise pode estar incompleta — se ele te mata de um jeito que eu não vi, use "isso está errado".`);
+    }
+  }
+  if (painLines.length) diagnosis.unshift(...painLines);
+  if (warnings.length) diagnosis.unshift(...warnings.map((w) => `⚠ ${w}`));
   for (const c of candidates) {
     if (!c) continue;
     c.cluster = clusterOf(c);
@@ -688,6 +747,8 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
   };
 
   return {
+    warnings,
+    confidence: warnings.length ? 'baixa' : 'normal',
     diagnosis,
     koGap,
     tips: disruption.tips,

@@ -41,8 +41,16 @@ export function ownerSearchFinds(searches, c) {
 }
 // Ataque que copia ataques do banco ("Choose 1 of your Benched N's Pokémon's attacks and use it as this attack")
 export function copyAttackOf(attack) {
-  const m = (attack?.effect ?? '').replace(/[’]/g, "'").match(new RegExp(`choose 1 of your benched (?:${OWNER_RE.source} )?pok[eé]mon's attacks and use it as this attack`, 'i'));
-  return m ? { owner: m[1] ?? null } : null;
+  const e = (attack?.effect ?? '').replace(/[’]/g, "'");
+  const m = e.match(new RegExp(`choose 1 of your benched (?:${OWNER_RE.source} )?pok[eé]mon's attacks and use it as this attack`, 'i'));
+  if (m) return { owner: m[1] ?? null, from: 'bench' };
+  // Slowking "Seek Inspiration": descarta o topo do deck e usa um ataque dele (Pokémon sem Rule Box)
+  if (/discard the top card of your deck, and if that card is a pok[eé]mon that doesn't have a rule box, choose 1 of its attacks and use it as this attack/i.test(e)) return { owner: null, from: 'deck', noRuleBox: true };
+  return null;
+}
+// Cartas que escolhem o topo do deck (Academy at Night, Ciphermaniac's Codebreaking…): deixam a cópia do topo confiável
+export function topStacker(card) {
+  return /put (?:a card|those cards|them|\d+ cards?)[^.]*on top of (?:your|their|it)\b|then put those cards on top of it/i.test(card?.text ?? '');
 }
 // Nomes em português dos donos (para explicar e para o leitor de contexto)
 export const OWNER_PT = { 'Team Rocket': 'Equipe Rocket', N: 'N', Hop: 'Lupo (Hop)', Ethan: 'Ethan', Cynthia: 'Cíntia', Marnie: 'Marine', Larry: 'Lauro', Steven: 'Steven', Erika: 'Érica', Misty: 'Misty', Iono: 'Kissera (Iono)', Arven: 'Arven', Lillie: 'Lílian' };
@@ -178,7 +186,8 @@ export function extractTags(card) {
         const after = s.split(/attacks/i).slice(1).join('attacks') || s;
         const sel = parseSelector(after.replace(/done to (this|that) pok[eé]mon/i, ''));
         delete sel.noRuleBox;
-        if (/(is|are) on your bench|to your benched pok[eé]mon/i.test(s)) tags.push({ ...base, kind: 'BENCH_WALL', sel });
+        // "…to your Benched Pokémon" protege o banco INTEIRO (Shaymin); "this Pokémon … on your Bench" só a si mesmo
+        if (/(is|are) on your bench|to your benched pok[eé]mon/i.test(s)) tags.push({ ...base, kind: 'BENCH_WALL', sel, team: /to your benched pok[eé]mon/i.test(s), protectsNoRuleBox: /that don.t have a rule box/i.test(s) });
         else if (/this pok[eé]mon/i.test(s)) tags.push({ ...base, kind: 'WALL_SELF', sel });
         else if (/that pok[eé]mon/i.test(s)) tags.push({ ...base, kind: 'WALL_CHOSEN', sel });
         else {

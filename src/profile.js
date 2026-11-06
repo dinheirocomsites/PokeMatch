@@ -1,6 +1,6 @@
 // Perfil de um deck: de onde vem o poder de ataque, do que ele depende,
 // fraquezas, tipos de energia, buscas disponíveis etc.
-import { maxDamage, TERA, extractTags, ownerOf, ownerSearches, copyAttackOf } from './tags.js';
+import { maxDamage, TERA, extractTags, ownerOf, ownerSearches, copyAttackOf, topStacker } from './tags.js';
 
 export function threatOf(card) {
   const d = maxDamage(card);
@@ -30,10 +30,13 @@ export function profileDeck(parsed) {
   for (const e of entries) {
     const copy = e.card.category === 'Pokemon' && (e.card.attacks ?? []).find((a) => copyAttackOf(a));
     if (!copy || e.card.copied) continue;
-    const { owner } = copyAttackOf(copy);
-    const srcs = entries.filter((x) => x !== e && x.card.category === 'Pokemon' && x.card.name !== e.card.name && (!owner || ownerOf(x.card) === owner) && !(x.card.attacks ?? []).some((a) => copyAttackOf(a)));
+    const { owner, from, noRuleBox } = copyAttackOf(copy);
+    // Cópia do TOPO do deck só é confiável se o deck escolhe o topo (Academy at Night, Ciphermaniac); senão é sorte
+    const stackers = entries.filter((x) => topStacker(x.card));
+    if (from === 'deck' && stackers.reduce((n, x) => n + x.count, 0) < 3) continue;
+    const srcs = entries.filter((x) => x !== e && x.card.category === 'Pokemon' && x.card.name !== e.card.name && (!owner || ownerOf(x.card) === owner) && (!noRuleBox || !x.card.isRuleBox) && !(x.card.attacks ?? []).some((a) => copyAttackOf(a)));
     const seen = new Set();
-    const virt = srcs.flatMap((x) => (x.card.attacks ?? []).filter((a) => maxDamage({ attacks: [a] }) > 0).map((a) => ({ ...a, name: `${copy.name} (${a.name}, de ${x.card.name})`, cost: copy.cost, copiedFrom: x.card.name, copiedAttack: a.name })))
+    const virt = srcs.flatMap((x) => (x.card.attacks ?? []).filter((a) => maxDamage({ attacks: [a] }) > 0).map((a) => ({ ...a, name: `${copy.name} (${a.name}, de ${x.card.name})`, cost: copy.cost, copiedFrom: x.card.name, copiedAttack: a.name, copyVia: from, stackers: from === 'deck' ? [...new Set(stackers.map((y) => y.card.name))] : undefined })))
       .filter((a) => { const k = `${a.copiedAttack}|${a.damage}`; if (seen.has(k)) return false; seen.add(k); return true; });
     if (virt.length) e.card = { ...e.card, attacks: [...e.card.attacks, ...virt], copied: virt.map((a) => a.copiedFrom) };
   }

@@ -238,7 +238,11 @@ export function damageVs(attack, attacker, target, ctx = {}) {
       const add = ctx.selfDamageTaken ?? 50; dmg += add; notes.push(`+${add} (dano que ele recebeu no último turno, estimado)`);
     } else if (optional) {
       // "You may do N more damage. If you do, …" / "You may discard … and have this attack do N more damage": é escolha do jogador
-      dmg += +optional.more; notes.push(`+${optional.more} (opcional: ${optional.cost})`);
+      // (mas só se o deck tem a energia que o custo pede: Slowking copiando "Metallic Hammer" não tem {M})
+      const needT = optional.cost.match(/\{([A-Z])\} energy/i);
+      const T = needT && { G: 'Grass', R: 'Fire', W: 'Water', L: 'Lightning', P: 'Psychic', F: 'Fighting', D: 'Darkness', M: 'Metal' }[needT[1].toUpperCase()];
+      if (T && ctx.deck?.energyByType && !(ctx.deck.energyByType[T] > 0)) notes.push(`(sem energia ${T} para o bônus opcional)`);
+      else { dmg += +optional.more; notes.push(`+${optional.more} (opcional: ${optional.cost})`); }
     } else if (coins) {
       dmg += coins.ev; notes.push('moedas: média');
     } else if (general) {
@@ -261,7 +265,7 @@ export function damageVs(attack, attacker, target, ctx = {}) {
       // Contadores não são dano: sem fraqueza, resistência nem redução
       return { dmg: +counters[1] * 10, notes: ['contadores (sem fraqueza/redução)'], counters: true };
     }
-    const to = eff.match(/does (\d+) damage to (the new active pok[eé]mon|each of your opponent.s pok[eé]mon|1 of your opponent.s pok[eé]mon|your opponent.s active pok[eé]mon)/i);
+    const to = eff.match(/does (\d+) damage to (the new active pok[eé]mon|each of your opponent.s pok[eé]mon|\d of your opponent.s pok[eé]mon|your opponent.s active pok[eé]mon)/i);
     dmg = to ? +to[1] : 0; // "1 of your opponent's Benched" não atinge o Ativo
     if (to && /new active/i.test(to[2])) notes.push('puxa do banco e bate');
   } else {

@@ -335,7 +335,14 @@ function render(d) {
       ${[[c.basic, 'Básicos'], [c.ex, 'ex'], [c.mega, 'Mega'], [c.withAbility, 'c/ Habilidade'], [c.item, 'Itens'], [c.supporter, 'Supporters'], [c.tool, 'Ferramentas'], [c.stadium, 'Estádios'], [c.specialEnergy, 'En. Especial']].filter(([n]) => n).map(([n, l]) => `<span class="chip"><b>${n}</b> ${l}</span>`).join('')}
       </div></div>`;
 
-  $('#diag').innerHTML = `<ul style="margin:0;padding-left:18px">${(d.diagnosis || []).map((x) => `<li>${esc(x)}</li>`).join('')}</ul>`
+  // "Isso está errado": abre um relato no GitHub já com as listas e a dor (cada relato vira teste)
+  const report = () => {
+    const body = `**O que deu errado:**\n(descreva aqui)\n\n**Dor informada:** ${$('#ctx')?.value ?? ''}\n\n**Minha lista:**\n\`\`\`\n${$('#mine')?.value ?? ''}\n\`\`\`\n**Lista do oponente:**\n\`\`\`\n${$('#opp')?.value ?? ''}\n\`\`\``;
+    return `https://github.com/dinheirocomsites/PokeMatch/issues/new?title=${encodeURIComponent('Análise errada: ' + (d.opp.archetype || 'matchup'))}&body=${encodeURIComponent(body).slice(0, 7000)}`;
+  };
+  $('#diag').innerHTML = (d.confidence === 'baixa' ? `<div style="background:#3a1620;border:1px solid #c0392b;border-radius:10px;padding:10px 12px;margin-bottom:10px">⚠ <b>Baixa confiança:</b> algo que você descreveu não bate com o que eu entendi deste deck. Leia o aviso abaixo antes de seguir as sugestões.</div>` : '')
+    + `<ul style="margin:0;padding-left:18px">${(d.diagnosis || []).map((x) => `<li>${esc(x)}</li>`).join('')}</ul>`
+    + `<div style="margin-top:10px"><a href="${report()}" target="_blank" rel="noopener" style="color:#ffb4b4">🚩 Isso está errado — reportar (vira teste da ferramenta)</a></div>`
     + (d.tips?.length ? `<h3 style="margin:12px 0 6px;color:#9fe3c2">🎯 Como jogar esse matchup</h3><ul style="margin:0;padding-left:18px">${d.tips.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : '');
   $('#others').innerHTML = (d.others || []).map((o) => `<li><b>${esc(o.name)}</b> — ${esc(o.missing)}. <i>${esc(o.why)}</i></li>`).join('');
   $('#othersWrap').style.display = d.others?.length ? '' : 'none';

@@ -66,7 +66,7 @@ export function diagnoseDisruption(me, opp) {
   // 4) Dano espalhado no seu banco
   const spreadAtk = [];
   for (const e of opp.threat) for (const a of e.card.attacks ?? []) {
-    const m = (a.effect ?? '').match(/put (\d+) damage counters on your opponent.s benched/i) || (a.effect ?? '').match(/(\d+) damage to (?:1|2) of your opponent.s benched/i);
+    const m = (a.effect ?? '').match(/put (\d+) damage counters on your opponent.s benched/i) || (a.effect ?? '').match(/(\d+) damage to (?:1|2) of your opponent.s benched/i) || (a.effect ?? '').match(/(\d+) damage to [2-9] of your opponent.s pok[eé]mon/i);
     if (m) spreadAtk.push({ by: e.card.name, amount: /counters/i.test(m[0]) ? +m[1] * 10 : +m[1], kind: /counters/i.test(m[0]) ? 'counters' : 'damage' });
   }
   if (spreadAtk.length) {
@@ -221,7 +221,7 @@ export function counterTags(card) {
   if (/switch in 1 of your opponent.s benched pok[eé]mon to the active spot/i.test(card.text ?? '') && !/flip a coin/i.test(card.text ?? '')) out.push({ kind: 'GUST', name: card.name });
   for (const t of extractTags(card)) {
     if (t.kind === 'FORCE_SWITCH') out.push({ kind: 'FORCE_SWITCH', name: t.name });
-    if (t.kind === 'BENCH_WALL') out.push({ kind: 'BENCH_WALL', name: t.name });
+    if (t.kind === 'BENCH_WALL') out.push({ kind: 'BENCH_WALL', name: t.name, team: !!t.team, protectsNoRuleBox: !!t.protectsNoRuleBox });
     if (t.kind === 'HEAL' && t.source !== 'attack') out.push({ kind: 'HEAL', name: t.name, amount: t.amount, scope: t.scope });
     if (t.kind === 'SWITCH' && t.source !== 'attack') out.push({ kind: 'SWITCH', name: t.name });
     if (t.kind === 'ENERGY_MOVE' && t.source !== 'attack') out.push({ kind: 'ENERGY_MOVE', name: t.name });
@@ -384,7 +384,7 @@ const WHY = {
   ENERGY_ACCEL: (t) => `Habilidade "${t.name}" liga energia direto do deck/descarte — repõe o que o oponente tira.`,
   ENERGY_RECOVERY: (t) => `"${t.name}" recupera energia do descarte — repõe o que o oponente tira.`,
   BENCH_SHIELD: (t) => `"${t.name}" protege o seu banco de contadores de dano.`,
-  BENCH_WALL: (t) => `"${t.name}" protege no banco contra o dano espalhado.`,
+  BENCH_WALL: (t) => (t.team ? `"${t.name}" protege o seu banco INTEIRO${t.protectsNoRuleBox ? ' (Pokémon sem Rule Box)' : ''} do dano espalhado.` : `"${t.name}" protege no banco contra o dano espalhado (só a própria carta).`),
   HEAL: (t) => `"${t.name}" cura ${t.amount >= 999 ? 'todo o dano' : `${t.amount}`}${t.scope === 'all' ? ' de todos os seus Pokémon' : ''} — desfaz o dano espalhado antes de virar nocaute.`,
   SWITCH: (t) => `"${t.name}" troca/zera o recuo — tira o seu Pokémon preso do Ativo.`,
   ENERGY_MOVE: (t) => `"${t.name}" move energia entre os seus Pokémon — redistribui depois de perder energia.`,
@@ -412,6 +412,7 @@ export function disruptionValue(card, diag, me) {
       if (t.kind === 'SWITCH' && ax.key === 'status_lock' && card.category === 'Pokemon') continue;
       let strength = req.factor;
       if (t.kind === 'DRAW_ABILITY') strength *= clamp(t.amount / 3) * (t.repeat ? 1 : 0.6);
+      if (t.kind === 'BENCH_WALL') strength *= t.team ? 1.5 : 0.45; // proteger o banco inteiro × só a si mesmo
       if (t.kind === 'HEAL') strength *= clamp((t.amount >= 999 ? 120 : t.amount) / 60) * (t.scope === 'all' ? 1 : 0.6);
       if (t.kind === 'ENERGY_MOVE') strength *= 0.6;
       // Item é justamente o que a trava de Itens bloqueia

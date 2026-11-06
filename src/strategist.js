@@ -8,6 +8,7 @@ import { damageVs } from './damage.js';
 import { spreadOf } from './prizes.js';
 import { requirements } from './diagnosis.js';
 import { normName } from './db-core.js';
+import { passiveOf, selfHurts } from './gameplan.js';
 
 import { DEFAULT_MODEL, STRATEGY_SCHEMA, SYSTEM_PT, requestStrategy } from './strategist-core.js';
 export { DEFAULT_MODEL, STRATEGY_SCHEMA, SYSTEM_PT };
@@ -71,19 +72,32 @@ export function verifyStrategy(s, { me, opp, r, db }) {
       const card = findIn(opp, c.attacker) ?? findIn(me, c.attacker);
       return { ...c, status: card ? 'ok' : 'erro', check: card ? 'a carta está na lista' : 'essa carta não está em nenhuma das listas' };
     }
-    const { card, attack } = findAttack(opp, c.attacker, c.attack);
-    if (!card) return { ...c, status: 'erro', check: `o ${c.attacker} não está na lista do oponente` };
+    // As duas direções: o ataque DELE no seu Pokémon, ou o SEU ataque no Pokémon dele (o plano de jogo fala do que você faz)
+    let side = 'opp';
+    let { card, attack } = findAttack(opp, c.attacker, c.attack);
+    if (!card) { ({ card, attack } = findAttack(me, c.attacker, c.attack)); if (card) side = 'me'; }
+    if (!card) return { ...c, status: 'erro', check: `o ${c.attacker} não está em nenhuma das listas` };
     if (!attack) return { ...c, status: '?', check: `não achei o ataque "${c.attack}" no ${card.name} (nem copiado)` };
-    const canPay = payable(attack, opp);
+    const atkDeck = side === 'opp' ? opp : me, defDeck = side === 'opp' ? me : opp;
+    const canPay = payable(attack, atkDeck);
     if (c.kind === 'can_attack') return { ...c, status: canPay ? 'ok' : 'erro', check: canPay ? `paga ${cost(attack.cost)} com as energias do deck${attack.copiedFrom ? ` (copiado do ${attack.copiedFrom})` : ''}` : `precisa de ${cost(attack.cost)} e o deck não tem essa energia` };
     // ko
-    const target = findIn(me, c.target);
-    if (!target) return { ...c, status: '?', check: `o alvo ${c.target} não está na sua lista` };
+    const target = findIn(defDeck, c.target);
+    if (!target) return { ...c, status: '?', check: `o alvo ${c.target} não está na lista ${side === 'opp' ? 'sua' : 'dele'}` };
     const sp = spreadOf(attack);
-    const dmgActive = damageVs(attack, card, target, { deck: opp, defDeck: me, oppTaken: 3 }).dmg;
-    const dmg = Math.max(dmgActive, sp ? sp.amount : 0); // no banco não tem fraqueza
+    const dmgActive = damageVs(attack, card, target, { deck: atkDeck, defDeck, oppTaken: 3, selfDamaged: selfHurts(atkDeck), ...(atkDeck.pressure ?? {}) }).dmg;
+    const spread = sp && (!sp.exOnly || target.isEx) ? sp.amount : 0; // no banco não tem fraqueza
+    // dano passivo citado na afirmação (ex.: "+ 30 do Munkidori"): soma, já que o deck consegue colocar
+    const pas = passiveOf(atkDeck);
+    const usesPas = pas && new RegExp(`${pas.by}|${pas.ability}|contador`, 'i').test(c.text_pt ?? '');
+    // confere DO JEITO que a afirmação diz: "espalhados / no banco" → dano no banco; "no Ativo" → dano no Ativo
+    const txt = c.text_pt ?? '';
+    const mode = spread && /espalh|no banco|contadores/i.test(txt) && !/no ativo/i.test(txt) ? 'banco' : /no ativo/i.test(txt) || !spread ? 'ativo' : spread >= dmgActive ? 'banco' : 'ativo';
+    const base = mode === 'banco' ? spread : dmgActive;
+    const dmg = base + (usesPas ? pas.amount : 0);
     const ko = dmg >= target.hp;
-    return { ...c, status: !canPay ? 'erro' : ko ? 'ok' : 'erro', damage: Math.round(dmg), hp: target.hp, check: !canPay ? `não paga ${cost(attack.cost)}` : `${Math.round(dmg)} de dano${sp ? ` (${sp.withActive ? 'em vários Pokémon' : 'no banco'})` : ''} contra ${target.hp} HP → ${ko ? 'nocauteia' : 'NÃO nocauteia'}` };
+    const how = [mode === 'banco' ? `${spread}${sp.mode === 'distribute' ? ' espalhados' : ''} no banco` : `${Math.round(dmgActive)} no Ativo`, usesPas ? `+ ${pas.amount} do ${pas.by}` : ''].filter(Boolean).join(' ');
+    return { ...c, side, status: !canPay ? 'erro' : ko ? 'ok' : 'erro', damage: Math.round(dmg), hp: target.hp, check: !canPay ? `não paga ${cost(attack.cost)}` : `${how} = ${Math.round(dmg)} contra ${target.hp} HP → ${ko ? 'nocauteia' : 'NÃO nocauteia'}` };
   });
   const techs = (s.tech_ideas ?? []).map((t) => {
     const card = db.byName.get(normName(t.card))?.[0] ?? null;

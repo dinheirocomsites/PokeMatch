@@ -26,15 +26,20 @@ function lineOf(card, opp) {
 
 // Como o SEU deck derruba um alvo: dano espalhado no banco (sem precisar de Boss) ou no Ativo (com Boss), ou em 2 ataques
 const SELF_HURT = /place \d+ damage counters on that pok[eé]mon|also does \d+ damage to itself|damage to 1 of your benched/i;
-function howToKo(target, me, opp, gusts, koGap = null) {
-  const attackers = me.threat.filter((e) => e.feas >= 0.3 && (e.card.attacks ?? []).some((a) => attackDamage(a) || spreadOf(a)));
-  const selfDamaged = me.entries.some((e) => SELF_HURT.test(e.card.text ?? ''));
-  // dano que você coloca em QUALQUER Pokémon dele sem atacar (Munkidori "Adrena-Brain": move 3 contadores por turno)
+export const selfHurts = (deck) => deck.entries.some((e) => SELF_HURT.test(e.card.text ?? ''));
+// dano que o deck coloca em QUALQUER Pokémon do oponente sem atacar (Munkidori "Adrena-Brain": move 3 contadores)
+export function passiveOf(deck) {
   let pas = null;
-  for (const e of me.entries.filter((x) => x.card.category === 'Pokemon')) for (const ab of e.card.abilities ?? []) {
+  for (const e of deck.entries.filter((x) => x.card.category === 'Pokemon')) for (const ab of e.card.abilities ?? []) {
     const m = (ab.effect ?? '').match(/(?:move|put) up to (\d+) damage counters? (?:from 1 of your pok[eé]mon )?(?:to|on) 1 of your opponent.s pok[eé]mon/i) ?? (ab.effect ?? '').match(/put (\d+) damage counters? on 1 of your opponent.s pok[eé]mon/i);
     if (m && (!pas || +m[1] * 10 > pas.amount)) pas = { amount: +m[1] * 10, by: e.card.name, ability: ab.name };
   }
+  return pas;
+}
+function howToKo(target, me, opp, gusts, koGap = null) {
+  const attackers = me.threat.filter((e) => e.feas >= 0.3 && (e.card.attacks ?? []).some((a) => attackDamage(a) || spreadOf(a)));
+  const selfDamaged = selfHurts(me);
+  const pas = passiveOf(me);
   const plus = pas ? ` + ${pas.amount} do ${pas.by} ("${pas.ability}")` : '';
   let best = null;
   // mesmo resultado: prefere o seu atacante principal (é ele que vai estar pronto)

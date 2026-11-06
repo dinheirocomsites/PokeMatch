@@ -11,7 +11,10 @@ desmontar o combo do Meganium e da linha Applin → Dipplin). O resultado agora 
 3. **Plano de jogo por fase** (IA): [Abertura], [Alvos], [Meio de jogo], [Fim de jogo], [Evitar] — a ficha leva os alvos
    conferidos e pede uma afirmação verificável para todo número (dano espalhado "em qualquer combinação" é TOTAL).
    Sem a IA: o plano da simulação do motor.
-4. **Confirmado nas contas do motor** (só as afirmações ✅) e os bastidores recolhidos.
+4. **Confirmado nas contas do motor** (só as afirmações ✅) e os bastidores recolhidos. A conferência vale nas **duas
+   direções** — o ataque dele no seu Pokémon e o SEU ataque no Pokémon dele — e confere do jeito que a afirmação diz
+   ("60 espalhados no banco + 30 do Munkidori" é conferido no banco, não com o dano do Ativo). No primeiro teste real do
+   novo foco, 6 afirmações certas sobre os seus ataques saíam como "derrubadas" porque só a direção dele era conferida.
 Depois vêm diagnóstico, corrida de prêmios, raio-X e, por último, **"🧰 Ajustes na lista (opcional)"** com as techs.
 Nada disso mudou o servidor do Lovable (o formato das dicas vai na ficha de fatos).
 

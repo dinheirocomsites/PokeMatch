@@ -47,3 +47,24 @@ test('efeito que vale para os dois lados: Gravity Mountain (Estágio 2 de todo m
   assert.equal(extractTags(gm).find((x) => x.kind === 'HP_DOWN').both, true);
   assert.ok(!r.suggestions.some((s) => s.card.name === 'Gravity Mountain'), r.suggestions.map((s) => s.card.name).join(', '));
 });
+
+test('conferência nas duas direções: afirmações sobre os SEUS ataques (copiadas da leitura real de 06/11)', async () => {
+  const { verifyStrategy } = await import('../src/strategist.js');
+  const p = prepareStrategy({ myText: read('dragapult-felipe'), oppText: read('hydrapple'), db, r });
+  const c = (id, attacker, attack, target, text_pt) => ({ id, kind: 'ko', attacker, attack, target, text_pt });
+  const s = { claims: [
+    c('a', 'Hydrapple ex', 'Syrup Storm', 'Dragapult ex', 'Hydrapple ex nocauteia o Dragapult ex (320 HP) em 1 ataque.'),
+    c('b', 'Dragapult ex', 'Phantom Dive', 'Applin', 'Os 60 espalhados no banco pelo Phantom Dive derrubam o Applin (40 HP).'),
+    c('c', 'Dragapult ex', 'Phantom Dive', 'Meganium', 'Phantom Dive faz 200 no Ativo e derruba o Meganium (160 HP).'),
+    c('d', 'Dragapult ex', 'Phantom Dive', 'Teal Mask Ogerpon ex', '200 do Phantom Dive + 30 do Adrena-Brain = 230, derruba o Teal Mask Ogerpon ex (210 HP).'),
+    c('e', 'Dragapult ex', 'Phantom Dive', 'Dipplin', '60 espalhados + 30 do Munkidori derrubam o Dipplin (80 HP) no banco.'),
+    c('f', 'Dragapult ex', 'Phantom Dive', 'Hydrapple ex', 'FALSA de propósito: Phantom Dive derruba o Hydrapple ex (330 HP).'),
+    c('g', 'Dragapult ex', 'Phantom Dive', 'Bayleef', 'FALSA de propósito: só os 60 espalhados derrubam o Bayleef (110 HP).'),
+  ] };
+  const v = verifyStrategy(s, { me: p.me, opp: p.opp, r: p.r, db });
+  const st = Object.fromEntries(v.claims.map((x) => [x.id, x.status]));
+  for (const id of ['a', 'b', 'c', 'd', 'e']) assert.equal(st[id], 'ok', `${id}: ${v.claims.find((x) => x.id === id).check}`);
+  assert.equal(st.f, 'erro'); // 200 não derruba 330
+  assert.equal(st.g, 'erro', v.claims.find((x) => x.id === 'g').check); // "só os 60 espalhados" não derrubam 110
+  assert.match(v.claims.find((x) => x.id === 'e').check, /60 espalhados no banco \+ 30 do Munkidori = 90 contra 80 HP → nocauteia/);
+});

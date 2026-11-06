@@ -72,7 +72,8 @@ test('consistência: cada sugestão mostra o custo da troca; tirar Judge custa S
   const r = analyze(read('sharpedo.txt'), read('basic-box.txt'), db, { context: PAIN });
   for (const s of r.suggestions) {
     assert.ok(s.consistency?.setup && s.consistency.tech, s.card.name);
-    assert.ok(Math.abs(s.consistency.setup.delta) < 3, `${s.card.name} não deveria mexer no setup do Sharpedo`);
+    // o que importa é a tech não PIORAR o setup (um Básico a mais pode até melhorar: menos mulligan)
+    assert.ok(s.consistency.setup.delta > -3, `${s.card.name} não deveria piorar o setup do Sharpedo`);
   }
   const withJudgeCut = r.suggestions.find((s) => s.swap.out.some((o) => o.name === 'Judge'));
   assert.ok(withJudgeCut.consistency.supporter.delta < -1);

@@ -17,7 +17,8 @@ const CASES = [
 const icon = { ok: '✅', erro: '❌', '?': '❔' };
 let md = `# Avaliação do estrategista (${new Date().toISOString().slice(0, 10)}, modelo ${process.env.PM_STRATEGIST_MODEL ?? DEFAULT_MODEL})\n\nA IA lê o matchup; o motor confere cada afirmação (✅ confirmada, ❌ derrubada, ❔ não deu para conferir).\n`;
 let total = 0;
-for (const c of CASES) {
+const ONLY = process.env.PM_EVAL_ONLY; // ex.: "Basic Box" para rodar só um caso
+for (const c of CASES.filter((x) => !ONLY || x.name.includes(ONLY))) {
   const out = await runStrategist({ client, myText: read(c.mine), oppText: read(c.opp), context: c.pain, db, model: process.env.PM_STRATEGIST_MODEL ?? DEFAULT_MODEL });
   total += out.usage.usd;
   const s = out.strategy, v = out.verification;
@@ -25,10 +26,10 @@ for (const c of CASES) {
   md += `**Afirmações conferidas pelo motor** (${v.summary.confirmed}/${v.summary.claims} confirmadas, ${v.summary.refuted} derrubadas):\n${v.claims.map((x) => `- ${icon[x.status]} ${x.text_pt} — _${x.check}_`).join('\n')}\n\n`;
   md += `**Techs sugeridas pela IA:**\n${v.techs.map((x) => `- ${icon[x.status]} **${x.card}** — ${x.why_pt} — _${x.check}_`).join('\n')}\n\n`;
   if (s.play_tips_pt.length) md += `**Como jogar (IA):**\n${s.play_tips_pt.map((x) => `- ${x}`).join('\n')}\n\n`;
-  if (s.disagreements_pt.length) md += `**Onde a IA discorda do motor:**\n${s.disagreements_pt.map((x) => `- ${x}`).join('\n')}\n\n`;
+  if (v.disagreements.length) md += `**Onde a IA discorda do motor** (citação da carta conferida):\n${v.disagreements.map((x) => `- ${icon[x.status]} ${x.text_pt} — _${x.check}_`).join('\n')}\n\n`;
   if (s.uncertainty_pt) md += `**Incerteza (IA):** ${s.uncertainty_pt}\n\n`;
   md += `_Custo: US$ ${out.usage.usd.toFixed(3)} (${out.usage.input} tokens de entrada, ${out.usage.output} de saída)._\n`;
-  console.log(`${c.name}: ${v.summary.confirmed}/${v.summary.claims} confirmadas · techs ${v.techs.map((x) => `${x.card}[${x.status}]`).join(', ')} · US$ ${out.usage.usd.toFixed(3)}`);
+  console.log(`${c.name}: ${v.summary.confirmed}/${v.summary.claims} confirmadas · discordâncias ${v.disagreements.map((x) => x.status).join(',') || '—'} · techs ${v.techs.map((x) => `${x.card}[${x.status}]`).join(', ')} · US$ ${out.usage.usd.toFixed(3)}`);
 }
 md += `\n---\nCusto total desta avaliação: **US$ ${total.toFixed(2)}**.\n`;
 writeFileSync(new URL('../docs/estrategista-avaliacao.md', import.meta.url), md);

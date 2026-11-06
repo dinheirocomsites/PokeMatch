@@ -33,7 +33,12 @@ const FIXTURE = {
     { card: 'Carvanha', why_pt: 'já joga', answers: [] },
     { card: 'Carta Inventada ex', why_pt: 'não existe', answers: [] },
   ],
-  play_tips_pt: [], disagreements_pt: [], uncertainty_pt: '',
+  play_tips_pt: [],
+  disagreements: [
+    { text_pt: 'Farigiraf só bloqueia Tera (inventado)', card: 'Farigiraf ex', quote: "by attacks from your opponent's Tera Pokémon" },
+    { text_pt: 'Acerola só no fim do jogo (verdade)', card: "Acerola's Mischief", quote: 'only if your opponent has 2 or fewer Prize cards remaining' },
+  ],
+  uncertainty_pt: '',
 };
 
 test('ficha de fatos traz a dor, as duas listas, os ataques copiados e o que o motor concluiu', () => {
@@ -58,6 +63,10 @@ test('o motor confere cada afirmação: confirma o que é verdade e derruba o qu
   assert.equal(t.Carvanha, '?');
   assert.equal(t['Carta Inventada ex'], 'erro');
   assert.equal(v.summary.confirmed, 3);
+  // discordância com citação inventada é derrubada; citação real é aceita
+  assert.equal(v.disagreements[0].status, 'erro');
+  assert.match(v.disagreements[0].check, /Basic Pokémon ex/);
+  assert.equal(v.disagreements[1].status, 'ok');
 });
 
 test('esquema da resposta: objetos fechados e sem null (a API recusa null misturado a enum)', () => {

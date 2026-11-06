@@ -17,7 +17,7 @@ const short = (s, n = 260) => String(s ?? '').replace(/\s+/g, ' ').slice(0, n);
 // Esquema da resposta (sem null: "vazio" é "" ou 0)
 export const STRATEGY_SCHEMA = {
   type: 'object', additionalProperties: false,
-  required: ['opponent_plan', 'my_problem', 'claims', 'tech_ideas', 'play_tips_pt', 'disagreements_pt', 'uncertainty_pt'],
+  required: ['opponent_plan', 'my_problem', 'claims', 'tech_ideas', 'play_tips_pt', 'disagreements', 'uncertainty_pt'],
   properties: {
     opponent_plan: {
       type: 'object', additionalProperties: false, required: ['summary_pt', 'damage_sources', 'enablers', 'key_turns_pt'],
@@ -47,7 +47,11 @@ export const STRATEGY_SCHEMA = {
       items: { type: 'object', additionalProperties: false, required: ['card', 'why_pt', 'answers'], properties: { card: { type: 'string' }, why_pt: { type: 'string' }, answers: { type: 'array', items: { type: 'string' } } } },
     },
     play_tips_pt: { type: 'array', items: { type: 'string' } },
-    disagreements_pt: { type: 'array', items: { type: 'string' } },
+    // Discordância com o motor: precisa citar o trecho EXATO do texto da carta em que se apoia (o motor confere a citação)
+    disagreements: {
+      type: 'array',
+      items: { type: 'object', additionalProperties: false, required: ['text_pt', 'card', 'quote'], properties: { text_pt: { type: 'string' }, card: { type: 'string' }, quote: { type: 'string' } } },
+    },
     uncertainty_pt: { type: 'string' },
   },
 };
@@ -63,8 +67,8 @@ Sua tarefa:
    - kind "in_deck": a carta (attacker) está na lista do oponente.
 4. Sugerir techs em "tech_ideas": cartas legais no Standard atual, com o nome exato em inglês; em "answers", os ids das claims que a tech responde. Prefira poucas e certeiras.
 5. Dicas de jogo em "play_tips_pt" (o que fazer na partida, não só no deck).
-6. Se você discordar da análise do motor, diga em "disagreements_pt" (com o porquê).
-Regras: use só nomes de cartas que existem; nunca invente números; escreva em português do Brasil; seja direto, sem preâmbulo.`;
+6. Se você discordar da análise do motor, registre em "disagreements": o porquê (text_pt), a carta em que se apoia (card, nome exato) e o trecho EXATO do texto dessa carta, em inglês, copiado da ficha (quote). Sem citação exata, não discorde: o motor vai conferir a citação.
+Regras: use só nomes de cartas que existem; nunca invente números nem efeitos — o texto das cartas está na ficha, confira antes de afirmar; escreva em português do Brasil; seja direto, sem preâmbulo.`;
 
 // ---------- Ficha de fatos (o que a IA lê) ----------
 function cardFacts(e) {
@@ -128,8 +132,17 @@ export function verifyStrategy(s, { me, opp, r, db }) {
     const eng = (r.suggestions ?? []).find((x) => x.card.name === card.name);
     return { ...t, status: 'ok', name: card.name, image: card.image ?? null, check: eng ? `o motor também sugere (nota ${eng.score}; ${eng.relevance ?? ''})` : `legal e funciona no seu deck${req.note ? ` (${req.note})` : ''}; o motor não tinha essa entre as primeiras`, engineScore: eng?.score ?? null };
   });
+  // Discordâncias: a citação precisa existir no texto da carta (pega efeito inventado, ex.: "Farigiraf só bloqueia Tera")
+  const norm = (x) => String(x ?? '').toLowerCase().replace(/[’]/g, "'").replace(/\s+/g, ' ').replace(/[.\s]+$/, '').trim();
+  const disagreements = (s.disagreements ?? []).map((d) => {
+    if (!d.card || !d.quote) return { ...d, status: '?', check: 'sem carta/citação para conferir' };
+    const card = findIn(opp, d.card) ?? findIn(me, d.card) ?? db.byName.get(normName(d.card))?.[0] ?? null;
+    if (!card) return { ...d, status: 'erro', check: `a carta ${d.card} não existe entre as legais` };
+    const found = norm(card.text).includes(norm(d.quote));
+    return { ...d, status: found ? 'ok' : 'erro', check: found ? 'a citação está no texto da carta (o raciocínio ainda é da IA)' : `a citação NÃO está no texto do ${card.name} — o texto real é: "${short(card.text, 200)}"` };
+  });
   const ok = claims.filter((c) => c.status === 'ok').length;
-  return { claims, techs, summary: { claims: claims.length, confirmed: ok, refuted: claims.filter((c) => c.status === 'erro').length, unknown: claims.filter((c) => c.status === '?').length } };
+  return { claims, techs, disagreements, summary: { claims: claims.length, confirmed: ok, refuted: claims.filter((c) => c.status === 'erro').length, unknown: claims.filter((c) => c.status === '?').length } };
 }
 
 // ---------- Execução completa ----------

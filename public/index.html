@@ -333,7 +333,7 @@ function renderStrategy(o) {
     <h3 style="margin:10px 0 4px">Techs da IA</h3>
     <ul style="margin:0;padding-left:18px">${v.techs.map((t) => `<li>${icon[t.status]} <b>${esc(t.card)}</b> — ${esc(t.why_pt)} <small style="opacity:.75">— ${esc(t.check)}</small></li>`).join('')}</ul>
     ${s.play_tips_pt.length ? `<h3 style="margin:10px 0 4px">Como jogar</h3><ul style="margin:0;padding-left:18px">${s.play_tips_pt.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
-    ${s.disagreements_pt.length ? `<h3 style="margin:10px 0 4px">Onde a IA discorda do motor</h3><ul style="margin:0;padding-left:18px">${s.disagreements_pt.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+    ${v.disagreements?.length ? `<h3 style="margin:10px 0 4px">Onde a IA discorda do motor <small>(a citação da carta é conferida)</small></h3><ul style="margin:0;padding-left:18px">${v.disagreements.map((x) => `<li>${icon[x.status]} ${esc(x.text_pt)} <small style="opacity:.75">— ${esc(x.check)}</small></li>`).join('')}</ul>` : ''}
     ${s.uncertainty_pt ? `<p style="opacity:.8"><b>Incerteza:</b> ${esc(s.uncertainty_pt)}</p>` : ''}
     <p style="opacity:.6;font-size:12px">Só as afirmações ✅ foram confirmadas pelas contas do motor. Custo desta leitura: ~US$ ${o.usage.usd.toFixed(3)} (${esc(o.model)}).</p></div>`;
 }

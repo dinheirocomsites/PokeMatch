@@ -4,6 +4,11 @@ name: Estrategista (avaliação)
 
 on:
   workflow_dispatch:
+    inputs:
+      only:
+        description: 'Rodar só os casos cujo nome contém (ex.: Basic Box). Vazio = todos.'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -20,6 +25,8 @@ jobs:
           node-version: 22
       - run: npm install --no-audit --no-fund
       - name: Roda os casos
+        env:
+          PM_EVAL_ONLY: ${{ inputs.only }}
         run: node scripts/strategist-eval.js
       - name: Salva o relatório
         if: always()

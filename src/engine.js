@@ -50,7 +50,9 @@ function canPayCost(cost, me) {
 // Valor de uma etiqueta contra o deck oponente → { value, why }
 function tagValue(t, opp, me, ctx) {
   const c = opp.counts;
-  const condFactor = (t.cond ?? []).reduce((f, x) => f * (x === 'coin' ? 0.35 : x.startsWith('prizes') ? 0.6 : x === 'afterKO' ? 0.7 : x === 'ifKO' ? 0.45 : x === 'active' ? 0.85 : x === 'if' ? 0.5 : 1), 1);
+  // "só se o oponente tiver N ou menos prêmios": quanto menor N, mais tarde no jogo (≤2 = só no finzinho)
+  const prizeF = (x) => { const n = +(x.match(/\d+/)?.[0] ?? 4); return n <= 2 ? 0.3 : n === 3 ? 0.45 : 0.6; };
+  const condFactor = (t.cond ?? []).reduce((f, x) => f * (x === 'coin' ? 0.35 : x.startsWith('prizes') ? prizeF(x) : x === 'afterKO' ? 0.7 : x === 'ifKO' ? 0.45 : x === 'active' ? 0.85 : x === 'if' ? 0.5 : 1), 1);
   const nextTurn = t.source === 'attack' ? 0.65 : 1; // efeito de ataque dura 1 turno e exige atacar
   switch (t.kind) {
     case 'WALL_SELF':

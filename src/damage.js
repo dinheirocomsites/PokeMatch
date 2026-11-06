@@ -136,6 +136,42 @@ function energyEach(e, deck, ctx) {
   return side(deck, 3, false); // os seus Pokémon (inclusive "your Iono's Pokémon")
 }
 
+// Chance de o ataque FUNCIONAR quando o texto diz "…, this attack does nothing". Antes o motor só "lia" a frase e
+// contava o dano cheio: Ceruledge "Infernal Slash" (descarte 4 Energias {R} básicas da mão, senão não faz nada) virava
+// 220 num deck com 1 Fire Energy. Lê do deck de quem ataca (e do alvo) se a condição costuma ser cumprida.
+const TYPE_PT_D = { Grass: 'Planta', Fire: 'Fogo', Water: 'Água', Lightning: 'Elétrico', Psychic: 'Psíquico', Fighting: 'Lutador', Darkness: 'Escuridão', Metal: 'Metal', Dragon: 'Dragão', Colorless: 'Incolor' };
+export function nothingFactor(effect, attacker, target, ctx = {}) {
+  const e = String(effect ?? '').replace(/[’]/g, "'");
+  if (!/this attack does nothing/i.test(e)) return { p: 1 };
+  const deck = ctx.deck;
+  const inDeck = (name) => ents(deck).some((x) => x.card.name === name || x.card.name.startsWith(`${name} `));
+  const causes = (cond) => ents(deck).some((x) => new RegExp(`is now (\\w+ and )?${cond}`, 'i').test(x.card.text ?? ''));
+  let m;
+  if (/if tails, this attack does nothing/i.test(e)) return { p: 0.5, note: 'moeda: metade das vezes não faz nada' };
+  if ((m = e.match(/discard (\d+|an?) (basic )?(?:\{([a-z])\} )?energy cards? from your hand/i))) {
+    if (!deck) return { p: 1 };
+    const need = /^\d+$/.test(m[1]) ? +m[1] : 1;
+    const T = m[3] ? SYMK[m[3].toUpperCase()] : null;
+    const have = (T ? eOf(deck, T) : m[2] ? deck.counts?.basicEnergy : deck.counts?.energy) ?? 0;
+    const what = `${need} Energia${need > 1 ? 's' : ''}${T ? ` ${TYPE_PT_D[T] ?? T}` : ''}`;
+    if (have < need * 2) return { p: 0, note: `precisa descartar ${what} da mão e o deck tem ${have}: o ataque não faz nada` };
+    return { p: have >= need * 3 ? 1 : 0.6, note: have >= need * 3 ? '' : `precisa de ${what} na mão (nem sempre)` };
+  }
+  if ((m = e.match(/if your opponent's active pok[eé]mon isn't (burned|confused|poisoned|asleep|paralyzed)/i))) return causes(m[1]) ? { p: 0.6, note: `só se o Ativo dele estiver ${m[1]}` } : { p: 0, note: `só funciona se o Ativo dele estiver ${m[1]} e o deck não causa isso` };
+  if (/if your opponent's active pok[eé]mon isn't a pok[eé]mon ex/i.test(e)) return target?.isEx ? { p: 1 } : { p: 0, note: 'só funciona em Pokémon ex' };
+  if (/if your opponent's active pok[eé]mon has no damage counters/i.test(e)) return (ctx.targetCounters ?? 0) > 0 || ctx.targetDamaged ? { p: 1 } : { p: 0.4, note: 'precisa de dano já no Ativo dele' };
+  if ((m = e.match(/if you don't have (.+?) on your bench/i))) { const ns = m[1].split(/\s+and\s+|,\s*/); return ns.every(inDeck) ? { p: 0.8, note: `precisa de ${m[1]} no banco` } : { p: 0, note: `precisa de ${m[1]} no banco e o deck não tem` }; }
+  if ((m = e.match(/if this pok[eé]mon has no (.+?) attached/i))) { const n = m[1].replace(/\{[a-z]\} /i, ''); return inDeck(n) || ents(deck).some((x) => x.card.name.includes(n.split(' ')[0])) ? { p: 0.8 } : { p: 0, note: `precisa de ${m[1]} ligada e o deck não tem` }; }
+  if (/if there is no stadium in play/i.test(e)) return (deck?.counts?.stadium ?? 0) > 0 ? { p: 0.85 } : { p: 0.4, note: 'precisa de um Estádio em jogo' };
+  if (/if you have \d+ or fewer benched/i.test(e)) return { p: 0.85 };
+  if (/if you don't have exactly \d+ cards in your hand|same number of cards in your hand|doesn't have exactly/i.test(e)) return { p: 0.3, note: 'condição difícil de cumprir (mão/prêmios exatos)' };
+  if ((m = e.match(/if you don't have (\d+) or more basic (?:\{([a-z])\} )?energy cards in your discard pile/i))) { const T = m[2] ? SYMK[m[2].toUpperCase()] : null; const have = T ? eOf(deck, T) : deck?.counts?.basicEnergy ?? 0; return have >= +m[1] + 2 ? { p: 0.5, note: `precisa de ${m[1]} energias no descarte` } : { p: 0, note: `precisa de ${m[1]} energias no descarte e o deck tem ${have}` }; }
+  if (/discard all pok[eé]mon tools from this pok[eé]mon\. if you can't discard any/i.test(e)) return (deck?.counts?.tool ?? 0) > 0 ? { p: 0.7 } : { p: 0, note: 'precisa de uma Ferramenta nele' };
+  if (/discard a stadium in play\. if you can't/i.test(e)) return { p: 0.5, note: 'precisa de um Estádio em jogo' };
+  note(`does nothing: ${e.slice(0, 80)}`);
+  return { p: 0.6, note: 'condição que pode anular o ataque' };
+}
+
 // Quantos Pokémon o oponente costuma ter no banco (para "para cada Pokémon no banco dele"). Antes era sempre 5 — o
 // máximo —, e o Zeraora "Combat Thunder" (20 + 20 por Pokémon no banco) virava 120 sempre, 240 com fraqueza.
 // Estimativa: as peças que o deck dele mantém no banco + reserva, ou metade dos Básicos que ele joga; ~80% disso
@@ -339,6 +375,10 @@ export function damageVs(attack, attacker, target, ctx0 = {}) {
     dmg = n;
   }
   if (!dmg) return { dmg: 0, notes };
+  // "…this attack does nothing": condição que ANULA o ataque (Ceruledge sem 4 Energias {R} na mão, moeda coroa…)
+  const nf = nothingFactor(eff, attacker, target, ctx);
+  if (nf.p === 0) return { dmg: 0, notes: [...notes, nf.note] };
+  if (nf.p < 1) { dmg *= nf.p; if (nf.note) notes.push(nf.note); }
   // Bônus aplicado ANTES de fraqueza/resistência (ex.: Binding Mochi "+40 before applying Weakness")
   if (ctx.bonus) { dmg += ctx.bonus; if (ctx.bonusNote) notes.push(ctx.bonusNote); }
 

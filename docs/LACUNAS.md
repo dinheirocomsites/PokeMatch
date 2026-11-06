@@ -12,6 +12,25 @@
 | Rodada 6 (famílias que mudam o cálculo + buscas na simulação de mão) | 87% lido · 80% usado · 13% testado | 100% | 96 |
 | Rodada 7 (camada de IA rodando: Claude lê, motor confere) | **99% lido · 84% usado · 13% testado** (336 frases via IA) | 100% | **102** |
 
+### Padrão de erro: "tech de ataque que não mira quem ganha o jogo para ele" (foco no atacante principal)
+**Caso (Felipe × Mega Excadrill ex)**: Zoroark, Purugly e Tranquill "viravam a corrida" nocauteando só Drilbur, Beldum e
+Metang (Básicos de evolução); Mega Scrafty ex pegava Metagross/Genesect mas não o Excadrill. A ideia de uma tech é
+**arrebentar o atacante principal** dele.
+**Correção geral**: a parte da nota que vem de ATACAR (dano, troca de nocaute, fraqueza, corrida usando a tech) é
+ajustada pelo que a tech faz contra o alvo: nocauteia o atacante principal em 1 ataque (cheio) / em 2 (60%); derruba
+quem você citou na dor (cheio) ou quem nocauteia o seu atacante (80%); derruba outro atacante de verdade (45%); só pega
+Pokémon de evolução/apoio (15%). Habilidade, muralha, proteção do banco e disrupção não mudam (o Shaymin continua).
+Todo card de atacante mostra **"🎯 Contra o <principal dele>: nocauteia em N ataques / não derruba (~X de Y HP)"**.
+E quando a tech não fecha sozinha mas fecha com uma peça sua, o card diz (Black Belt +40 → 310; com o Munkidori, 340).
+
+### Padrão de erro: "ler a condição que ANULA o ataque e não aplicar" ("…this attack does nothing")
+**Caso**: Ceruledge "Infernal Slash" — *descarte 4 Energias {R} básicas da mão; se não conseguir, não faz nada* — contava
+220 (440 na fraqueza do Excadrill) num deck com 1 Fire Energy no pacote. A frase era só "lida" na régua de cobertura.
+**Correção geral** (`nothingFactor`, src/damage.js, ~40 ataques): a condição vira a chance real de o ataque funcionar —
+moeda (metade), descartar N energias da mão (0 se o deck não tem pelo menos 2×N), "se o Ativo dele não estiver
+Queimado/Confuso" (só se o seu deck causa isso), "se não for Pokémon ex", "se não tiver X no banco", Estádio em jogo…
+Muralha de ataque com moeda (Purugly, Tranquill) agora diz "só se der cara na moeda".
+
 ### Padrão de erro: "supor o máximo e mostrar como se fosse o normal" (banco do oponente)
 **Caso (Felipe)**: Zeraora "Combat Thunder" (*20 + 20 para cada Pokémon no banco do oponente*) aparecia com
 *"240 + 30 = 270 de dano"*. O motor supunha **sempre 5** no banco dele (o máximo) → 120, e o quadro mostrava o ×2 da

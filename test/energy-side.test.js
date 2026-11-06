@@ -82,3 +82,31 @@ test('banco do oponente: Combat Thunder (Zeraora) conta o banco que ele costuma 
   assert.ok(r.notes.some((x) => x.includes(`~${n} Pokémon no banco dele`)), r.notes.join('; '));
   assert.ok(r.notes.includes('fraqueza'));
 });
+
+test('"este ataque não faz nada": Ceruledge sem 4 Energias {R} para descartar da mão = 0; moeda = metade', async () => {
+  const { nothingFactor } = await import('../src/damage.js');
+  const ce = card('Ceruledge', /Infernal Slash/);
+  const ex = (db.byName.get('mega excadrill ex') ?? [])[0];
+  assert.equal(damageVs(atk(ce, 'Infernal Slash'), ce, ex, { deck: prof('sharpedo') }).dmg, 0);
+  const fire = { entries: [], counts: { energy: 12, basicEnergy: 12 }, energyByType: { Fire: 12 } };
+  assert.equal(damageVs(atk(ce, 'Infernal Slash'), ce, ex, { deck: fire }).dmg, 440); // deck de Fogo de verdade: funciona (fraqueza)
+  assert.equal(nothingFactor('Flip a coin. If tails, this attack does nothing.').p, 0.5);
+  assert.equal(nothingFactor("If your opponent's Active Pokémon isn't a Pokémon ex, this attack does nothing.", null, { isEx: false }).p, 0);
+});
+
+test('foco no atacante principal (Felipe × Mega Excadrill ex): nada de tech que só nocauteia Drilbur/Beldum', () => {
+  const r = analyze(deckText('sharpedo'), deckText('excadrill'), db, { limit: 10 });
+  const names = r.suggestions.map((s) => s.card.name);
+  for (const n of ['Zoroark', 'Purugly', 'Tranquill', 'Ceruledge']) assert.ok(!names.includes(n), `${n} não deveria aparecer: ${names.join(', ')}`);
+  const bb = r.suggestions.find((s) => s.card.name === "Black Belt's Training");
+  assert.ok(bb, names.join(', '));
+  assert.match(bb.reasons[0].why, /Mega Excadrill ex.*fecha os 340 HP/);
+  // todo atacante sugerido diz o que faz contra o principal
+  for (const s of r.suggestions.filter((x) => x.card.category === 'Pokemon' && x.pkg?.damage)) assert.ok(s.reasons.some((x) => x.kind === 'MAIN_FOCUS' && /Mega Excadrill ex/.test(x.why)), s.card.name);
+});
+
+test('foco: o que você cita na dor também é o alvo (Moltres derruba Ogerpon e Iron Leaves e fica no topo)', () => {
+  const r = analyze(deckText('sharpedo'), deckText('basic-box'), db, { limit: 30, context: 'corrida dos prêmios, morro em um hit para Ogerpon ou Folhas Férreas' });
+  const m = r.suggestions.find((s) => s.card.name === 'Moltres');
+  assert.ok(m.reasons.some((x) => x.kind === 'MAIN_FOCUS' && /Iron Leaves ex/.test(x.why)), m.reasons.map((x) => x.why).join(' | '));
+});

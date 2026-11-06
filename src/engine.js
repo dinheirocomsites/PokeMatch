@@ -65,7 +65,7 @@ function tagValue(t, opp, me, ctx) {
       return {
         covered, source: t.source,
         value: base * cov * condFactor * nextTurn,
-        why: `${t.source === 'ability' ? `Habilidade "${t.name}"` : t.source === 'attack' ? `Ataque "${t.name}"` : `"${t.name}"`}: ${t.source === 'attack' ? 'no turno seguinte, ' : ''}previne todo dano de ataques de ${selectorPt(t.sel)}. Cobre ${pct(cov)} do poder de ataque do oponente (${names(covered)}).${uncovered.length ? ` Não cobre: ${names(uncovered, 3)}.` : ''}`,
+        why: `${t.source === 'ability' ? `Habilidade "${t.name}"` : t.source === 'attack' ? `Ataque "${t.name}"` : `"${t.name}"`}: ${t.source === 'attack' ? `${(t.cond ?? []).includes('coin') ? 'só se der cara na moeda, ' : ''}no turno seguinte, ` : ''}previne todo dano de ataques de ${selectorPt(t.sel)}. Cobre ${pct(cov)} do poder de ataque do oponente (${names(covered)}).${uncovered.length ? ` Não cobre: ${names(uncovered, 3)}.` : ''}`,
       };
     }
     case 'BENCH_WALL': {
@@ -572,13 +572,15 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
       const amt = Math.max(...bonus.map((t) => t.amount));
       const piecesSaved = koGap.minSet ? koGap.minSet.filter((p) => p.amount <= amt).length : 0;
       const closes = koGap.alone + amt >= koGap.hp;
+      // não fecha sozinha, mas fecha junto com UMA peça do deck (ex.: Black Belt +40 + Binding Mochi envenenado +40)
+      const partner = !closes ? (koGap.pieces ?? []).filter((p) => koGap.alone + amt + p.amount >= koGap.hp).sort((a, b) => a.amount - b.amount)[0] : null;
       // "Todo turno": Ferramenta/Estádio/Habilidade ficam em jogo; Supporter gasta o Supporter do turno; Item pode ser travado
       const persistent = ['Tool', 'Stadium'].includes(c.card.trainerType) || c.card.category === 'Pokemon';
       const perTurn = c.card.trainerType === 'Supporter' ? 0.7 : c.card.trainerType === 'Item' ? 0.8 : 1;
       // Se quem mata o seu atacante é outro Pokémon, nocautear este alvo é um problema secundário
       const secondary = killers.length && !killerNames.includes(koGap.target) ? 0.6 : 1;
-      const value = (closes ? 40 : 18 + 10 * piecesSaved) * perTurn * secondary;
-      c.reasons.unshift({ kind: 'KO_GAP', value, why: `Ajuda a nocautear ${koGap.target} todo turno: +${amt} faz o ${main.name} chegar a ${koGap.alone + amt}${closes ? (koGap.minSet ? ` — fecha os ${koGap.hp} HP SEM depender de ${koGap.minSet.map((p) => p.name).join(' + ')}` : ` — fecha os ${koGap.hp} HP, que nem com tudo montado o seu deck alcançava`) : ` (precisa de ${koGap.hp})`}.${persistent ? ' Fica em jogo: vale todo turno sem gastar recurso.' : c.card.trainerType === 'Supporter' ? ' Mas é Supporter: para valer todo turno você gasta o Supporter do turno (sem Boss/Lillie\'s nesse turno).' : ' É Item: uma cópia por turno, e trava de Itens bloqueia.'}` });
+      const value = (closes ? 40 : Math.max(18 + 10 * piecesSaved, partner ? 30 : 0)) * perTurn * secondary;
+      c.reasons.unshift({ kind: 'KO_GAP', value, why: `Ajuda a nocautear ${koGap.target} todo turno: +${amt} faz o ${main.name} chegar a ${koGap.alone + amt}${closes ? (koGap.minSet ? ` — fecha os ${koGap.hp} HP SEM depender de ${koGap.minSet.map((p) => p.name).join(' + ')}` : ` — fecha os ${koGap.hp} HP, que nem com tudo montado o seu deck alcançava`) : partner ? ` — junto com ${partner.name} (+${partner.amount}) chega a ${koGap.alone + amt + partner.amount} e fecha os ${koGap.hp} HP` : ` (precisa de ${koGap.hp})`}.${persistent ? ' Fica em jogo: vale todo turno sem gastar recurso.' : c.card.trainerType === 'Supporter' ? ' Mas é Supporter: para valer todo turno você gasta o Supporter do turno (sem Boss/Lillie\'s nesse turno).' : ' É Item: uma cópia por turno, e trava de Itens bloqueia.'}` });
       c.impact = Math.round(clamp(c.reasons.reduce((s2, x, i) => s2 + x.value * (i ? 0.4 : 1), 0), 0, 100));
       c.score = Math.round(c.impact * (c.fit / 100));
     }
@@ -688,6 +690,49 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
   }
   if (painLines.length) diagnosis.unshift(...painLines);
   if (warnings.length) diagnosis.unshift(...warnings.map((w) => `⚠ ${w}`));
+  // ---------- Foco no atacante principal do oponente ----------
+  // Tech que ATACA vale pelo que faz contra quem ganha o jogo para ele (o atacante principal e os outros atacantes de
+  // verdade), não por nocautear Básicos de evolução. Caso do Felipe contra Mega Excadrill ex: Zoroark, Purugly e
+  // Tranquill "viravam a corrida" nocauteando Drilbur e Beldum. Cada card ganha a linha "🎯 Contra o <principal>".
+  const focus = opp.mainAttacker;
+  if (focus) {
+    const tot = opp.totalThreat || 1;
+    // atacantes que importam: quem carrega parte real do dano dele OU quem nocauteia o seu atacante principal
+    const keyAtk = new Set([...opp.threat.filter((e) => !e.stepping && e.feas >= 0.3 && e.threat / tot >= 0.08).map((e) => e.card.name), ...killerNames]);
+    // só a parte da nota que vem de ATACAR é ajustada; habilidade, muralha, proteção do banco e disrupção ficam como estão
+    const ATK = new Set(['COMBO_DMG', 'KO_TRADE', 'BENCH_PUNISH', 'WEAKNESS']);
+    const weighted = (rs) => [...rs].sort((x, y) => y.value - x.value).reduce((s2, x, i) => s2 + x.value * (i ? 0.4 : 1), 0);
+    for (const c of candidates) {
+      if (!c || c.card.category !== 'Pokemon' || !c.pkg) continue;
+      const isAtk = (x) => ATK.has(x.kind) || (x.kind === 'PRIZE_RACE' && x.why.includes(`usando ${c.card.name}`));
+      if (!c.reasons.some(isAtk)) continue;
+      const types = new Set(c.pkg.energyTypes ?? me.energyTypes);
+      const usable = (c.card.attacks ?? []).filter((a) => (a.cost ?? []).every((t) => t === 'Colorless' || types.has(t)));
+      let best = 0;
+      for (const a of usable) best = Math.max(best, damageVs(a, c.card, focus, { deck: me, defDeck: opp, oppTaken: 3, energyTypes: types, bonus: c.pkg.damage?.boost ?? 0, ...(me.pressure ?? {}) }).dmg);
+      const dmg = best ? Math.round(best + (c.pkg.damage?.passive ?? 0)) : 0;
+      const hits = dmg && dmg >= focus.hp ? 1 : dmg && dmg * 2 >= focus.hp ? 2 : 0;
+      const koKey = [...new Set([...(c.pkg.damage?.kos ?? []).map((k) => k.replace(' (fraqueza!)', '')), ...c.reasons.filter((x) => x.kind === 'KO_TRADE').flatMap((x) => x.koNames ?? [])])].filter((n) => n !== focus.name && keyAtk.has(n));
+      const walls = extractTags(c.card).filter((t) => t.kind === 'WALL_SELF' && t.source === 'attack' && matches(t.sel ?? {}, focus));
+      const wall = walls.length ? (walls.every((t) => (t.cond ?? []).includes('coin')) ? 0.35 : 0.7) : 0;
+      // quem você citou na dor e quem nocauteia o seu atacante também são "o alvo" (Moltres × Ogerpon/Iron Leaves)
+      const koPain = koKey.filter((n) => ctxRead.mentions.opp.includes(n));
+      const koKiller = koKey.filter((n) => killerNames.includes(n));
+      const answer = Math.max(hits === 1 ? 1 : hits === 2 ? 0.6 : 0, koPain.length ? 1 : 0, koKiller.length ? 0.8 : 0, koKey.length ? 0.45 : 0, wall, 0.15);
+      const f = 0.35 + 0.65 * answer;
+      const before = weighted(c.reasons);
+      for (const x of c.reasons) if (isAtk(x)) x.value *= f;
+      c.reasons.sort((x, y) => y.value - x.value);
+      const ratio = before > 0 ? weighted(c.reasons) / before : 1;
+      c.impact = Math.round(c.impact * ratio);
+      c.score = Math.round(c.score * ratio);
+      const line = hits === 1 ? `nocauteia em 1 ataque (~${dmg} de ${focus.hp} HP)`
+        : hits === 2 ? `nocauteia em 2 ataques (~${dmg} por ataque, ${focus.hp} HP)`
+        : `não derruba (~${dmg} de ${focus.hp} HP)${koKey.length ? `; derruba ${koKey.join(', ')}${koPain.length ? ' (que você citou na dor)' : koKiller.length ? ' (que nocauteia o seu atacante)' : ''}` : wall ? `; segura o ataque dele${wall < 0.5 ? ' só com moeda (cara)' : ''}` : ' — só pega Pokémon de evolução/apoio'}`;
+      c.reasons.splice(1, 0, { kind: 'MAIN_FOCUS', value: 0, why: `🎯 Contra o ${focus.name} (atacante principal dele): ${line}.` });
+      c.focus = { answer, hits, dmg, attackLed: isAtk(c.reasons[0]) };
+    }
+  }
   for (const c of candidates) {
     if (!c) continue;
     c.cluster = clusterOf(c);
@@ -699,6 +744,8 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
     c.boosted = w > 1;
     c.relevance = relevanceOf(c);
     if (!c.relevance && ctxRead.weights[c.cluster] && c.cluster === 'disrupcao') c.relevance = 'você pediu disrupção';
+    // atacante que não chega no principal dele: pode ajudar, mas não é a resposta — e o card diz isso
+    if (c.relevance && c.focus?.attackLed && c.focus.answer <= 0.15) { c.relevance += ` — mas não derruba o ${focus.name}`; c.lowConfidence = true; }
   }
 
   // Uma entrada por nome (a melhor versão)

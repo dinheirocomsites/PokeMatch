@@ -21,5 +21,15 @@ console.log(`Modelo: ${data.model} · custo ~US$ ${data.usage?.usd?.toFixed(3)}`
 console.log(`Plano (IA): ${data.strategy.opponent_plan.summary_pt}`);
 console.log(`Afirmações: ${v.summary.confirmed}/${v.summary.claims} confirmadas, ${v.summary.refuted} derrubadas`);
 for (const c of v.claims) console.log(`  ${c.status === 'ok' ? '✅' : c.status === 'erro' ? '❌' : '❔'} ${c.text_pt} — ${c.check}`);
-console.log(`Techs: ${v.techs.map((t) => `${t.card} [${t.status}]`).join(', ')}`);
-writeFileSync('remote-test.json', JSON.stringify({ status: res.status, model: data.model, usage: data.usage, summary: v.summary }, null, 1));
+console.log(`Techs da IA: ${v.techs.map((t) => `${t.card} [${t.status}${t.check ? `: ${t.check}` : ''}]`).join(' · ')}`);
+// Revisão das techs do motor (o que o site faz antes de mostrar)
+const top = (prep.r.suggestions ?? []).map((x) => x.card.name);
+console.log(`\nTechs do motor (antes da revisão): ${top.slice(0, 8).join(', ')}`);
+console.log(`Discordâncias da IA: ${v.disagreements.length}`);
+for (const d of v.disagreements) console.log(`  ${d.status === 'ok' ? '✅' : d.status === 'erro' ? '❌' : '❔'} [${d.card}] ${d.text_pt}\n      citação: "${d.quote}" — ${d.check}`);
+const flagged = new Set(v.flags.map((f) => f.card));
+console.log(`Derrubadas na revisão (citação conferida): ${[...flagged].join(', ') || 'nenhuma'}`);
+console.log(`Lista final que o site mostra: ${top.filter((n) => !flagged.has(n)).slice(0, 8).join(', ')}`);
+console.log(`\nDicas de jogo (IA):\n${(data.strategy.play_tips_pt ?? []).map((x) => `  - ${x}`).join('\n')}`);
+if (data.strategy.uncertainty_pt) console.log(`Incerteza: ${data.strategy.uncertainty_pt}`);
+writeFileSync('remote-test.json', JSON.stringify({ status: res.status, model: data.model, usage: data.usage, summary: v.summary, flags: v.flags }, null, 1));

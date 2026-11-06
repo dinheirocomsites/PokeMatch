@@ -219,6 +219,9 @@ export function extractTags(card) {
       const grp = s.replace(/[’]/g, "'").match(new RegExp(`attacks used by (?:your |the )?(?:${OWNER_RE.source}) pok[eé]mon(?: this card is attached to)?[^.]*?do (\\d+) more damage`, 'i'));
       // vira EXTRA_DMG restrito ao dono (ownerFor); "both yours and your opponent's" = o oponente também ganha
       if (grp) tags.push({ ...base, kind: 'EXTRA_DMG', sel: {}, amount: +grp[2], ownerFor: grp[1], attached: /this card is attached to/i.test(s), both: /both yours|both players/i.test(b.text) });
+      // 5c) Trava de Pokémon com Habilidade vindos da mão (Team Rocket's Arbok)
+      const pl = s.replace(/[’]/g, "'").match(/your opponent can't play any pok[eé]mon that has an ability from their hand(?:, except for (team rocket|[a-z.]+)'s pok[eé]mon)?/i);
+      if (pl) tags.push({ ...base, kind: 'HAND_PKMN_LOCK', exceptOwner: pl[1] ? (pl[1].toLowerCase() === 'team rocket' ? 'Team Rocket' : pl[1]) : null });
       // 6) Pune banco grande
       if (/for each (of your opponent.s )?benched pok[eé]mon|for each benched pok[eé]mon \(both|for each benched pok[eé]mon .both/i.test(s) && /damage/i.test(s)) {
         tags.push({ ...base, kind: 'BENCH_PUNISH' });

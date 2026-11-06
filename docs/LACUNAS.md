@@ -6,7 +6,26 @@
 | Levantamento inicial | 36% | 65% | 42 |
 | Rodada 1 (simulador, texto, consistência, custos) | 56% | 65% | 49 |
 | Rodada 2 (subtipos oficiais, custo de ataque, margem de nocaute) | 56%+ | 65% | 51 |
-| Rodada 3 (Pokémon de Treinador: N, Lupo/Hop, Equipe Rocket…) | **58%** | 65% | **62** |
+| Rodada 3 (Pokémon de Treinador: N, Lupo/Hop, Equipe Rocket…) | 58% | 65% | 62 |
+| Rodada 4 (simulador realista + eixos novos de diagnóstico) | **58%** | **66%** | **72** |
+
+### Coberto na rodada 4
+**Simulador da corrida de prêmios**
+- **Nocaute em 2 ataques**: o dano fica no Pokémon dele (antes, só contava nocaute de 1 ataque do seu lado). Ex.: Zoroark faz 170 no Pecharunt ex (fica com 20 HP) e termina no ataque seguinte.
+- **Tempo de evolução**: atacante Estágio 1/2 só ataca no seu 2º turno → o oponente ataca antes, no Básico que vai evoluir (nocauteia = prêmio para ele; dano = continua depois de evoluir) e o Estágio 2 dele fica pronto 1 turno antes.
+- **Pokémon Checkup**: veneno (10) e queimadura (20) entre os turnos, com os extras do deck (Pecharunt +50 se Ativo, Magmortar +30, Perilous Jungle +20); o veneno do seu próprio combo (Pecharunt ex troca e envenena) também machuca o seu atacante. Efeito com moeda não conta.
+- **Boss de verdade**: Supporter/Item que puxa conta 1; com moeda ou só Básico (Pokémon Catcher, Lisia's) conta ½; Giovanni só com Pokémon da Equipe Rocket; ataque que puxa não conta como "Boss".
+
+**Diagnóstico (eixos novos)**
+- **Trava de Pokémon com Habilidade vindos da mão** (Team Rocket's Arbok no Ativo): lista as suas cartas travadas (no banco e evoluindo) e a saída (Boss manda o Arbok para o banco). Do seu lado, o Arbok vira tech para "dificultar a vida dele" (ex.: contra Dragapult, trava a evolução para Drakloak).
+- **Pressão cedo**: quem nocauteia os seus Básicos de setup com 1 energia (1º turno dele) ou 2 (2º turno); conta só o dano base no começo. Counter: Básico sem Rule Box, HP alto e recuo barato para começar.
+- **Cura / stall**: só pesa quando o seu atacante precisa de 2 ataques no atacante dele.
+- **Moinho**: cartas que descartam o topo do seu deck; counter: recuperação para o deck (Energy Recycler…).
+- **Paralisia / sono**: counters = troca e cura de condição que vale para o seu atacante (Pokémon Center Lady, Festival Grounds; os Fósseis Antigos não contam: só protegem a si mesmos).
+- **Virada**: Briar, Acerola's Mischief, Lacey, Special Red Card, Counter Gain… com dica de não parar em 2 prêmios restantes contra Briar.
+- Pedido "dificultar a vida dele": travas de Itens/habilidades/Supporters/Pokémon da mão passam a contar como solução.
+
+**Ainda não**: o oponente cura durante a corrida; troca/recuo como custo; quem começa (o simulador supõe que você vai 2º com atacante Básico); Wobbuffet/Orbeetle da Equipe Rocket movendo contadores (o requisito de dono já é conferido, o dano não).
 
 ### Coberto na rodada 3 (pedido: "mapear Zoroark do N, do Lupo… cartas que interagem por serem desses 'tipos'")
 - **Dono de cada Pokémon** lido do nome (`N's Zoroark ex` → N; `Team Rocket's Mewtwo ex` → Equipe Rocket): 13 donos, 249 cartas. Treinadores com nome de dono (Team Rocket's Petrel) **não** contam como "Pokémon de".
@@ -133,6 +152,8 @@ Dano variável: **65%** dos 468 ataques com "+"/"×" são calculados com precis�
 - **Dados:** ~~listas Tera/Ancient/Future manuais~~ (resolvido na rodada 2 com a Pokémon TCG API).
 - **Produto:** IA na hora da consulta, dados da Limitless, botão "reportar erro", link de análise, análise contra o meta.
 
+> Nota (rodada 4): as seções 2–5 acima são o levantamento original; boa parte já foi coberta nas rodadas 1–4 (veja "Coberto na rodada …" no topo).
+
 ## Ordem sugerida
 1. Simulador: prêmios pelo banco, desvantagens de ataque, HP extra/redução de dano, disrupção do oponente.
 2. Texto: desvantagens de ataque, condições especiais, recuo/troca, mover energia, colocar contadores.
@@ -152,6 +173,7 @@ Dano variável: **65%** dos 468 ataques com "+"/"×" são calculados com precis�
 | "lento", "setup", "brick", "não monto" | consistência | (peso nas sugestões; simulação de mão por troca) |
 | "ACE SPEC", "Legacy" | troca de ACE SPEC | ACE SPECs que resolvem o diagnóstico |
 | "os Pokémon do N", "do Lupo", "da Equipe Rocket", "zoroark do N" | cita o grupo de um Treinador | marca todas as cartas daquele dono no deck dele (ou no seu) como citadas |
+| "dificultar a vida dele" (contra deck de habilidades) | você quer atrapalhar | inclui travas: Itens, habilidades, Supporters e Pokémon com Habilidade vindos da mão (Arbok) |
 | nomes de cartas (inglês ou português) | ameaças citadas | prioriza counters que cobrem essas cartas |
 
 Ainda NÃO entende: sequência de jogadas ("depois que ele faz X eu faço Y"), comparações ("melhor que"), pedidos fora dessas categorias —

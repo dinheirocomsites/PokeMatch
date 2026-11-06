@@ -109,6 +109,13 @@ function tagValue(t, opp, me, ctx) {
       if (c.item < 8) return null;
       return { value: 50 * clamp(c.item / 20) * condFactor * nextTurn, why: `"${t.name}": o oponente não pode jogar Itens${t.alsoTools ? ' nem Ferramentas' : ''} (ele usa ${c.item} Itens${t.alsoTools ? ` e ${c.tool} Ferramentas` : ''}).` };
     }
+    case 'HAND_PKMN_LOCK': {
+      // Team Rocket's Arbok: no Ativo, o oponente não joga da mão (banco nem evolução) Pokémon com Habilidade
+      const hit = opp.entries.filter((e) => e.card.category === 'Pokemon' && e.card.abilities?.length && (!t.exceptOwner || e.card.owner !== t.exceptOwner));
+      const n = hit.reduce((s2, e) => s2 + e.count, 0);
+      if (n < 4) return null;
+      return { value: 45 * clamp(n / 10) * condFactor, why: `"${t.name}": enquanto estiver no Ativo, o oponente não joga da mão Pokémon com Habilidade — nem no banco, nem evoluindo (${n} cartas dele: ${names(hit.map((e) => e.card.name))}).` };
+    }
     case 'SUPPORTER_LOCK':
       return { value: 35 * clamp(c.supporter / 12) * nextTurn * condFactor, why: `"${t.name}": o oponente não pode jogar Supporters no próximo turno (${c.supporter} na lista).` };
     case 'EXTRA_DMG': {
@@ -553,6 +560,8 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
       if (r.kind === 'SURVIVE') return `faz o ${main.name} sobreviver a ${c.survives.join(' e ')}`;
       if (r.kind === 'KO_GAP') return `ajuda o ${main.name} a nocautear ${koGap.target} todo turno`;
       if (r.kind === 'COST_CHANGE' && ctxRead.weights.disrupcao) return 'dificulta os ataques dele (custo maior)';
+      // Pedido "dificultar a vida dele": travas que pegam boa parte do deck dele também resolvem
+      if (ctxRead.weights.disrupcao && ['ITEM_LOCK', 'ABILITY_LOCK', 'SUPPORTER_LOCK', 'HAND_PKMN_LOCK'].includes(r.kind) && r.value >= 15) return `dificulta o jogo dele (${{ ITEM_LOCK: 'trava os Itens', ABILITY_LOCK: 'desliga habilidades', SUPPORTER_LOCK: 'trava Supporters', HAND_PKMN_LOCK: 'impede Pokémon com Habilidade vindos da mão' }[r.kind]})`;
       if (r.kind?.startsWith('ANTI_')) {
         const ax = disruption.axes.find((a) => a.key === r.axis);
         if (ax && ax.severity >= 0.3) return `responde a ${AXES[r.axis].label.toLowerCase()}`;

@@ -114,6 +114,8 @@ Legenda: [x] feito · [~] em andamento · [ ] a fazer
 
 - [x] Pokémon de Treinador (N, Lupo/Hop, Equipe Rocket, Cíntia, Marine, Kissera…): requisitos, buscas, bônus de grupo, cópia do N's Zoroark ex (62 testes ✅)
 
+- [x] Rodada 4: nocaute em 2 ataques, tempo de evolução, veneno/queimadura no Checkup, Boss de verdade; eixos de pressão cedo, cura, moinho, paralisia, virada e trava do Arbok (72 testes ✅)
+
 ## Próximos passos (ideias)
 - [ ] Interações mais finas: Boss's Orders do oponente contorna muralha; muralha precisa estar Ativa
 - [ ] Analisar contra o meta inteiro de uma vez (várias listas)

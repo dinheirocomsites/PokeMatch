@@ -81,6 +81,6 @@ export function clusterOf(s) {
   if (k === 'COST_CHANGE') return 'disrupcao';
   if (['WALL_SELF', 'WALL_TEAM', 'WALL_CHOSEN', 'REDUCE', 'BENCH_WALL', 'SURVIVE'].includes(k)) return 'protecao';
   if (['STATUS', 'PLACE_COUNTERS'].includes(k)) return 'disrupcao';
-  if (['ABILITY_LOCK', 'ITEM_LOCK', 'SUPPORTER_LOCK', 'HAND_DISRUPT', 'ENERGY_DISRUPT', 'STADIUM_HATE', 'STADIUM_REPLACE', 'TOOL_HATE', 'SPECIAL_ENERGY_HATE'].includes(k)) return 'disrupcao';
+  if (['ABILITY_LOCK', 'ITEM_LOCK', 'SUPPORTER_LOCK', 'HAND_PKMN_LOCK', 'HAND_DISRUPT', 'ENERGY_DISRUPT', 'STADIUM_HATE', 'STADIUM_REPLACE', 'TOOL_HATE', 'SPECIAL_ENERGY_HATE'].includes(k)) return 'disrupcao';
   return 'dano';
 }

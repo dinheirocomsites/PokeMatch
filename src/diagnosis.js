@@ -2,6 +2,7 @@
 // mede cada coisa que o plano do oponente faz contra o SEU deck e quanto isso machuca.
 // Cada eixo traz evidências e os tipos de carta que respondem a ele.
 import { extractTags, matches, parseSelector, TERA, ANCIENT, isFuture, ownerRefs, OWNER_PT } from './tags.js';
+import { damageVs } from './damage.js';
 
 const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
 const list = (arr, n = 4) => [...new Set(arr)].slice(0, n).join(', ');
@@ -14,6 +15,12 @@ export const AXES = {
   trap: { label: 'Prender o seu Pokémon no Ativo', counters: ['SWITCH'] },
   ko_gap: { label: 'Margem de nocaute', counters: [] }, // tratado no motor (dano extra / HP reduzido do alvo)
   ability_lock: { label: 'Trava das suas habilidades', counters: ['DRAW_ABILITY', 'SUPPORTER_SEARCH'] },
+  pokemon_lock: { label: 'Trava de Pokémon com Habilidade vindos da mão', counters: [] }, // resposta: tirar o Pokémon do Ativo (Boss) ou nocautear
+  speed: { label: 'Pressão cedo (ele bate forte no 1º/2º turno)', counters: ['STARTER'] },
+  heal_stall: { label: 'Cura / stall', counters: ['HEAL_BLOCK'] }, // dano extra para nocautear em 1 ataque: tratado no motor
+  mill: { label: 'Moinho (descarta o topo do seu deck)', counters: ['DECK_RECOVERY'] },
+  status_lock: { label: 'Paralisia / sono no seu Ativo', counters: ['SWITCH', 'STATUS_CURE'] },
+  comeback: { label: 'Virada (cartas que ficam fortes quando ele está atrás)', counters: [] },
 };
 
 export function diagnoseDisruption(me, opp) {
@@ -89,6 +96,106 @@ export function diagnoseDisruption(me, opp) {
     if (hit.length) axes.push({ key: 'ability_lock', severity: clamp(hit.length / 4), evidence: `${list(aLock.map((t) => t.card.name))} desliga habilidades de ${list(hit.map((e) => e.card.name))}.` });
   }
 
+  // 7) Trava de Pokémon com Habilidade vindos da mão (Team Rocket's Arbok, no Ativo)
+  const pLock = oppTags.filter((t) => t.kind === 'HAND_PKMN_LOCK');
+  if (pLock.length) {
+    const hit = me.entries.filter((e) => e.card.category === 'Pokemon' && e.card.abilities?.length && (!pLock[0].exceptOwner || e.card.owner !== pLock[0].exceptOwner));
+    const copies = hit.reduce((s2, e) => s2 + e.count, 0);
+    if (copies >= 3) {
+      axes.push({ key: 'pokemon_lock', severity: clamp(copies / 10), evidence: `${list(pLock.map((t) => t.card.name))} (enquanto estiver Ativo) impede você de jogar da mão — nem no banco, nem evoluindo — Pokémon com Habilidade: ${list(hit.map((e) => e.card.name), 5)} (${copies} cartas).` });
+      const gust = me.entries.filter((e) => /switch in 1 of your opponent.s benched/i.test(e.card.text)).map((e) => e.card.name);
+      tips.push(`A trava do ${pLock[0].card.name} só vale com ele no Ativo: ${gust.length ? `${list(gust, 2)} puxa outro Pokémon e manda ele para o banco` : 'nocauteie ou force a troca dele'}; antes disso, baixe os Pokémon com Habilidade que puder no turno anterior.`);
+    }
+  }
+
+  // 8) Pressão cedo: atacantes dele que batem forte com até 2 energias (1º/2º turno) nos seus Básicos de setup
+  const setupNames = new Set([...(me.board?.pieces ?? []), me.board?.backup].filter(Boolean));
+  const basicOfLine = (c) => { let x = c; for (let i = 0; i < 2 && x?.evolveFrom; i++) x = me.entries.find((e) => e.card.name === x.evolveFrom)?.card; return x; };
+  if (me.mainAttacker) { const b = basicOfLine(me.mainAttacker); if (b) setupNames.add(b.name); }
+  const setup = me.entries.filter((e) => e.card.category === 'Pokemon' && e.card.stage === 'Basic' && (setupNames.has(e.card.name) || me.entries.some((x) => x.card.evolveFrom === e.card.name && setupNames.has(x.card.name))));
+  const fast = opp.threat.filter((e) => ['Basic', 'Stage1'].includes(e.card.stage) && e.feas >= 0.3);
+  if (setup.length && fast.length) {
+    // No começo do jogo o tabuleiro está vazio: ataque variável conta só o dano base (sem "por Pokémon no banco")
+    const early = (a) => (/[×+]$/.test(String(a.damage ?? '')) ? { ...a, damage: String(parseInt(a.damage, 10) || 0), effect: '' } : a);
+    const kos = [];
+    let maxDmg = 0;
+    for (const s2 of setup) {
+      let best = { dmg: 0, w: 0 };
+      for (const f of fast) for (const a of f.card.attacks ?? []) {
+        const cost = (a.cost ?? []).length;
+        if (cost > 2) continue;
+        const r = damageVs(early(a), f.card, s2.card, { deck: opp, oppTaken: 0 });
+        // peso do tempo: 1 energia = já no 1º turno dele; 2 energias = 2º turno; Estágio 1 = 2º turno
+        const w = (cost <= 1 ? 1 : 0.5) * (f.card.stage === 'Basic' ? 1 : 0.6);
+        if (r.dmg >= s2.card.hp && w > best.w) best = { dmg: r.dmg, w, by: f.card.name, cost };
+        if (r.dmg > maxDmg) maxDmg = r.dmg;
+      }
+      if (best.w) kos.push({ name: s2.card.name, hp: s2.card.hp, by: best.by, w: best.w, cost: best.cost, key: me.mainAttacker && basicOfLine(me.mainAttacker)?.name === s2.card.name });
+    }
+    const weight = kos.reduce((s2, k) => s2 + k.w * (k.key ? 2 : 1), 0) / (setup.length + 1);
+    const sev = clamp(weight);
+    if (kos.length && sev >= 0.25) {
+      const bys = [...new Set(kos.map((k) => k.by))];
+      const t1 = kos.filter((k) => k.cost <= 1 && k.w >= 1);
+      axes.push({ key: 'speed', severity: sev, maxDmg, evidence: `${list(bys)} ${bys.length > 1 ? 'nocauteiam' : 'nocauteia'} seus Básicos de setup ${t1.length ? 'já no 1º turno dele (1 energia)' : 'no 2º turno dele (2 energias ou evolução)'}: ${list(kos.map((k) => `${k.name} (${k.hp} HP)`), 4)}.` });
+      const key = kos.find((k) => k.key);
+      tips.push(`Contra a pressão cedo: ${key ? `não deixe o ${key.name} sozinho — baixe 2 cópias no 1º turno para evoluir mesmo se uma cair; ` : ''}comece no Ativo com o Pokémon de mais HP que tiver e guarde os frágeis no banco.`);
+    }
+  }
+
+  // 9) Cura / stall: só pesa quando o seu atacante precisa de 2 ataques no atacante dele
+  const heals = oppTags.filter((t) => t.kind === 'HEAL' && t.source !== 'attack' && (t.amount ?? 0) >= 30);
+  if (heals.length && me.mainAttacker && opp.mainAttacker) {
+    const selfDamaged = me.entries.some((e) => /place \d+ damage counters on that pok[eé]mon|also does \d+ damage to itself|damage to 1 of your benched/i.test(e.card.text ?? ''));
+    const mine = Math.max(0, ...(me.mainAttacker.attacks ?? []).map((a) => damageVs(a, me.mainAttacker, opp.mainAttacker, { deck: me, oppTaken: 3, selfDamaged, ...(me.pressure ?? {}) }).dmg));
+    const twoHits = mine < opp.mainAttacker.hp;
+    const copies = [...new Map(heals.map((t) => [t.card.name, t.count])).values()].reduce((s2, n) => s2 + n, 0);
+    const sev = clamp(copies / 6) * (twoHits ? 1 : 0.25);
+    if (sev >= 0.2) {
+      axes.push({ key: 'heal_stall', severity: sev, evidence: `${list(heals.map((t) => `${t.card.name} (cura ${t.amount >= 999 ? 'tudo' : t.amount})`))}; o seu ${me.mainAttacker.name} faz ~${Math.round(mine)} no ${opp.mainAttacker.name} (${opp.mainAttacker.hp} HP)${twoHits ? ' — precisa de 2 ataques, e a cura apaga o primeiro' : ''}.` });
+      if (twoHits) tips.push(`Contra a cura: o dano do 1º ataque some se ele curar. Junte o dano para nocautear em 1 ataque (veja a margem de nocaute) ou troque de alvo com Boss em vez de bater 2 vezes no mesmo Pokémon.`);
+    }
+  }
+
+  // 10) Moinho: descarta o topo do seu deck
+  let mill = 0;
+  const millers = [];
+  for (const e of opp.entries) for (const blk of [...(e.card.attacks ?? []), ...(e.card.abilities ?? [])]) {
+    const m = (blk.effect ?? '').match(/discard the top (\d+|card)[^.]* of your opponent.s deck/i);
+    if (!m) continue;
+    const n = m[1] === 'card' ? 1 : +m[1];
+    const w = /flip a coin/i.test(blk.effect) ? 0.5 : 1;
+    mill += n * w * Math.min(e.count, 3) * (blk.cost ? 2 : 1); // ataque: repete por vários turnos
+    millers.push(e.card.name);
+  }
+  if (mill >= 6) {
+    axes.push({ key: 'mill', severity: clamp(mill / 25), evidence: `${list(millers)} descarta${millers.length > 1 ? 'm' : ''} o topo do seu deck (~${Math.round(mill)} cartas por jogo).` });
+    tips.push(`Contra moinho: conte o seu deck; não use compra/busca além do necessário e guarde recuperação para o fim.`);
+  }
+
+  // 11) Paralisia / sono no seu Ativo
+  let sl = 0;
+  const sleepers = [];
+  for (const e of opp.threat) for (const a of e.card.attacks ?? []) {
+    if (!/(defending|opponent.s active) pok[eé]mon is now (?:[a-z]+ and )?(paralyzed|asleep)/i.test(a.effect ?? '') || e.feas < 0.3) continue;
+    const coin = /flip a coin/i.test(a.effect ?? '');
+    sl += Math.min(e.count, 3) * (coin ? 0.5 : 1);
+    sleepers.push(`${e.card.name}${coin ? ' (moeda)' : ''}`);
+  }
+  if (sl >= 2) {
+    axes.push({ key: 'status_lock', severity: clamp(sl / 6), evidence: `${list(sleepers)} paralisa/adormece o seu Ativo.` });
+    tips.push(`Contra paralisia/sono: o efeito sai quando o Pokémon vai para o banco — guarde uma carta de troca para o turno seguinte.`);
+  }
+
+  // 12) Virada: cartas que dependem de ele estar atrás nos prêmios
+  const comeback = opp.entries.filter((e) => /(only if|if) (you have more prize cards remaining than your opponent|your opponent has (exactly )?\d+ (or fewer )?prize cards? remaining)/i.test(e.card.text));
+  const cbCopies = comeback.reduce((s2, e) => s2 + e.count, 0);
+  if (cbCopies >= 2) {
+    axes.push({ key: 'comeback', severity: clamp(cbCopies / 12), evidence: `${list(comeback.map((e) => `${e.card.name} (${e.count}x)`), 5)} ficam fortes quando ele está atrás / quando você chega a poucos prêmios.` });
+    const briar = comeback.find((e) => /exactly 2 prize/i.test(e.card.text));
+    tips.push(`Contra a virada: ${briar ? `não pare em 2 prêmios restantes (${briar.card.name} só funciona aí) — prefira ir de 3 para 1 ou fechar de uma vez; ` : ''}abrir vantagem cedo libera as cartas dele: planeje os últimos nocautes antes.`);
+  }
+
   return { axes: axes.sort((a, b) => b.severity - a.severity), tips, opp };
 }
 
@@ -105,6 +212,12 @@ export function counterTags(card) {
   if (card.trainerType === 'Supporter' && /search your deck for (up to \d+ )?(basic )?pok[eé]mon|search your deck for (up to \d+ )?(cards|a card)/i.test(card.text)) out.push({ kind: 'SUPPORTER_SEARCH', name: card.name });
   if (card.category === 'Trainer' && /attach (up to \d+ )?basic .*energy cards? from your discard pile|basic energy cards? from your discard pile into your hand/i.test(card.text)) out.push({ kind: 'ENERGY_RECOVERY', name: card.name });
   if (card.category === 'Trainer' && /prevent all damage counters from being placed on .*benched|damage counters .*benched pok[eé]mon/i.test(card.text) && /prevent/i.test(card.text)) out.push({ kind: 'BENCH_SHIELD', name: card.name });
+  if (/(shuffle|put) [^.]*from your discard pile into your deck/i.test(card.text ?? '')) out.push({ kind: 'DECK_RECOVERY', name: card.name });
+  // Cura de condição que vale para o SEU atacante (não "este Pokémon não pode ser afetado", como os Fósseis Antigos)
+  if (/recovers? from all special conditions|your pok[eé]mon[^.]*can.t be affected by (any )?special conditions|pok[eé]mon with [^.]*attached[^.]*can.t be affected by (any )?special conditions/i.test((card.text ?? '').replace(/this pok[eé]mon can.t be affected by (any )?special conditions/gi, ''))) out.push({ kind: 'STATUS_CURE', name: card.name });
+  if (/can.t be healed/i.test(card.text ?? '')) out.push({ kind: 'HEAL_BLOCK', name: card.name });
+  // Bom Pokémon inicial: Básico sem Rule Box, HP alto e recuo barato (aguenta o ataque cedo)
+  if (card.category === 'Pokemon' && card.stage === 'Basic' && !card.isRuleBox && (card.retreat ?? 9) <= 1 && card.hp >= 100) out.push({ kind: 'STARTER', name: card.name, hp: card.hp });
   for (const t of extractTags(card)) {
     if (t.kind === 'BENCH_WALL') out.push({ kind: 'BENCH_WALL', name: t.name });
     if (t.kind === 'HEAL' && t.source !== 'attack') out.push({ kind: 'HEAL', name: t.name, amount: t.amount, scope: t.scope });
@@ -262,6 +375,10 @@ const WHY = {
   HEAL: (t) => `"${t.name}" cura ${t.amount >= 999 ? 'todo o dano' : `${t.amount}`}${t.scope === 'all' ? ' de todos os seus Pokémon' : ''} — desfaz o dano espalhado antes de virar nocaute.`,
   SWITCH: (t) => `"${t.name}" troca/zera o recuo — tira o seu Pokémon preso do Ativo.`,
   ENERGY_MOVE: (t) => `"${t.name}" move energia entre os seus Pokémon — redistribui depois de perder energia.`,
+  DECK_RECOVERY: (t) => `"${t.name}" devolve cartas do descarte para o deck — adia o deck out.`,
+  STATUS_CURE: (t) => `"${t.name}" tira/evita Condições Especiais — responde a paralisia e sono.`,
+  HEAL_BLOCK: (t) => `"${t.name}" impede a cura — o dano do 1º ataque fica.`,
+  STARTER: (t, ax) => `${t.name} (${t.hp} HP, recuo barato, 1 prêmio) aguenta o ataque cedo (~${Math.round(ax.maxDmg ?? 0)}) — bom para começar no Ativo enquanto você monta.`,
 };
 
 // Valor de uma carta contra os eixos diagnosticados
@@ -276,6 +393,8 @@ export function disruptionValue(card, diag, me) {
       // Regra do jogo: "colocar contadores" não é "causar dano". Battle Cage para contadores; prevenir dano não para.
       if (ax.key === 'spread' && t.kind === 'BENCH_WALL' && !(ax.kinds ?? []).includes('damage')) continue;
       if (ax.key === 'spread' && t.kind === 'BENCH_SHIELD' && !(ax.kinds ?? []).includes('counters')) continue;
+      if (t.kind === 'STARTER' && t.hp <= (ax.maxDmg ?? 0)) continue; // não aguenta o ataque cedo
+      if (t.kind === 'SWITCH' && ax.key === 'status_lock' && card.category === 'Pokemon') continue;
       let strength = req.factor;
       if (t.kind === 'DRAW_ABILITY') strength *= clamp(t.amount / 3) * (t.repeat ? 1 : 0.6);
       if (t.kind === 'HEAL') strength *= clamp((t.amount >= 999 ? 120 : t.amount) / 60) * (t.scope === 'all' ? 1 : 0.6);
@@ -291,7 +410,7 @@ export function disruptionValue(card, diag, me) {
       }
       const value = 42 * ax.severity * strength;
       if (value >= 6) reasons.push({ kind: 'ANTI_' + ax.key.toUpperCase(), axis: ax.key, value,
-        why: WHY[t.kind](t, AXES[ax.key]) + (t.finds ? ` No seu deck, encontra: ${[...new Set(t.finds)].slice(0, 3).join(', ')}.` : '') + (req.note ? ` (Atenção: ${req.note}.)` : '') + (lockedItem ? ' (Mas é Item: fica travado pela própria trava de Itens.)' : '') });
+        why: WHY[t.kind](t, { ...AXES[ax.key], ...ax }) + (t.finds ? ` No seu deck, encontra: ${[...new Set(t.finds)].slice(0, 3).join(', ')}.` : '') + (req.note ? ` (Atenção: ${req.note}.)` : '') + (lockedItem ? ' (Mas é Item: fica travado pela própria trava de Itens.)' : '') });
     }
   }
   // um motivo por eixo (o mais forte)

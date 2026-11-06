@@ -23,9 +23,18 @@ function cardFacts(e) {
   const ab = (c.abilities ?? []).map((a) => `Habilidade ${a.name}: ${short(a.effect, 200)}`).join(' | ');
   return `${e.count}x ${c.name} (${c.stage ?? 'Basic'}${c.evolveFrom ? ` de ${c.evolveFrom}` : ''}, ${c.hp} HP, ${(c.types ?? []).join('/')}, fraqueza ${(c.weaknesses ?? []).map((w) => w.type).join('/') || '—'}, vale ${c.prizeValue} prêmio${c.prizeValue > 1 ? 's' : ''})${ab ? ` — ${ab}` : ''} — Ataques: ${at || '—'}`;
 }
+// Quantas sugestões do motor a IA revisa (com o texto da carta)
+export const REVIEW_TOP = 6;
 export function buildFacts(r, me, opp, context) {
   const deck = (p) => p.entries.map(cardFacts).join('\n');
   const plan = (x) => (x?.plan ?? []).slice(0, 4).map((t) => `  T${t.turn}: ${t.mine} / ${t.theirs}`).join('\n');
+  // Revisão: a IA recebe o TEXTO de cada tech sugerida e confere se ela funciona neste matchup (caso Diancie:
+  // "for each Special Energy attached to all of your opponent's Pokémon" contra um deck sem Energia Especial).
+  const top = (r.suggestions ?? []).slice(0, REVIEW_TOP);
+  const review = top.length ? [
+    `\nREVISE AS SUGESTÕES DO MOTOR: para cada carta abaixo, confira no texto dela se funciona NESTE matchup — de quem é a energia/o alvo que ela conta, se a lista do oponente ou a do jogador tem o que ela pede, se o número que o motor deu é possível. Se alguma NÃO funciona, registre em "disagreements" com card = nome exato da sugestão e quote = trecho exato do texto dela que mostra o problema. Se funciona, não registre nada.`,
+    ...top.map((s, i) => `#${i + 1} ${cardFacts({ count: 1, card: s.card }).replace(/^1x /, '')}\n   motor: nota ${s.score}; ${short(s.reasons?.[0]?.why, 220)}`),
+  ].join('\n') : '';
   return [
     `DOR DO JOGADOR: ${context || '(não informada)'}`,
     `\nLISTA DO JOGADOR (atacante principal segundo o motor: ${me.mainAttacker?.name ?? '?'}):\n${deck(me)}`,
@@ -34,6 +43,7 @@ export function buildFacts(r, me, opp, context) {
     r.tips?.length ? `\nDICAS DO MOTOR:\n${r.tips.map((d) => `- ${d}`).join('\n')}` : '',
     `\nSIMULAÇÃO DO MOTOR (corrida de prêmios, modelo simplificado):\n- Só com o atacante principal: ${r.race?.naive?.result ?? '?'}\n${plan(r.race?.naive)}\n- Melhor linha: ${r.race?.best?.result ?? '?'}`,
     `\nSUGESTÕES DO MOTOR: ${(r.suggestions ?? []).slice(0, 8).map((s) => `${s.card.name} (${s.score}; ${s.relevance ?? ''})`).join(' · ')}`,
+    review,
   ].join('\n');
 }
 
@@ -79,15 +89,19 @@ export function verifyStrategy(s, { me, opp, r, db }) {
   });
   // Discordâncias: a citação precisa existir no texto da carta (pega efeito inventado, ex.: "Farigiraf só bloqueia Tera")
   const norm = (x) => String(x ?? '').toLowerCase().replace(/[’]/g, "'").replace(/\s+/g, ' ').replace(/[.\s]+$/, '').trim();
+  // a versão exata da tech sugerida (Diancie tem várias): a citação é conferida no texto dela
+  const sugCards = new Map((r.suggestions ?? []).slice(0, REVIEW_TOP).map((x) => [normName(x.card.name), x.card]));
   const disagreements = (s.disagreements ?? []).map((d) => {
     if (!d.card || !d.quote) return { ...d, status: '?', check: 'sem carta/citação para conferir' };
-    const card = findIn(opp, d.card) ?? findIn(me, d.card) ?? db.byName.get(normName(d.card))?.[0] ?? null;
+    const card = sugCards.get(normName(d.card)) ?? findIn(opp, d.card) ?? findIn(me, d.card) ?? db.byName.get(normName(d.card))?.[0] ?? null;
     if (!card) return { ...d, status: 'erro', check: `a carta ${d.card} não existe entre as legais` };
     const found = norm(card.text).includes(norm(d.quote));
     return { ...d, status: found ? 'ok' : 'erro', check: found ? 'a citação está no texto da carta (o raciocínio ainda é da IA)' : `a citação NÃO está no texto do ${card.name} — o texto real é: "${short(card.text, 200)}"` };
   });
+  // Avisos nas sugestões do motor: discordância da IA SOBRE uma tech sugerida, com a citação conferida no texto dela
+  const flags = disagreements.filter((d) => d.status === 'ok' && sugCards.has(normName(d.card ?? ''))).map((d) => ({ card: sugCards.get(normName(d.card)).name, text_pt: d.text_pt, quote: d.quote }));
   const ok = claims.filter((c) => c.status === 'ok').length;
-  return { claims, techs, disagreements, summary: { claims: claims.length, confirmed: ok, refuted: claims.filter((c) => c.status === 'erro').length, unknown: claims.filter((c) => c.status === '?').length } };
+  return { claims, techs, disagreements, flags, summary: { claims: claims.length, confirmed: ok, refuted: claims.filter((c) => c.status === 'erro').length, unknown: claims.filter((c) => c.status === '?').length } };
 }
 
 // ---------- Execução ----------

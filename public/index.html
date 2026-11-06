@@ -190,6 +190,7 @@
     <button class="go" id="go">⚡ Encontrar tech cards</button>
     <button class="ghost" id="example">Carregar exemplo: Mega Sharpedo ex × Basic Box</button>
   </div>
+  <label id="autoStratWrap" style="display:none;margin:-4px 0 12px;font-size:14px;cursor:pointer"><input type="checkbox" id="autoStrat" style="vertical-align:middle;margin-right:6px">🧠 Rodar o estrategista junto em toda análise <small style="color:var(--muted)">— a IA também revisa as techs sugeridas; +20–60 s e ~US$ 0,05–0,15 por leitura nova (mesmas listas e mesma dor não pagam de novo)</small></label>
   <div class="loader" id="loader"></div>
   <p class="loading-text" id="loadingText">Lendo habilidades e ataques de todas as cartas legais…</p>
 
@@ -243,12 +244,14 @@ $('#go').onclick = async () => {
   try { localStorage.setItem(KEY, JSON.stringify({ mine, opp, context })); } catch {}
   $('#go').disabled = true; $('#results').style.display = 'none';
   $('#loader').style.display = 'block'; $('#loadingText').style.display = 'block';
+  stratRun++; $('#stratOut').innerHTML = ''; // leitura antiga (de outra análise) não aparece nesta
   const started = Date.now();
   try {
     const { res, data } = await runAnalysis({ mine, opp, context });
     await new Promise((r) => setTimeout(r, Math.max(0, 900 - (Date.now() - started)))); // suspense 😎
     if (!res.ok) throw new Error(data.error);
     render(data);
+    if (STRAT_URL && $('#autoStrat').checked) runStrat(); // não espera: o motor já aparece, a IA chega depois
   } catch (e) {
     $('#oppStatus').className = 'status err'; $('#oppStatus').textContent = e.message;
   } finally {
@@ -322,10 +325,11 @@ async function runAnalysis(payload) {
 // Estrategista: precisa de um servidor com a chave da API (npm start com ANTHROPIC_API_KEY, ou a função do Lovable/Supabase).
 // No site estático, defina window.POKEMATCH_STRATEGIST_URL com o endereço da função.
 const STRAT_URL = window.POKEMATCH_STRATEGIST_URL || (!window.TF_STATIC ? '/api/strategist' : '');
-function renderStrategy(o) {
+function renderStrategy(o, cached = false) {
   const icon = { ok: '✅', erro: '❌', '?': '❔' };
   const s = o.strategy, v = o.verification;
   return `<div style="line-height:1.5">
+    ${v.flags?.length ? `<div style="color:var(--warn);border:1px solid #ffb54766;background:#ffb54714;border-radius:8px;padding:8px 10px;margin-bottom:8px"><b>⚠ A IA derrubou ${v.flags.length} sugestão(ões) do motor</b> (citação conferida no texto da carta): ${v.flags.map((f) => `<b>${esc(f.card)}</b> — ${esc(f.text_pt)}`).join(' · ')}</div>` : `<p style="opacity:.8">✅ A IA revisou as primeiras techs sugeridas pelo motor e não derrubou nenhuma.</p>`}
     <p><b>Plano do oponente:</b> ${esc(s.opponent_plan.summary_pt)}</p>
     <p><b>O seu problema:</b> ${esc(s.my_problem.summary_pt)} <i>${esc(s.my_problem.mechanism_pt)}</i></p>
     <h3 style="margin:10px 0 4px">Afirmações conferidas pelo motor <small>(${v.summary.confirmed}/${v.summary.claims} confirmadas${v.summary.refuted ? `, ${v.summary.refuted} derrubadas` : ''})</small></h3>
@@ -335,31 +339,61 @@ function renderStrategy(o) {
     ${s.play_tips_pt.length ? `<h3 style="margin:10px 0 4px">Como jogar</h3><ul style="margin:0;padding-left:18px">${s.play_tips_pt.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
     ${v.disagreements?.length ? `<h3 style="margin:10px 0 4px">Onde a IA discorda do motor <small>(a citação da carta é conferida)</small></h3><ul style="margin:0;padding-left:18px">${v.disagreements.map((x) => `<li>${icon[x.status]} ${esc(x.text_pt)} <small style="opacity:.75">— ${esc(x.check)}</small></li>`).join('')}</ul>` : ''}
     ${s.uncertainty_pt ? `<p style="opacity:.8"><b>Incerteza:</b> ${esc(s.uncertainty_pt)}</p>` : ''}
-    <p style="opacity:.6;font-size:12px">Só as afirmações ✅ foram confirmadas pelas contas do motor. Custo desta leitura: ~US$ ${o.usage.usd.toFixed(3)} (${esc(o.model)}).</p></div>`;
+    <p style="opacity:.6;font-size:12px">Só as afirmações ✅ foram confirmadas pelas contas do motor. ${cached ? `Leitura guardada (mesmas listas e mesma dor): sem custo novo. <button class="ghost" id="stratFresh" style="font-size:12px;padding:3px 8px">🔄 Pedir leitura nova</button>` : `Custo desta leitura: ~US$ ${o.usage.usd.toFixed(3)} (${esc(o.model)}).`}</p></div>`;
 }
-document.addEventListener('click', async (ev) => {
-  if (ev.target?.id !== 'stratGo') return;
-  const out = $('#stratOut');
+// Revisão da IA nas sugestões do motor: aviso ⚠ no card de cada tech que ela derrubou citando o texto da carta
+function flagSuggestions(flags) {
+  document.querySelectorAll('.ia-flag').forEach((x) => x.remove());
+  for (const f of flags ?? []) {
+    const h = document.querySelector(`#suggestions [data-card="${CSS.escape(f.card)}"] h3`);
+    if (h) h.insertAdjacentHTML('afterend', `<div class="ia-flag" style="color:var(--warn);border:1px solid #ffb54766;background:#ffb54714;border-radius:8px;padding:6px 9px;margin:6px 0;font-size:13px">⚠ <b>O estrategista discorda:</b> ${esc(f.text_pt)} <small style="opacity:.8">— trecho conferido no texto da carta: “${esc(f.quote)}”</small></div>`);
+  }
+}
+// Leitura guardada: mesmas listas + mesma dor = mesma ficha → não paga de novo (últimas 8 leituras, neste navegador)
+const STRAT_CACHE = 'pokematch:strat:v1';
+const hashStr = (s) => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36) + s.length.toString(36); };
+const cacheGet = (k) => { try { return JSON.parse(localStorage.getItem(STRAT_CACHE) || '{}')[k] ?? null; } catch { return null; } };
+const cachePut = (k, v) => { try { const all = JSON.parse(localStorage.getItem(STRAT_CACHE) || '{}'); all[k] = { ...v, at: Date.now() }; for (const x of Object.keys(all).sort((a, b) => all[b].at - all[a].at).slice(8)) delete all[x]; localStorage.setItem(STRAT_CACHE, JSON.stringify(all)); } catch {} };
+let stratRun = 0; // cada análise nova invalida a leitura que ainda estava a caminho
+async function runStrat({ fresh = false } = {}) {
+  const out = $('#stratOut'), btn = $('#stratGo');
   if (!STRAT_URL) { out.innerHTML = '<p>O estrategista precisa de um servidor com a chave da API (a chave nunca fica no site). Ele ainda não está ligado nesta versão.</p>'; return; }
-  ev.target.disabled = true; out.innerHTML = '<p>🧠 Lendo o matchup (leva uns 20–60 s)…</p>';
+  const my = ++stratRun;
+  btn.disabled = true; out.innerHTML = '<p>🧠 Lendo o matchup e revisando as techs sugeridas (leva uns 20–60 s)…</p>';
   try {
-    if (window.TF_STATIC && localEngine) {
-      // Site estático: o motor (aqui no navegador) monta a ficha; o servidor só guarda a chave e chama a IA;
-      // a conferência das afirmações volta a ser feita aqui, pelo motor.
-      const st = window.TF_INLINE ? window.PokeMatch : await import('./src/strategist.js');
-      const prep = st.prepareStrategy({ myText: $('#mine').value, oppText: $('#opp').value, context: $('#ctx').value.slice(0, 2000), db: localEngine.db });
-      const res = await fetch(STRAT_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ facts: prep.facts }) });
-      const data = await res.json();
-      if (!res.ok) { out.innerHTML = `<p>⚠ ${esc(data.error ?? 'erro')}</p>`; }
-      else out.innerHTML = renderStrategy({ ...data, verification: st.verifyStrategy(data.strategy, { me: prep.me, opp: prep.opp, r: prep.r, db: localEngine.db }) });
-    } else {
-      const res = await fetch(STRAT_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ mine: $('#mine').value, opp: $('#opp').value, context: $('#ctx').value }) });
-      const data = await res.json();
-      out.innerHTML = res.ok ? renderStrategy(data) : `<p>⚠ ${esc(data.error ?? 'erro')}</p>`;
+    // Site estático: o motor (aqui no navegador) monta a ficha; o servidor só guarda a chave e chama a IA;
+    // a conferência das afirmações volta a ser feita aqui, pelo motor.
+    const local = window.TF_STATIC && localEngine;
+    const st = local ? (window.TF_INLINE ? window.PokeMatch : await import('./src/strategist.js')) : null;
+    const prep = local ? st.prepareStrategy({ myText: $('#mine').value, oppText: $('#opp').value, context: $('#ctx').value.slice(0, 2000), db: localEngine.db }) : null;
+    const body = local ? { facts: prep.facts } : { mine: $('#mine').value, opp: $('#opp').value, context: $('#ctx').value };
+    const key = hashStr(JSON.stringify(body));
+    let data = fresh ? null : cacheGet(key);
+    const cached = !!data;
+    if (!data) {
+      const res = await fetch(STRAT_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+      const j = await res.json();
+      if (my !== stratRun) return;
+      if (!res.ok) { out.innerHTML = `<p>⚠ ${esc(j.error ?? 'erro')}</p>`; return; }
+      data = j; cachePut(key, data);
     }
-  } catch (e) { out.innerHTML = `<p>⚠ ${esc(e.message)}</p>`; }
-  ev.target.disabled = false;
+    if (my !== stratRun) return;
+    const full = local ? { ...data, verification: st.verifyStrategy(data.strategy, { me: prep.me, opp: prep.opp, r: prep.r, db: localEngine.db }) } : data;
+    out.innerHTML = renderStrategy(full, cached);
+    flagSuggestions(full.verification.flags);
+  } catch (e) { if (my === stratRun) out.innerHTML = `<p>⚠ ${esc(e.message)}</p>`; }
+  finally { if (my === stratRun) btn.disabled = false; }
+}
+document.addEventListener('click', (ev) => {
+  if (ev.target?.id === 'stratGo') runStrat();
+  if (ev.target?.id === 'stratFresh') runStrat({ fresh: true });
 });
+// "Rodar o estrategista junto": escolha de cada navegador (desligada por padrão — cada leitura nova custa na chave do site)
+if (STRAT_URL) {
+  $('#autoStratWrap').style.display = 'block';
+  try { $('#autoStrat').checked = localStorage.getItem('pokematch:autoStrat') === '1'; } catch {}
+  $('#autoStrat').onchange = () => { try { localStorage.setItem('pokematch:autoStrat', $('#autoStrat').checked ? '1' : '0'); } catch {} };
+}
 
 function status(el, deck) {
   if (deck.errors.length) { el.className = 'status err'; el.innerHTML = '⚠ ' + deck.errors.map(esc).join('<br>⚠ '); }

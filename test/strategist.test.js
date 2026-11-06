@@ -83,3 +83,25 @@ test('execução com um cliente falso (sem API): passa a ficha, lê a resposta e
   assert.equal(out.verification.summary.confirmed, 3);
   assert.ok(out.usage.usd > 0);
 });
+
+test('revisão: a ficha traz o TEXTO das techs sugeridas e pede para a IA conferir cada uma', () => {
+  const f = buildFacts(r, me, opp, PAIN);
+  assert.match(f, /REVISE AS SUGESTÕES DO MOTOR/);
+  const top = r.suggestions[0].card;
+  const piece = (top.attacks?.[0]?.effect || top.effect || top.text || '').replace(/\s+/g, ' ').slice(0, 40);
+  assert.ok(f.includes(`#1 ${top.name}`), 'nome da 1ª sugestão');
+  if (piece) assert.ok(f.includes(piece), 'texto da 1ª sugestão');
+  assert.ok(f.length < 60000, 'cabe no limite do servidor');
+});
+
+test('revisão: discordância sobre uma sugestão vira aviso ⚠ só se a citação está no texto DELA', () => {
+  const top = r.suggestions[0].card;
+  const real = (top.text ?? '').replace(/\s+/g, ' ').trim().split(/(?<=\.)\s/)[0].slice(0, 50);
+  const s = { ...FIXTURE, disagreements: [
+    { text_pt: 'não serve aqui (fixture)', card: top.name, quote: real },
+    { text_pt: 'citação inventada (fixture)', card: r.suggestions[1].card.name, quote: 'this card wins the game' },
+  ] };
+  const v = verifyStrategy(s, { me, opp, r, db });
+  assert.deepEqual(v.flags.map((x) => x.card), [top.name]);
+  assert.equal(v.disagreements[1].status, 'erro');
+});

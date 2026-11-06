@@ -21,8 +21,17 @@ const PAINS = [
   { key: 'acespec', label: 'ACE SPEC', re: /ace ?spec|legacy|energia legado/ },
 ];
 
-const GENERIC = new Set(['energy', 'energia', 'pokemon', 'mascara', 'team', 'rocket', 'rocket\'s', 'turquesa', 'orders', 'ordens', 'chefe', 'determination', 'determinacao', 'stretcher', 'maca']);
+const GENERIC = new Set(['energy', 'energia', 'pokemon', 'mascara', 'team', 'rocket', 'rocket\'s', 'turquesa', 'orders', 'ordens', 'chefe', 'determination', 'determinacao', 'stretcher', 'maca',
+  // nomes de Treinador-dono sozinhos não identificam uma carta ("da Equipe Rocket", "da Cíntia")
+  'equipe', 'cintia', 'cynthia', 'cynthia\'s', 'marine', 'marnie', 'marnie\'s', 'kissera', 'lilian', 'lillie', 'lillie\'s', 'steven', 'steven\'s', 'ethan\'s', 'erika\'s', 'misty\'s', 'arven\'s', 'larry\'s']);
 const short = (s) => normName(s).replace(/^mega /, '').replace(/ ex$/, '').trim();
+
+// Donos em PT/EN como o jogador escreve (Hop = Lupo, Iono = Kissera, Team Rocket = Equipe Rocket…)
+const OWNER_WORDS = [
+  ['Team Rocket', 'equipe rocket|team rocket|rocket'], ['N', 'n'], ['Hop', 'lupo|hop'], ['Ethan', 'ethan'], ['Cynthia', 'c[ií]ntia|cynthia'],
+  ['Marnie', 'marine|marnie'], ['Larry', 'lauro|larry'], ['Steven', 'steven'], ['Erika', '[ée]rika'], ['Misty', 'misty'],
+  ['Iono', 'kissera|iono'], ['Arven', 'arven'], ['Lillie', 'l[ií]lian|lillie'],
+];
 
 export function readContext(text, me, opp, db) {
   const raw = normName(text ?? '');
@@ -45,6 +54,11 @@ export function readContext(text, me, opp, db) {
         if (words.some((w) => w.length >= 4 && new RegExp(`\\b${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(raw))) out.add(e.card.name);
       }
     }
+    // Grupo inteiro de um Treinador: "os Pokémon do N", "pokémon do lupo", "da equipe rocket", "da cíntia"
+    for (const [owner, re] of OWNER_WORDS) {
+      if (!new RegExp(`pok[eé]mon(?:s)? (?:do|da|de) (?:${re})\\b|(?:${re})'?s pok[eé]mon`, 'i').test(raw)) continue;
+      for (const e of deck.entries) if (e.card.owner === owner) out.add(e.card.name);
+    }
     return [...out];
   };
   const mentions = { mine: find(me), opp: find(opp) };
@@ -61,7 +75,7 @@ export function readContext(text, me, opp, db) {
 // Em qual "caminho" uma sugestão se encaixa
 export function clusterOf(s) {
   const k = s.reasons[0]?.kind;
-  if (k === 'PRIZE_RACE' || k === 'PRIZE_DENIAL' || k === 'KO_TRADE') return 'premios';
+  if (k === 'PRIZE_RACE' || k === 'PRIZE_DENIAL' || k === 'KO_TRADE' || k === 'COPY_SOURCE') return 'premios';
   if (k?.startsWith('ANTI_')) return 'contra';
   if (k === 'KO_GAP' || k === 'HP_DOWN') return 'dano';
   if (k === 'COST_CHANGE') return 'disrupcao';

@@ -10,11 +10,16 @@
 //   (Ultra Ball → Pokémon; Poké Pad → sem Rule Box; Poffin → Básico ≤70 HP; Petrel → Treinador…).
 //   Cada busca é usada uma vez.
 
+import { ownerSearches, ownerSearchFinds } from './tags.js';
+
 const TRIALS = 6000;
 
 // Que cartas uma busca encontra
 function searcherOf(card) {
   const t = card.text ?? '';
+  // Busca de Pokémon de Treinador (Hop's Bag, Team Rocket's Proton, Cynthia's Gabite, Spikemuth Gym…)
+  const own = ownerSearches(t);
+  if (own.length) return (c) => ownerSearchFinds(own, c);
   if (/search your deck for a pok[eé]mon that doesn.t have a rule box/i.test(t)) return (c) => c.category === 'Pokemon' && !c.isRuleBox;
   if (/search your deck for up to \d+ basic pok[eé]mon with (\d+) hp or less/i.test(t)) { const hp = +t.match(/with (\d+) hp or less/i)[1]; return (c) => c.category === 'Pokemon' && c.stage === 'Basic' && c.hp <= hp; }
   if (/search your deck for up to \d+ basic pok[eé]mon or 1 evolution pok[eé]mon/i.test(t)) return (c) => c.category === 'Pokemon';

@@ -5,7 +5,21 @@
 |---|---|---|---|
 | Levantamento inicial | 36% | 65% | 42 |
 | Rodada 1 (simulador, texto, consistência, custos) | 56% | 65% | 49 |
-| Rodada 2 (subtipos oficiais, custo de ataque, margem de nocaute) | 56%+ | 65% | **51** |
+| Rodada 2 (subtipos oficiais, custo de ataque, margem de nocaute) | 56%+ | 65% | 51 |
+| Rodada 3 (Pokémon de Treinador: N, Lupo/Hop, Equipe Rocket…) | **58%** | 65% | **62** |
+
+### Coberto na rodada 3 (pedido: "mapear Zoroark do N, do Lupo… cartas que interagem por serem desses 'tipos'")
+- **Dono de cada Pokémon** lido do nome (`N's Zoroark ex` → N; `Team Rocket's Mewtwo ex` → Equipe Rocket): 13 donos, 249 cartas. Treinadores com nome de dono (Team Rocket's Petrel) **não** contam como "Pokémon de".
+- **Requisitos de dono** conferidos contra a sua lista: *"não pode atacar a menos que tenha 4+ Pokémon da Equipe Rocket"* (Mewtwo ex), *"só pode ser ligada em Pokémon da Equipe Rocket"* (Team Rocket's Energy), *"só se um Pokémon da Equipe Rocket seu foi nocauteado"* (Archer), apoio que só serve ao dono (Hop's Bag, N's PP Up, Proton, Giovanni, Power Weight, Lillie's Pearl…) → **bloqueado** se você não tem Pokémon desse dono; *"…instead"* (Arven's Sandwich, Ariana) → só o bônus cai.
+- **Estádios dos dois jogadores** (N's Castle, Postwick, Granite Cave, Spikemuth Gym): se só o oponente tem Pokémon do dono, a ferramenta avisa que a carta **ajuda só ele**.
+- **Lista de Pokémon específicos em jogo** (Anthea & Concordia exige os 6 de N) → diz quais faltam.
+- **Bônus de grupo** (Hop's Snorlax, Postwick, Hop's Choice Band, Cynthia's Roserade: +30 só para Pokémon do dono) — vale para o seu atacante se ele for do dono, e para o do oponente no cálculo de risco.
+- **Dano por contagem de dono** (Team Rocket's Spidops, Erika's Victreebel, Misty's Gyarados).
+- **Buscas restritas ao dono** (Hop's Bag, Proton, Great Ball, Gabite, Lapras, Comfey, Baltoy, Spikemuth Gym) no simulador de consistência e na nota "sai com".
+- **Cópia de ataque (N's Zoroark ex – Night Joker)**: o Zoroark ganha os ataques dos Pokémon de N do banco pagando só {D}{D}; uma tech de N vira **fonte de cópia** (ex.: N's Zekrom: Zoroark usa Rampaging Thunder 250 sem energia Elétrica) e não é penalizada por não conseguir pagar o próprio ataque.
+- Campo de dor entende "os Pokémon do N", "do Lupo", "da Equipe Rocket", "da Cíntia", "Kissera"…
+
+**Ainda não**: o simulador de prêmios não troca o atacante copiado turno a turno (usa o melhor ataque copiável); Lillie's Pearl/Anthea & Concordia no simulador; TR Arbok (trava de habilidades com exceção da Equipe Rocket) e mover contadores entre Pokémon da Equipe Rocket (Orbeetle/Wobbuffet).
 
 ### Coberto na rodada 2 (pedido: "matar o Pult todo turno e dificultar a vida dele")
 - **Dado que faltava:** Tera/Ancient/Future agora vêm da **Pokémon TCG API** (subtipos oficiais) — antes eram 6 nomes manuais;
@@ -55,7 +69,7 @@ Das **2.776 frases de efeito** das cartas legais, **36%** são entendidas por al
 | Estádio/Ferramenta como condição de dano | 27 | 20 | Chi-Yu, Vivillon | Baixa |
 | HP extra / alterar HP | 23 | 23 | **Hero's Cape (+100 HP)**, Gravity Mountain | **Alta** |
 | Prêmios (pegar a mais, virar prêmio) | 20 | 18 | Togekiss, Briar | Média |
-| Copiar ataques | 17 | 17 | Mew ex, Zoroark (Foul Play) | Média |
+| Copiar ataques | 17 | 17 | Mew ex, Zoroark (Foul Play) — N's Zoroark ex já coberto | Média |
 | Mudar Fraqueza/Resistência | 5 | 5 | **Lillie's Clefairy ex (Dragão fraco a Psíquico)** | Média |
 | Outros (reduções com texto fora do padrão, "nocauteado no fim do turno"…) | 380 | 329 | Tangrowth, Pinsir | Média |
 
@@ -137,6 +151,7 @@ Dano variável: **65%** dos 468 ataques com "+"/"×" são calculados com precis�
 | "dificultar a vida dele", "travar", "atrapalhar" | você quer atrapalhar | trava de Itens/habilidades, custo de ataque maior, remoção de energia/estádio |
 | "lento", "setup", "brick", "não monto" | consistência | (peso nas sugestões; simulação de mão por troca) |
 | "ACE SPEC", "Legacy" | troca de ACE SPEC | ACE SPECs que resolvem o diagnóstico |
+| "os Pokémon do N", "do Lupo", "da Equipe Rocket", "zoroark do N" | cita o grupo de um Treinador | marca todas as cartas daquele dono no deck dele (ou no seu) como citadas |
 | nomes de cartas (inglês ou português) | ameaças citadas | prioriza counters que cobrem essas cartas |
 
 Ainda NÃO entende: sequência de jogadas ("depois que ele faz X eu faço Y"), comparações ("melhor que"), pedidos fora dessas categorias —

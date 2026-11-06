@@ -3,7 +3,8 @@
 //   peso      — quantos slots custa? precisa trocar ACE SPEC?
 //   sinergia  — conversa com o plano do deck (tipo, trocas, fonte de dano)?
 //   risco     — o que passa pela muralha nocauteia ela? prêmios entregues? Boss contorna?
-import { attackDamage, matches, typePt, parseSelector, extractTags } from './tags.js';
+import { attackDamage, matches, typePt, parseSelector, extractTags, ownerSearchFinds, OWNER_PT, ownerRefs } from './tags.js';
+const ownerRefsOf = (c) => ownerRefs(c.text);
 import { multiplier, damageVs } from './damage.js';
 import { requirements } from './diagnosis.js';
 
@@ -40,12 +41,14 @@ export function potentialDamage(attack, deck) {
 // Maior dano que os atacantes listados conseguem causar em "target"
 function worstHit(target, attackers, opp) {
   let worst = { dmg: 0, by: null, note: '' };
-  const boosts = opp.tagsByCard.flatMap(({ tags }) => tags.filter((t) => t.kind === 'EXTRA_DMG' && !t.onlyFor && matches(t.sel, target)).map((t) => t.amount));
+  const boosts = opp.tagsByCard.flatMap(({ tags }) => tags.filter((t) => t.kind === 'EXTRA_DMG' && !t.onlyFor && !t.ownerFor && matches(t.sel, target)).map((t) => t.amount));
   const boost = Math.max(0, ...boosts);
+  // bônus de grupo do oponente (ex.: Hop's Snorlax: +30 nos ataques dos Pokémon de Hop dele)
+  const ownerBoost = (card) => Math.max(0, ...opp.tagsByCard.flatMap(({ tags }) => tags.filter((t) => t.kind === 'EXTRA_DMG' && t.ownerFor && t.ownerFor === card.owner).map((t) => t.amount)));
   for (const e of attackers) {
     if (e.feas !== undefined && e.feas < 0.3) continue; // não consegue energizar esse ataque
     for (const a of e.card.attacks ?? []) {
-      const r = damageVs(a, e.card, target, { deck: opp, oppTaken: 3, bonus: boost });
+      const r = damageVs(a, e.card, target, { deck: opp, oppTaken: 3, bonus: boost + ownerBoost(e.card) });
       if (r.dmg > worst.dmg) worst = { dmg: r.dmg, by: e.card.name, attack: a.name, note: r.notes.includes('fraqueza') ? ' (fraqueza ×2)' : '' };
     }
   }
@@ -85,7 +88,10 @@ export function evaluateFit(card, used, reasons, meBase, opp, db, opt = null) {
       const need = [...new Set(koAttack.cost.filter((x) => x !== 'Colorless' && !me.energyTypes.has(x)))].map(typePt);
       add('recursos', 0.3, `✗ "${koAttack.name}" (o ataque que dá o valor) precisa de energia ${need.join('/')} — o pacote não consegue pagar.`);
     } else if (canAttack) { if (!opt?.energy) add('recursos', 1, `✓ ${koAttack ? `"${koAttack.name}" sai` : 'Consegue atacar'} com as energias do seu deck.`); }
-    else {
+    else if (reasons.some((r) => r.kind === 'COPY_SOURCE')) {
+      const r = reasons.find((x) => x.kind === 'COPY_SOURCE');
+      add('recursos', 1, `✓ Não precisa de energia: fica no banco para o ${r.copier} copiar "${r.attackName}".`);
+    } else {
       const need = [...new Set((card.attacks ?? []).flatMap((a) => a.cost ?? []).filter((x) => x !== 'Colorless'))].map(typePt);
       add('recursos', 0.9, `⚠ Não ataca com as suas energias${need.length ? ` (precisa de ${need.join('/')})` : ''}.`);
     }
@@ -111,6 +117,7 @@ export function evaluateFit(card, used, reasons, meBase, opp, db, opt = null) {
       if (me.search.nonRuleBox && !c.isRuleBox) w.push('Poké Pad');
       if (me.search.basicLowHp && c.stage === 'Basic' && c.hp <= 70) w.push('Buddy-Buddy Poffin');
       if ((me.search.basic && c.stage === 'Basic') || (me.search.evolution && c.stage !== 'Basic')) w.push("Brock's Scouting/busca");
+      for (const o of me.search.owners ?? []) if (ownerSearchFinds([o], c) && !w.includes(o.by)) w.push(o.by);
       return w;
     };
     const wCard = reach(card);
@@ -125,6 +132,12 @@ export function evaluateFit(card, used, reasons, meBase, opp, db, opt = null) {
   const req = requirements(card, meBase, opp);
   if (!req.ok) add('recursos', 0.1, `✗ ${req.note}.`);
   else if (req.note) add('recursos', req.factor, `⚠ ${req.note[0].toUpperCase()}${req.note.slice(1)}.`);
+  for (const g of req.good ?? []) notes.sinergia.push(`✓ ${g[0].toUpperCase()}${g.slice(1)}.`);
+  // O contrário: a tech é Pokémon de um Treinador e o seu deck já tem cartas que ajudam esse dono
+  if (card.owner) {
+    const helpers = meBase.entries.filter((e) => e.card.name !== card.name && ownerRefsOf(e.card).includes(card.owner)).map((e) => e.card.name);
+    if (helpers.length) add('sinergia', 1, `✓ É Pokémon de ${OWNER_PT[card.owner] ?? card.owner}: aproveita ${[...new Set(helpers)].slice(0, 4).join(', ')} da sua lista.`);
+  }
   if (card.trainerType && me.search.trainer) notes.recursos.push("✓ Buscável com Team Rocket's Petrel.");
 
   // Tempo de energização: quantas ligações para o ataque que dá o valor (1 ligação manual por turno)
@@ -134,7 +147,11 @@ export function evaluateFit(card, used, reasons, meBase, opp, db, opt = null) {
     const valueAtk = (koAtk && (card.attacks ?? []).find((a) => a.name === koAtk)) ?? (card.attacks ?? []).filter((a) => attackDamage(a) > 0 || used.some((t) => t.source === 'attack' && t.name === a.name))
       .filter((a) => canPayCost(a.cost, me)).sort((a, b) => attackDamage(b) - attackDamage(a))[0];
     const attackMatters = used.some((t) => t.source === 'attack') || reasons.some((r) => ['WEAKNESS', 'COMBO_DMG', 'BENCH_PUNISH', 'PRIZE_RACE', 'KO_TRADE'].includes(r.kind));
-    if (valueAtk && attackMatters) {
+    // Fonte de cópia (N's Zoroark ex copia do banco): o valor não depende de energizar esta carta
+    const copyTop = reasons.find((r) => r.kind === 'COPY_SOURCE');
+    if (copyTop && copyTop.value >= Math.max(0, ...reasons.filter((r) => r.kind !== 'COPY_SOURCE').map((r) => r.value))) {
+      notes.peso.push(`✓ Vale no turno em que entra no banco: o ${copyTop.copier} copia "${copyTop.attackName}" sem ligar energia nela.`);
+    } else if (valueAtk && attackMatters) {
       const n = (valueAtk.cost ?? []).length;
       // aceleração do deck que serve para esta carta (ex.: Toxtricity liga {D} em Pokémon {D})
       const SYMK = { G: 'Grass', R: 'Fire', W: 'Water', L: 'Lightning', P: 'Psychic', F: 'Fighting', D: 'Darkness', M: 'Metal' };

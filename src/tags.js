@@ -19,6 +19,34 @@ export function setTraits(traits) {
 const stripParens = (s) => s.replace(/\([^)]*\)/g, ' ');
 const sentences = (s) => stripParens(s ?? '').split(/(?<=[.!])\s+|\n+/).map((x) => x.trim()).filter(Boolean);
 
+// "Pokémon de Treinador": o dono vem do nome ("N's Zoroark ex" → N; "Team Rocket's Mewtwo ex" → Team Rocket)
+const OWNER_RE = /(Team Rocket|N|Hop|Ethan|Cynthia|Marnie|Larry|Steven|Erika|Misty|Iono|Arven|Lillie)'s/;
+export function ownerOf(card) {
+  if (!card || card.category !== 'Pokemon') return null;
+  const m = card.name.replace(/[’]/g, "'").match(/^(Team Rocket|[A-Z][a-zA-Z.]*)'s /);
+  return m ? m[1] : null;
+}
+// Donos citados no texto como "Pokémon de X" ("your Benched N's Pokémon", "Basic Hop's Pokémon")
+export function ownerRefs(text) {
+  return [...new Set([...(text ?? '').replace(/[’]/g, "'").matchAll(/(Team Rocket|N|Hop|Ethan|Cynthia|Marnie|Larry|Steven|Erika|Misty|Iono|Arven|Lillie)'s pok[eé]mon/gi)].map((m) => m[1]))];
+}
+// Busca restrita a Pokémon de um Treinador ("Search your deck for up to 2 Basic Hop's Pokémon") → [{owner, stage}]
+export function ownerSearches(text) {
+  const t = (text ?? '').replace(/[’]/g, "'");
+  return [...t.matchAll(new RegExp(`search (?:your|their) deck for (?:a|an|any number of|up to \\d+)(?: in any combination of)? (basic |evolution )?${OWNER_RE.source} pok[eé]mon`, 'gi'))]
+    .map((m) => ({ owner: m[2], stage: m[1]?.trim().toLowerCase() || null }));
+}
+export function ownerSearchFinds(searches, c) {
+  return c?.category === 'Pokemon' && searches.some((s) => s.owner === c.owner && (!s.stage || (s.stage === 'basic' ? c.stage === 'Basic' : c.stage !== 'Basic')));
+}
+// Ataque que copia ataques do banco ("Choose 1 of your Benched N's Pokémon's attacks and use it as this attack")
+export function copyAttackOf(attack) {
+  const m = (attack?.effect ?? '').replace(/[’]/g, "'").match(new RegExp(`choose 1 of your benched (?:${OWNER_RE.source} )?pok[eé]mon's attacks and use it as this attack`, 'i'));
+  return m ? { owner: m[1] ?? null } : null;
+}
+// Nomes em português dos donos (para explicar e para o leitor de contexto)
+export const OWNER_PT = { 'Team Rocket': 'Equipe Rocket', N: 'N', Hop: 'Lupo (Hop)', Ethan: 'Ethan', Cynthia: 'Cíntia', Marnie: 'Marine', Larry: 'Lauro', Steven: 'Steven', Erika: 'Érica', Misty: 'Misty', Iono: 'Kissera (Iono)', Arven: 'Arven', Lillie: 'Lílian' };
+
 // Converte um trecho em inglês ("your opponent's Basic Pokémon ex") num seletor.
 export function parseSelector(ph) {
   const s = {};
@@ -44,6 +72,8 @@ export function parseSelector(ph) {
   if (st) s.status = st[1].toLowerCase();
   // Qualificador que não sabemos ler → seletor "desconhecido" (nunca vira "qualquer Pokémon")
   if (/that ha(ve|s)|with any|that (is|are) /i.test(p) && !s.hasAbility && !s.specialEnergy && !s.noRuleBox && !/rule box/i.test(p)) s.unknown = true;
+  const own = p.replace(/[’]/g, "'").match(new RegExp(`${OWNER_RE.source} pok[eé]mon`, 'i'));
+  if (own) s.owner = own[1];
   const dmg = p.match(/damage is (\d+) or more/i);
   if (dmg) s.minDamage = +dmg[1];
   const dmgLe = p.match(/damage is (\d+) or less/i);
@@ -71,6 +101,7 @@ export function matches(sel, card, ctx = {}) {
   if (sel.types && !(card.types ?? []).some((t) => sel.types.includes(t))) return false;
   if (sel.notTypes && (card.types ?? []).some((t) => sel.notTypes.includes(t))) return false;
   if (sel.minDamage && maxDamage(card) < sel.minDamage) return false;
+  if (sel.owner && ownerOf(card) !== sel.owner) return false;
   if (sel.unknown) return false;
   if (sel.maxDamageLE && maxDamage(card) > sel.maxDamageLE) return false;
   if (sel.specialEnergy && !ctx.oppSpecialEnergy) return false;
@@ -109,6 +140,7 @@ export function selectorPt(s) {
   if (s.types) parts.push(`do tipo ${s.types.map(typePt).join('/')}`);
   if (s.notTypes) parts.push(`que não sejam ${s.notTypes.map(typePt).join('/')}`);
   if (s.hasAbility) parts.push('com Habilidade');
+  if (s.owner) parts.push(`de ${OWNER_PT[s.owner] ?? s.owner}`);
   if (s.minDamage) parts.push(`(quando o dano for ${s.minDamage}+)`);
   if (s.maxDamageLE) parts.push(`(só dano de até ${s.maxDamageLE})`);
   if (s.specialEnergy) parts.push('com Energia Especial');
@@ -183,6 +215,10 @@ export function extractTags(card) {
           tags.push({ ...base, kind: 'EXTRA_DMG', sel, amount: +more[1], onlyFor: only?.[1], needsNoRuleBox });
         }
       }
+      // 5b) Bônus de grupo por dono ("Attacks used by your Hop's Pokémon do 30 more damage…")
+      const grp = s.replace(/[’]/g, "'").match(new RegExp(`attacks used by (?:your |the )?(?:${OWNER_RE.source}) pok[eé]mon(?: this card is attached to)?[^.]*?do (\\d+) more damage`, 'i'));
+      // vira EXTRA_DMG restrito ao dono (ownerFor); "both yours and your opponent's" = o oponente também ganha
+      if (grp) tags.push({ ...base, kind: 'EXTRA_DMG', sel: {}, amount: +grp[2], ownerFor: grp[1], attached: /this card is attached to/i.test(s), both: /both yours|both players/i.test(b.text) });
       // 6) Pune banco grande
       if (/for each (of your opponent.s )?benched pok[eé]mon|for each benched pok[eé]mon \(both|for each benched pok[eé]mon .both/i.test(s) && /damage/i.test(s)) {
         tags.push({ ...base, kind: 'BENCH_PUNISH' });

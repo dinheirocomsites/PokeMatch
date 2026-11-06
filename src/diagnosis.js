@@ -1,7 +1,7 @@
 // Diagnóstico por EIXOS: em vez de procurar um único tipo de problema ("quem mata meu atacante"),
 // mede cada coisa que o plano do oponente faz contra o SEU deck e quanto isso machuca.
 // Cada eixo traz evidências e os tipos de carta que respondem a ele.
-import { extractTags, matches, parseSelector, TERA, ANCIENT, isFuture } from './tags.js';
+import { extractTags, matches, parseSelector, TERA, ANCIENT, isFuture, ownerRefs, OWNER_PT } from './tags.js';
 
 const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
 const list = (arr, n = 4) => [...new Set(arr)].slice(0, n).join(', ');
@@ -116,10 +116,86 @@ export function counterTags(card) {
 
 // Requisitos escritos na carta, conferidos contra o SEU deck. Retorna { ok, factor, note }.
 const SYMT = { G: 'Grass', R: 'Fire', W: 'Water', L: 'Lightning', P: 'Psychic', F: 'Fighting', D: 'Darkness', M: 'Metal', N: 'Dragon' };
+// Pokémon de Treinador ("N's Zoroark ex", "Team Rocket's Mewtwo ex", "Hop's Snorlax"): cartas que só funcionam
+// com Pokémon do mesmo dono. Conta quantos o deck tem (sem contar a própria carta) e quantos cabem em jogo.
+function ownerStock(me, owner, exclude) {
+  const list = me.entries.filter((e) => e.card.category === 'Pokemon' && e.card.owner === owner && e.card.name !== exclude);
+  return {
+    copies: list.reduce((s, e) => s + e.count, 0),
+    inPlay: list.filter((e) => e.card.stage === 'Basic').reduce((s, e) => s + Math.min(e.count, 2), 0), // linhas evoluídas contam pelo Básico
+    names: [...new Set(list.map((e) => e.card.name))],
+  };
+}
+function ownerRequirements(card, t, me, opp, notes, good) {
+  const txt = t.replace(/[’]/g, "'");
+  const PT = (o) => OWNER_PT[o] ?? o;
+  let factor = 1;
+  // 1) "Este Pokémon não pode atacar a menos que você tenha N ou mais Pokémon de X em jogo"
+  const unless = txt.match(/can't attack unless you have (\d+) or more (Team Rocket|[A-Z][a-zA-Z.]*)'s pok[eé]mon in play/i);
+  if (unless) {
+    const need = +unless[1];
+    const st = ownerStock(me, unless[2], card.name);
+    const have = st.inPlay + (card.owner === unless[2] ? 1 : 0);
+    if (have < need) return { ok: false, note: `só ataca com ${need}+ Pokémon de ${PT(unless[2])} em jogo — seu deck põe no máximo ${have} (${st.names.join(', ') || 'nenhum outro'})` };
+    good.push(`ataca: seu deck põe ${have} Pokémon de ${PT(unless[2])} em jogo (precisa de ${need})`);
+  }
+  // 2) "Só pode ser ligada a um Pokémon de X" (Team Rocket's Energy)
+  const onlyOn = txt.match(/can only be attached to an? (Team Rocket|[A-Z][a-zA-Z.]*)'s pok[eé]mon/i);
+  if (onlyOn && !ownerStock(me, onlyOn[1], card.name).copies) return { ok: false, note: `só pode ser ligada em Pokémon de ${PT(onlyOn[1])} — seu deck não tem` };
+  // 3) "Só pode usar esta carta se um Pokémon de X seu foi nocauteado" (Team Rocket's Archer)
+  const onlyIf = txt.match(/use this card only if any of your (Team Rocket|[A-Z][a-zA-Z.]*)'s pok[eé]mon/i);
+  if (onlyIf && !ownerStock(me, onlyIf[1], card.name).copies) return { ok: false, note: `só pode ser jogada depois de um Pokémon de ${PT(onlyIf[1])} seu ser nocauteado — seu deck não tem` };
+  // 4) Demais referências, frase a frase
+  const sentences = txt.split(/(?<=[.:])\s+/);
+  const done = new Set([unless?.[2], onlyOn?.[1], onlyIf?.[1]].filter(Boolean));
+  for (const s of sentences) {
+    for (const o of ownerRefs(s)) {
+      if (done.has(o)) continue;
+      // Tarja de exceção do oponente ("except for Team Rocket's Pokémon") não é requisito seu
+      if (new RegExp(`except for ${o}'s`, 'i').test(s) || new RegExp(`opponent's (?:benched |active )?${o}'s`, 'i').test(s)) continue;
+      done.add(o);
+      const st = ownerStock(me, o, card.name);
+      // (o texto chega sem parênteses: "(both yours and your opponent's)" se perde, então olha o texto original)
+      const both = /both yours and your opponent's|each player|their deck/i.test(s) || (card.trainerType === 'Stadium' && /both yours and your opponent's|each player/i.test(card.text ?? ''));
+      const theirs = opp ? opp.entries.filter((e) => e.card.owner === o) : [];
+      // a própria carta conta, menos quando o efeito exige OUTRO Pokémon no banco enquanto ela ataca (Night Joker)
+      const norm = (x) => (x ?? '').replace(/\([^)]*\)/g, ' ').replace(/[’]/g, "'");
+      const part = [...(card.abilities ?? []), ...(card.attacks ?? [])].find((a) => norm(a.effect).includes(s.slice(0, 30)));
+      const selfCounts = card.owner === o && !(/benched/i.test(s) && (card.attacks ?? []).includes(part));
+      const mine = st.copies + (selfCounts ? 1 : 0);
+      if (both) {
+        if (!st.copies && theirs.length) { factor *= 0.3; notes.push(`o efeito ajuda só o oponente: ele joga Pokémon de ${PT(o)} (${[...new Set(theirs.map((e) => e.card.name))].slice(0, 3).join(', ')})`); }
+        else if (!st.copies) { factor *= 0.6; notes.push(`o efeito só vale para Pokémon de ${PT(o)} — nenhum dos dois decks tem`); }
+        else if (theirs.length) { factor *= 0.85; notes.push(`também ajuda os Pokémon de ${PT(o)} do oponente`); good.push(`ajuda seus Pokémon de ${PT(o)} (${st.names.slice(0, 3).join(', ')})`); }
+        else good.push(`ajuda seus Pokémon de ${PT(o)} (${st.names.slice(0, 3).join(', ')})`);
+        continue;
+      }
+      if (mine) { if (st.copies) good.push(`combina com seus Pokémon de ${PT(o)} (${st.names.slice(0, 3).join(', ')})`); if (st.copies && st.copies <= 2) { factor *= 0.9; notes.push(`só ${st.copies} Pokémon de ${PT(o)} na lista para aproveitar`); } continue; }
+      // não tem nenhum Pokémon desse dono
+      // "…instead": o efeito básico funciona, só o bônus depende do dono (Arven's Sandwich, Team Rocket's Ariana)
+      if (/instead/i.test(s)) { factor *= 0.85; notes.push(`o bônus só vale com Pokémon de ${PT(o)} — seu deck não tem (fica o efeito básico)`); continue; }
+      // o resto do efeito depende desta frase ("If you do, …": Team Rocket's Giovanni)
+      const idx = sentences.indexOf(s);
+      const chained = /^if you do/i.test(sentences[idx + 1] ?? '');
+      const partial = !chained && (/in any combination of/i.test(s) || (card.category === 'Pokemon' && sentences.some((x) => !ownerRefs(x).length && /damage|draw|search|attach/i.test(x))));
+      if (card.category === 'Trainer' && !partial && (chained || sentences.filter((x) => ownerRefs(x).length).length >= sentences.filter((x) => /search|attach|switch|heal|draw|damage|prize|hp/i.test(x)).length)) {
+        return { ok: false, note: `só funciona com Pokémon de ${PT(o)} — seu deck não tem` };
+      }
+      factor *= card.category === 'Pokemon' && card.owner === o ? 0.45 : 0.55;
+      notes.push(`${card.category === 'Pokemon' && card.owner === o ? `${part ? `"${part.name}"` : 'o efeito'} precisa de outro` : 'parte do efeito só vale para'} Pokémon de ${PT(o)} — seu deck não tem`);
+    }
+  }
+  return { ok: true, factor };
+}
+
 export function requirements(card, me, opp = null) {
   const t = (card.text ?? '').replace(/\([^)]*\)/g, ' ');
   const notes = [];
+  const good = [];
   let factor = 1;
+  const own = ownerRequirements(card, t, me, opp, notes, good);
+  if (!own.ok) return { ...own, good: [] };
+  factor *= own.factor;
   // Tera / Ancient / Future: "se você tem Pokémon Tera em jogo", "no seu Pokémon Ancient", "Future Pokémon in play"
   const trait = t.match(/(?:if you have any|your|of your) (tera|ancient|future) pok[eé]mon/i) || (/(only if|as long as) /i.test(t) && t.match(/(tera|ancient|future) pok[eé]mon in play/i));
   if (trait) {
@@ -130,6 +206,12 @@ export function requirements(card, me, opp = null) {
       if (/only if|you can use this card only/i.test(t) || card.category === 'Trainer') return { ok: false, note: `exige Pokémon ${PT} — seu deck não tem` };
       factor *= 0.5; notes.push(`parte do efeito depende de Pokémon ${PT}, que seu deck não tem`);
     }
+  }
+  const listInPlay = t.replace(/[’]/g, "'").match(/only if you have ([A-Z][^.]+?, and [^.]+?) in play/);
+  if (listInPlay) {
+    const names = listInPlay[1].split(/,\s*(?:and\s+)?|\s+and\s+/).map((x) => x.trim()).filter(Boolean);
+    const missing = names.filter((n) => !me.names.has(n));
+    if (missing.length) return { ok: false, note: `exige ${names.length} Pokémon específicos em jogo — faltam no seu deck: ${missing.slice(0, 4).join(', ')}${missing.length > 4 ? '…' : ''}`, good: [] };
   }
   const inPlay = t.match(/if you have (?:any )?([A-Z][\w' .-]+?) in play/);
   if (inPlay && !/pok[eé]mon/i.test(inPlay[1]) && !me.names.has(inPlay[1].trim())) return { ok: false, note: `exige ${inPlay[1].trim()} em jogo — seu deck não tem` };
@@ -167,7 +249,7 @@ export function requirements(card, me, opp = null) {
   const hand = t.match(/if you have (\d+) or (more|fewer) cards in your hand/i);
   if (hand) { factor *= 0.8; notes.push(`depende de você ter ${hand[1]} ou ${hand[2] === 'more' ? 'mais' : 'menos'} cartas na mão`); }
   if (/only if you have more prize cards remaining than your opponent/i.test(t)) { factor *= 0.7; notes.push('só quando você estiver atrás nos prêmios'); }
-  return { ok: true, factor, note: notes.join('; ') };
+  return { ok: true, factor, note: notes.join('; '), good };
 }
 
 const WHY = {

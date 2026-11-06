@@ -1,6 +1,6 @@
 // Motor de sugestões: cruza as fraquezas do deck oponente com as etiquetas de
 // counter de cada carta legal e avalia se a carta cabe no deck do jogador.
-import { extractTags, matches, selectorPt, typePt, maxDamage, attackDamage } from './tags.js';
+import { extractTags, matches, selectorPt, typePt, maxDamage, attackDamage, OWNER_PT, copyAttackOf } from './tags.js';
 import { profileDeck } from './profile.js';
 import { parseDeck } from './parser.js';
 import { evaluateFit, deadInMatchup } from './fit.js';
@@ -116,6 +116,14 @@ function tagValue(t, opp, me, ctx) {
       const { cov, covered } = coverage(t.sel, opp, ctx);
       if (cov < 0.4) return null;
       let usable = 1;
+      // Bônus só para Pokémon de um Treinador (Hop's Snorlax, Postwick, Cynthia's Roserade…)
+      if (t.ownerFor) {
+        const mine = me.threat.filter((e) => maxDamage(e.card) > 0);
+        usable = mine.filter((e) => e.card.owner === t.ownerFor).reduce((s, e) => s + e.threat, 0) / (mine.reduce((s, e) => s + e.threat, 0) || 1);
+        if (usable < 0.2) return null;
+        const oppToo = t.both && opp.entries.some((e) => e.card.owner === t.ownerFor);
+        return { value: (t.amount / 40) * 28 * cov * usable * condFactor * (oppToo ? 0.6 : 1), why: `"${t.name}": +${t.amount} de dano nos ataques dos seus Pokémon de ${OWNER_PT[t.ownerFor] ?? t.ownerFor} — ${pct(usable)} do seu ataque.${oppToo ? ` Atenção: vale também para os Pokémon de ${OWNER_PT[t.ownerFor] ?? t.ownerFor} do oponente.` : ''}` };
+      }
       if (t.needsNoRuleBox) {
         const mine = me.threat.filter((e) => maxDamage(e.card) > 0);
         usable = mine.filter((e) => !e.card.isRuleBox).reduce((s, e) => s + e.threat, 0) / (mine.reduce((s, e) => s + e.threat, 0) || 1);
@@ -283,6 +291,42 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
     };
   };
 
+  // Fonte de cópia: o seu deck tem um Pokémon que usa ataques do banco (N's Zoroark ex "Night Joker" copia
+  // ataques dos seus Pokémon de N pagando só o custo dele). Uma tech do mesmo dono vira ataque novo do copiador,
+  // sem precisar de energia própria: só fica no banco.
+  const copiers = me.entries.filter((e) => e.card.category === 'Pokemon').map((e) => ({ e, copy: (e.card.attacks ?? []).find((a) => copyAttackOf(a)) })).filter((x) => x.copy);
+  const copySourceValue = (card) => {
+    if (card.category !== 'Pokemon' || (card.attacks ?? []).some((a) => copyAttackOf(a))) return null;
+    let best = null;
+    for (const { e: cp, copy } of copiers) {
+      const { owner } = copyAttackOf(copy);
+      if (owner && card.owner !== owner) continue;
+      if (!canPayCost(copy.cost, me)) continue;
+      const tgts = opp.threat.filter((t) => t.card.hp);
+      const tot = tgts.reduce((s2, t) => s2 + t.threat, 0) || 1;
+      for (const a of card.attacks ?? []) {
+        if (!attackDamage(a) && !/[×+]$/.test(String(a.damage ?? ''))) continue;
+        const virt = { ...a, cost: copy.cost };
+        const newKos = [];
+        let share = 0, gain = 0;
+        for (const t of tgts) {
+          const now = Math.max(0, ...(cp.card.attacks ?? []).map((x) => damageVs(x, cp.card, t.card, { deck: me, oppTaken: 3, ...me.pressure }).dmg));
+          const r = damageVs(virt, cp.card, t.card, { deck: me, oppTaken: 3, ...me.pressure });
+          if (r.dmg >= t.card.hp && now < t.card.hp) { newKos.push({ name: t.card.name, dmg: r.dmg }); share += t.threat / tot; }
+          if (t.card.name === opp.mainAttacker?.name) gain = r.dmg - now;
+        }
+        const v = newKos.length ? Math.min(50, 12 + 45 * share) : gain >= 30 ? Math.min(20, 6 + gain / 10) : 0;
+        if (v && (!best || v > best.value)) best = { value: v, a, cp, copy, newKos, gain };
+      }
+    }
+    if (!best || best.value < 8) return null;
+    const cost = best.copy.cost.map((x) => `{${{ Darkness: 'D', Fire: 'R', Water: 'W', Grass: 'G', Lightning: 'L', Psychic: 'P', Fighting: 'F', Metal: 'M', Colorless: 'C' }[x] ?? x}}`).join('');
+    return {
+      kind: 'COPY_SOURCE', value: best.value, attackName: best.a.name, copier: best.cp.card.name, koNames: best.newKos.map((k) => k.name),
+      why: `"${best.copy.name}" do seu ${best.cp.card.name} copia "${best.a.name}" (${best.a.damage}) pagando só ${cost}${best.newKos.length ? `: nocauteia ${best.newKos.map((k) => `${k.name} (${Math.round(k.dmg)})`).join(', ')} — hoje o ${best.cp.card.name} não nocauteia` : `: +${Math.round(best.gain)} de dano no ${opp.mainAttacker?.name}`}. O ${card.name} não precisa de energia: só fica no banco.`,
+    };
+  };
+
   const evaluate = (card) => {
     const reasons = [];
     const used = [];
@@ -294,6 +338,9 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
     if (w) reasons.push(w);
     const kt = koTradeValue(card);
     if (kt) reasons.push(kt);
+    const cs = copiers.length ? copySourceValue(card) : null;
+
+    if (cs) reasons.push(cs);
     for (const r of disruptionValue(card, disruption, me)) reasons.push(r);
     if (!reasons.length) return null;
     reasons.sort((a, b) => b.value - a.value);
@@ -310,7 +357,9 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
     // Avalia o pacote sem e com energia habilitadora e fica com o melhor
     let best = null;
     const valueAttackName = ev.reasons.find((r) => r.kind === 'KO_TRADE')?.attackName ?? null;
-    const options = card.category === 'Pokemon' ? buildOptions(card, me, opp, db, valueAttackName) : [null];
+    let options = card.category === 'Pokemon' ? buildOptions(card, me, opp, db, valueAttackName) : [null];
+    // Fonte de cópia não precisa pagar o próprio ataque: pacote sem energia nova
+    if (ev.reasons[0]?.kind === 'COPY_SOURCE') { const noE = options.filter((o) => !o?.energy); options = noE.length ? noE : options.map((o) => o && { ...o, energy: null }); }
     for (const opt of options) {
       const reasons = [...ev.reasons];
       if (opt?.damage?.kos.length) {
@@ -459,7 +508,7 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
   if (koGap?.need > 0) {
     for (const c of candidates) {
       if (!c || c.reasons.some((r) => r.kind === 'KO_GAP')) continue;
-      const bonus = extractTags(c.card).filter((t) => (t.kind === 'EXTRA_DMG' && matches(t.sel, oppMain) && (!t.onlyFor || t.onlyFor === main.name) && !(t.needsNoRuleBox && main.isRuleBox)) || (t.kind === 'HP_DOWN' && matches(t.sel, oppMain)));
+      const bonus = extractTags(c.card).filter((t) => (t.kind === 'EXTRA_DMG' && matches(t.sel, oppMain) && (!t.onlyFor || t.onlyFor === main.name) && (!t.ownerFor || t.ownerFor === main.owner) && !(t.needsNoRuleBox && main.isRuleBox)) || (t.kind === 'HP_DOWN' && matches(t.sel, oppMain)));
       if (!bonus.length) continue;
       const amt = Math.max(...bonus.map((t) => t.amount));
       const piecesSaved = koGap.minSet ? koGap.minSet.filter((p) => p.amount <= amt).length : 0;
@@ -511,6 +560,7 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
       // Melhorar só a margem não basta para quem pesa no banco/lista; virar derrota em vitória sim
       if (r.kind === 'PRIZE_RACE' && r.value >= 8 && (r.flip || (c.parts?.peso ?? 100) >= 70)) return r.flip ? 'vira a corrida de prêmios (derrota → vitória) na simulação' : 'melhora a corrida de prêmios na simulação';
       if (r.kind === 'PRIZE_DENIAL') return 'reduz os prêmios que você entrega';
+      if (r.kind === 'COPY_SOURCE' && r.koNames?.length && (r.koNames.includes(koGap?.target) || r.koNames.some((k) => killerNames.includes(k)) || r.value >= 25)) return `dá ao seu ${r.copier} um ataque que nocauteia ${r.koNames.slice(0, 3).join(', ')}`;
       if (['WALL_SELF', 'WALL_CHOSEN', 'WALL_TEAM'].includes(r.kind) && killerNames.length && killerNames.every((k) => r.covered?.includes(k))) return `bloqueia ${killerNames.join(' e ')}`;
       if (r.kind === 'KO_TRADE' && (c.parts?.peso ?? 100) >= 55 && r.koNames?.some((k) => killerNames.includes(k))) return `nocauteia ${r.koNames.filter((k) => killerNames.includes(k)).join(' e ')} entregando só ${c.card.prizeValue} prêmio${c.card.prizeValue > 1 ? 's' : ''}`;
       // Atacante de 1 prêmio, barato de energizar, que bate na fraqueza de quem mata o seu atacante (ex.: Moltres × Hydrapple)

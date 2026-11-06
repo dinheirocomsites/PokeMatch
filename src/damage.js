@@ -20,6 +20,16 @@ export function multiplier(effect, deck, defenderBench = 5, ctx = {}) {
   if (/flip \d+ coins/i.test(e)) { const n = +e.match(/flip (\d+) coins/i)[1]; return n / 2; }
   if (/flip a coin until you get tails/i.test(e)) return 1; // valor esperado ~1 cara
   if (/for each heads/i.test(e)) return 1.5;
+  // "para cada um dos seus Pokémon de X em jogo" (Team Rocket's Spidops, Erika's Victreebel)
+  const own = e.replace(/[’]/g, "'").match(/for each of your (?:benched )?(team rocket|[a-z.]+)'s pok[eé]mon in play/i);
+  if (own) {
+    const key = own[1].toLowerCase();
+    const n = (deck?.entries ?? []).filter((x) => x.card.category === 'Pokemon' && x.card.owner && x.card.owner.toLowerCase() === key).reduce((s2, x) => s2 + Math.min(x.count, 2), 0);
+    return Math.min(maxInPlay, Math.max(1, n)); // o próprio atacante conta
+  }
+  // "para cada Pokémon de X que você descartou" do topo (Misty's Gyarados: descarta 7)
+  const milled = e.replace(/[’]/g, "'").match(/discard the top (\d+) cards of your deck[^.]*for each (team rocket|[a-z.]+)'s pok[eé]mon that you discarded/i);
+  if (milled) { const key = milled[2].toLowerCase(); const n = (deck?.entries ?? []).filter((x) => x.card.owner?.toLowerCase() === key).reduce((s2, x) => s2 + x.count, 0); return +milled[1] * n / 60; }
   // "por Pokémon seu no banco que tenha energia {X} ligada": só se o deck tem energia X
   const withE = e.match(/for each of your benched pok[eé]mon that has any \{([A-Z])\} energy attached/i);
   if (withE) {

@@ -112,6 +112,8 @@ Legenda: [x] feito · [~] em andamento · [ ] a fazer
 - [x] Automação: testes + publicação no GitHub Pages a cada push; atualização diária das cartas
 - [~] Site público: https://dinheirocomsites.github.io/PokeMatch/
 
+- [x] Pokémon de Treinador (N, Lupo/Hop, Equipe Rocket, Cíntia, Marine, Kissera…): requisitos, buscas, bônus de grupo, cópia do N's Zoroark ex (62 testes ✅)
+
 ## Próximos passos (ideias)
 - [ ] Interações mais finas: Boss's Orders do oponente contorna muralha; muralha precisa estar Ativa
 - [ ] Analisar contra o meta inteiro de uma vez (várias listas)

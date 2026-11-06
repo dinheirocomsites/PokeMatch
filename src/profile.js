@@ -1,6 +1,6 @@
 // Perfil de um deck: de onde vem o poder de ataque, do que ele depende,
 // fraquezas, tipos de energia, buscas disponíveis etc.
-import { maxDamage, TERA, extractTags } from './tags.js';
+import { maxDamage, TERA, extractTags, ownerOf, ownerSearches, copyAttackOf } from './tags.js';
 
 export function threatOf(card) {
   const d = maxDamage(card);
@@ -25,6 +25,18 @@ export function attackFeasibility(attack, deck) {
 
 export function profileDeck(parsed) {
   const entries = parsed.cards.filter((e) => e.card);
+  // Ataques que copiam ataques do banco (N's Zoroark ex "Night Joker"): viram ataques "virtuais" do copiador,
+  // com o custo do ataque que copia (a energia do ataque copiado não é necessária)
+  for (const e of entries) {
+    const copy = e.card.category === 'Pokemon' && (e.card.attacks ?? []).find((a) => copyAttackOf(a));
+    if (!copy || e.card.copied) continue;
+    const { owner } = copyAttackOf(copy);
+    const srcs = entries.filter((x) => x !== e && x.card.category === 'Pokemon' && x.card.name !== e.card.name && (!owner || ownerOf(x.card) === owner) && !(x.card.attacks ?? []).some((a) => copyAttackOf(a)));
+    const seen = new Set();
+    const virt = srcs.flatMap((x) => (x.card.attacks ?? []).filter((a) => maxDamage({ attacks: [a] }) > 0).map((a) => ({ ...a, name: `${copy.name} (${a.name}, de ${x.card.name})`, cost: copy.cost, copiedFrom: x.card.name, copiedAttack: a.name })))
+      .filter((a) => { const k = `${a.copiedAttack}|${a.damage}`; if (seen.has(k)) return false; seen.add(k); return true; });
+    if (virt.length) e.card = { ...e.card, attacks: [...e.card.attacks, ...virt], copied: virt.map((a) => a.copiedFrom) };
+  }
   const pokemon = entries.filter((e) => e.card.category === 'Pokemon');
   const trainers = entries.filter((e) => e.card.category === 'Trainer');
   const energy = entries.filter((e) => e.card.category === 'Energy');
@@ -77,6 +89,8 @@ export function profileDeck(parsed) {
     evolution: entries.some((e) => /evolution pok[eé]mon/i.test(e.card.text) && /search/i.test(e.card.text)),
     trainer: entries.some((e) => /search your deck for a trainer card/i.test(e.card.text)),
     rareCandy: has(/^Rare Candy$/),
+    // buscas de Pokémon de Treinador: [{by, owner, stage}]
+    owners: entries.flatMap((e) => ownerSearches(e.card.text).map((o) => ({ ...o, by: e.card.name }))),
   };
 
   // Quem fica no banco durante o jogo: Pokémon de habilidade que funciona no banco + reserva do atacante principal
@@ -89,7 +103,12 @@ export function profileDeck(parsed) {
   const conditions = new Set(entries.flatMap((e) => [...e.card.text.matchAll(/opponent.s active pok[eé]mon is now (\w+)/gi)].map((m) => m[1].toLowerCase())));
   const pressure = { targetCounters: counterSrc.length ? Math.max(...counterSrc) : 0, oppConditions: conditions.size ? 1 : 0 };
 
+  // Pokémon de Treinador na lista (N's, Team Rocket's, Hop's…): quantos de cada dono
+  const owners = {};
+  for (const e of pokemon) { const o = ownerOf(e.card); if (o) owners[o] = (owners[o] ?? 0) + e.count; }
+
   return {
+    owners,
     pressure,
     board,
     total: parsed.total,

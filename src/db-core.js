@@ -1,5 +1,5 @@
 // Base de cartas: normalização, campos derivados e índices (sem dependências de Node).
-import { setTraits } from './tags.js';
+import { setTraits, ownerOf } from './tags.js';
 export const BASIC_ENERGY = ['Grass', 'Fire', 'Water', 'Lightning', 'Psychic', 'Fighting', 'Darkness', 'Metal'].map((t) => `${t} Energy`);
 
 export function normName(s) {
@@ -25,6 +25,7 @@ function enrich(c) {
   ].join('\n');
   return {
     ...c,
+    owner: ownerOf(c),
     regulationMark: c.regulationMark?.toUpperCase?.() ?? c.regulationMark,
     stage,
     isEx,

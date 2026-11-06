@@ -26,6 +26,9 @@ const KNOWN = [
   /during your next turn, this pok[eé]mon can.t/i, /discard (all|\d+|an?) energy from this pok[eé]mon/i, /this pok[eé]mon takes \d+ more damage/i,
   /gets \+\d+ hp/i, /can use the attacks of any of your benched/i, /weakness of each of your opponent/i,
   /whenever any player puts a basic/i, /can.t play any item cards/i,
+  // Pokémon de Treinador (requisitos, buscas, bônus de grupo, contagem e cópia de ataque)
+  /(team rocket|n|hop|ethan|cynthia|marnie|larry|steven|erika|misty|iono|arven|lillie)['’]s pok[eé]mon/i, /choose 1 of your benched .*attacks and use it as this attack/i,
+  /only if you have [A-Z][^.]+, and [^.]+ in play/,
 ];
 
 const FAMILIES = [

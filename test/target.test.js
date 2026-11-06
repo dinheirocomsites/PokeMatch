@@ -28,11 +28,12 @@ test('leitor de alvo: Ativo, banco, tipo, Rule Box, dono, quem tem a Ferramenta,
   assert.ok(!matchesTarget(parseTarget('Heal 60 damage from your Active {N} Pokémon.'), card('Mega Sharpedo ex')));
 });
 
-test('Dragon Elixir: bloqueado no Sharpedo (deck de Escuridão; o único Dragão fica no banco), inteiro no Dragapult (cura o atacante)', () => {
-  // o deck é de Escuridão: o único Dragão (Tatsugiri) só fica no banco → carta morta, bloqueada
+test('Dragon Elixir: peso baixo no Sharpedo (deck de Escuridão; só alcança o Tatsugiri), inteiro no Dragapult (cura o atacante)', () => {
+  // o deck é de Escuridão: o único Dragão é o Tatsugiri (vai à frente pela habilidade, 70 HP) — não cura o atacante
   const r1 = requirements(card('Dragon Elixir'), sharpedo);
-  assert.equal(r1.ok, false);
-  assert.match(r1.note, /Dragão no Ativo.*Tatsugiri/);
+  assert.equal(r1.ok, true);
+  assert.ok(r1.factor <= 0.35);
+  assert.match(r1.note, /Tatsugiri.*não o seu atacante/);
   assert.equal(requirements(card('Dragon Elixir'), prof('dragapult.txt')).factor, 1);
 });
 
@@ -41,6 +42,8 @@ test('contra o Trifrost (banco morre de um golpe), cura não é resposta; protet
   const names = r.suggestions.map((s) => s.card.name);
   for (const n of ['Dragon Elixir', 'Super Potion', 'Fennel']) assert.ok(!names.includes(n), n);
   assert.equal(names[0], 'Shaymin');
+  // e a dica explica por quê: os Básicos caem de UM golpe (110), curar não muda nada
+  assert.ok(r.tips.some((t) => /caem de UM golpe só — curar não adianta/.test(t) && /Tatsugiri/.test(t)));
 });
 
 test('apoio que só serve a um tipo que o deck não tem é bloqueado (Magnetic Metal Energy no Sharpedo)', () => {

@@ -3,7 +3,7 @@
 // Cada eixo traz evidências e os tipos de carta que respondem a ele.
 import { extractTags, matches, parseSelector, TERA, ANCIENT, isFuture, ownerRefs, OWNER_PT } from './tags.js';
 import { damageVs } from './damage.js';
-import { parseTarget, restricts, matchesTarget, describeTarget, targetCoverage } from './target.js';
+import { parseTarget, restricts, matchesTarget, describeTarget, targetCoverage, goesActive } from './target.js';
 
 const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
 const list = (arr, n = 4) => [...new Set(arr)].slice(0, n).join(', ');
@@ -67,17 +67,44 @@ export function diagnoseDisruption(me, opp) {
   // 4) Dano espalhado no seu banco
   const spreadAtk = [];
   for (const e of opp.threat) for (const a of e.card.attacks ?? []) {
-    const m = (a.effect ?? '').match(/put (\d+) damage counters on your opponent.s benched/i) || (a.effect ?? '').match(/(\d+) damage to (?:1|2) of your opponent.s benched/i) || (a.effect ?? '').match(/(\d+) damage to [2-9] of your opponent.s pok[eé]mon/i);
-    if (m) spreadAtk.push({ by: e.card.name, amount: /counters/i.test(m[0]) ? +m[1] * 10 : +m[1], kind: /counters/i.test(m[0]) ? 'counters' : 'damage' });
+    const eff = a.effect ?? '';
+    // só ataque que ele consegue pagar (o Zeraora sozinho não paga {L}{L}{L}; o Slowking copiando paga {P}{C})
+    if (!(a.cost ?? []).every((t) => t === 'Colorless' || opp.energyTypes.has(t) || (opp.anyEnergy ?? 0) > 0)) continue;
+    const m = eff.match(/put (\d+) damage counters on your opponent.s benched/i) || eff.match(/(\d+) damage to (?:1|2) of your opponent.s benched/i) || eff.match(/(\d+) damage to [2-9] of your opponent.s pok[eé]mon/i);
+    if (m) {
+      const nm = eff.match(/damage to (\d) of your opponent.s (benched )?pok[eé]mon( ex)?/i);
+      spreadAtk.push({
+        by: e.card.name, amount: /counters/i.test(m[0]) ? +m[1] * 10 : +m[1], kind: /counters/i.test(m[0]) ? 'counters' : 'damage',
+        label: a.copiedAttack ? `${a.copiedAttack} (o ${e.card.name} copiando do ${a.copiedFrom})` : `${a.name} (${e.card.name})`,
+        n: nm ? +nm[1] : null, exOnly: !!nm?.[3], bench: !!nm?.[2],
+      });
+    }
   }
   if (spreadAtk.length) {
     const max = Math.max(...spreadAtk.map((s) => s.amount));
     const bench = me.entries.filter((e) => e.card.category === 'Pokemon' && (me.board?.pieces ?? []).concat(me.board?.backup ?? []).includes(e.card.name));
-    const fragile = bench.filter((e) => e.card.hp <= max);
-    const fragile2 = bench.filter((e) => e.card.hp > max && e.card.hp <= max * 2); // caem em 2 ataques espalhados
+    // cai de um golpe: algum ataque que o alcança faz dano ≥ HP (o "só em Pokémon ex" não pega quem não é ex)
+    const reach = (e, k) => spreadAtk.some((x) => x.amount * k >= e.card.hp && (!x.exOnly || e.card.isEx));
+    const fragile = bench.filter((e) => reach(e, 1));
+    const fragile2 = bench.filter((e) => !reach(e, 1) && reach(e, 2)); // caem em 2 ataques espalhados
     const share = opp.threat.filter((e) => spreadAtk.some((x) => x.by === e.card.name)).reduce((s2, e) => s2 + e.threat, 0) / (opp.totalThreat || 1);
     const sev = clamp(((fragile.length + fragile2.length * 0.5) / Math.max(2, bench.length) + (max >= 60 ? 0.2 : 0)) * clamp(share * 3));
     const kinds = [...new Set(spreadAtk.map((x) => x.kind))];
+    if (sev > 0.15) {
+      // Por ataque: quem do SEU banco cai de um golpe só. No começo do jogo o banco tem os Básicos (Toxel, não Toxtricity).
+      const early = [...new Map(me.entries.filter((e) => e.card.category === 'Pokemon' && e.card.stage === 'Basic').map((e) => [e.card.name, e.card])).values()];
+      const seen = new Set();
+      for (const x of [...spreadAtk].sort((p, q) => q.amount - p.amount)) {
+        const key = x.label.split(' (')[0];
+        if (x.kind !== 'damage' || seen.has(key)) continue;
+        seen.add(key);
+        const dead = early.filter((c) => c.hp <= x.amount && (!x.exOnly || c.isEx)).sort((p, q) => p.hp - q.hp);
+        if (dead.length < (x.exOnly ? 1 : 2)) continue;
+        const where = x.n ? ` (${x.amount} em ${x.n} ${x.exOnly ? 'Pokémon ex do seu banco' : x.bench ? 'Pokémon do seu banco' : 'Pokémon seus'})` : ` (${x.amount} no banco)`;
+        tips.push(`Contra o ${x.label}${where}: ${list(dead.map((c) => `${c.name} (${c.hp} HP)`), 6)} ${dead.length > 1 ? 'caem' : 'cai'} de UM golpe só — curar não adianta, ${dead.length > 1 ? 'eles morrem' : 'ele morre'} igual. O que muda o resultado: ${x.exOnly ? 'só baixar esses ex quando for usar' : 'não expor vários Básicos de uma vez (baixe só o necessário), proteger o banco inteiro (ex.: Shaymin, Rabsca)'} ou tirar quem faz isso antes de ele atacar (Boss).`);
+        if (seen.size >= 2) break;
+      }
+    }
     if (sev > 0.15) axes.push({ key: 'spread', severity: sev, kinds, oneShot: fragile.length / Math.max(1, bench.length), evidence: `${list(spreadAtk.map((s) => s.by))} espalha até ${max} de dano no seu banco (${kinds.map((k) => (k === 'counters' ? 'colocando contadores' : 'causando dano')).join(' e ')}); ${fragile.length ? `caem de uma vez: ${list(fragile.map((e) => `${e.card.name} (${e.card.hp} HP)`))}` : 'seu banco aguenta um ataque'}${fragile2.length ? `; caem em 2 ataques: ${list(fragile2.map((e) => `${e.card.name} (${e.card.hp} HP)`))}` : ''}.` });
   }
 
@@ -381,6 +408,7 @@ export function requirements(card, me, opp = null) {
   const MINE = new Set(['HEAL', 'SWITCH', 'ENERGY_MOVE', 'HP_BOOST']);
   const attackersOf = new Set(me.threat?.filter((e) => e.feas >= 0.3 && (e.card.attacks ?? []).some((a) => /\d/.test(String(a.damage ?? '')))).map((e) => e.card.name) ?? []);
   if (me.mainAttacker) attackersOf.add(me.mainAttacker.name);
+  const activeOnes = me.threat ? goesActive(me) : attackersOf; // + quem vai à frente pela habilidade (Tatsugiri)
   const checked = new Set();
   for (const tg of extractTags(card)) {
     const tt = tg.target;
@@ -394,8 +422,9 @@ export function requirements(card, me, opp = null) {
     const coversMain = me.mainAttacker && fits.includes(me.mainAttacker.name);
     const coversAttacker = fits.some((n) => attackersOf.has(n));
     if (coversMain) continue;
-    // Só age no Ativo e os únicos Pokémon que servem não atacam (ficam no banco): carta morta no deck → bloqueia
-    if (tt.where === 'active' && !coversAttacker) return { ok: false, note: `só funciona em ${describeTarget(tt)} — o seu deck só tem ${[...new Set(fits)].slice(0, 3).join(', ')}, que não fica no Ativo`, good: [] };
+    // Só age no Ativo: bloqueia se NINGUÉM que serve vai para o Ativo; se só um Pokémon de apoio serve, pesa pouco
+    if (tt.where === 'active' && !fits.some((n) => activeOnes.has(n))) return { ok: false, note: `só funciona em ${describeTarget(tt)} — o seu deck só tem ${[...new Set(fits)].slice(0, 3).join(', ')}, que não vai para o Ativo`, good: [] };
+    if (tt.where === 'active' && !coversAttacker) { factor *= 0.35; notes.push(`só alcança ${describeTarget(tt)}: no seu deck, só ${[...new Set(fits)].slice(0, 3).join(', ')} (vai à frente pela habilidade) — não o seu atacante${me.mainAttacker ? ` (${me.mainAttacker.name})` : ''}`); }
     else if (!coversAttacker) { factor *= 0.6; notes.push(`só alcança ${describeTarget(tt)}: ${[...new Set(fits)].slice(0, 3).join(', ')} — não o seu atacante`); }
     else { factor *= 0.85; notes.push(`só alcança ${describeTarget(tt)}: ${[...new Set(fits)].slice(0, 3).join(', ')} — não o ${me.mainAttacker?.name ?? 'seu atacante principal'}`); }
   }

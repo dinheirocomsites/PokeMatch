@@ -73,13 +73,22 @@ export function describeTarget(t) {
   return `${parts.join(' ')}${where}`;
 }
 
+// Quem do seu deck vai para o Ativo: os atacantes e quem tem habilidade que só funciona no Ativo
+// (ex.: Tatsugiri "Attract Customers" vai à frente buscar Supporter).
+export const activeAbility = (c) => (c.abilities ?? []).some((a) => /(if|as long as) this pok[eé]mon is in the active spot/i.test(a.effect ?? ''));
+export function goesActive(me) {
+  const set = new Set(me.threat.filter((e) => e.feas >= 0.3 && (e.card.attacks ?? []).some((a) => /\d/.test(String(a.damage ?? '')))).map((e) => e.card.name));
+  if (me.mainAttacker) set.add(me.mainAttacker.name);
+  for (const e of me.entries) if (e.card.category === 'Pokemon' && activeAbility(e.card)) set.add(e.card.name);
+  return set;
+}
+
 // Quais Pokémon do SEU deck o efeito alcança, para um propósito:
 //   'bench'  → proteger/curar o banco (precisa alcançar o banco)
 //   'active' → manter o atacante vivo / tirar do Ativo (precisa alcançar quem fica no Ativo)
 export function targetCoverage(t, me, purpose, selfCard = null) {
   const mine = me.entries.filter((e) => e.card.category === 'Pokemon').map((e) => e.card);
-  const attackers = new Set(me.threat.filter((e) => e.feas >= 0.3 && (e.card.attacks ?? []).some((a) => /\d/.test(String(a.damage ?? '')))).map((e) => e.card.name));
-  if (me.mainAttacker) attackers.add(me.mainAttacker.name);
+  const attackers = goesActive(me);
   const bench = new Set([...(me.board?.pieces ?? []), me.board?.backup, ...mine.filter((c) => c.stage === 'Basic').map((c) => c.name)].filter(Boolean));
   if (!t) return { ok: true, covered: [], frac: 1, reason: '' };
   if (t.where === 'self') {

@@ -22,6 +22,8 @@
 - **HP extra** só vale se a Ferramenta serve no seu atacante (tipo/estágio/dono).
 Varredura: das 323 cartas de apoio/defesa, no deck Sharpedo 7 mudaram de veredito (2 bloqueadas: Magnetic Metal Energy, Growing Grass Energy; 5 com peso menor: Dragon Elixir, Latias ex…); nos matchups de referência só mudaram as sugestões que estavam erradas (curas contra o Trifrost, energias de tipo que o deck não tem).
 
+**Correção do Felipe (mesmo dia)**: (1) o Tatsugiri **vai para o Ativo** — a habilidade "Attract Customers" só funciona lá; agora quem tem habilidade "se este Pokémon estiver no Ativo" (29 Pokémon) conta como "vai para o Ativo". (2) O motivo real de o Dragon Elixir não servir contra o Slowking é que **o Trifrost faz 110 em 3 Pokémon, cedo, e os Básicos de 70–110 HP morrem de um golpe** — curados ou não. Regra: **carta de defesa só vale se muda o resultado contra o golpe real** (cura não salva quem cai de um golpe; HP extra só vale se passa do dano). As dicas agora saem por ataque, com os Básicos do começo do jogo (Toxel, não Toxtricity), e "só em Pokémon ex" não conta quem não é ex.
+
 ### Rodada 7 — primeira leitura real (06/11/2026)
 - **336 frases** classificadas (24 ficaram de fora da resposta e vão na próxima sincronização, automaticamente).
 - **263 efeitos aceitos** pelo validador: 91 frases com efeito tático (contadores, dano extra, desvantagem, mão do oponente, prêmios, redução, trava, condição, troca…) e o resto com resumo "sem efeito tático na análise".

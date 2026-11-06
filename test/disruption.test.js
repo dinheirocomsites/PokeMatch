@@ -47,3 +47,21 @@ test('regra: "colocar contadores" não é "causar dano" — Battle Cage sim, Sha
   assert.ok(!names.includes("Clemont's Quick Wit"), 'cura só Pokémon {L}');
   assert.match(r.diagnosis.join(' '), /colocando contadores/);
 });
+
+// Pedido real: "mais consistência de matar o Pult com o Sharpedo todo turno, e dificultar a vida dele"
+const PULT = 'Preciso ter mais consistencia de matar o pult com o sharpedo todo turno, e se eu puder dificultar a vida dele seria uma boa tbm';
+test('margem de nocaute: Sharpedo faz 270 sozinho no Dragapult (290 com Gravity Mountain) e precisa do Mochi envenenado', () => {
+  const r = analyze(read('sharpedo.txt'), read('dragapult.txt'), db, { limit: 10, context: PULT });
+  assert.equal(r.koGap.target, 'Dragapult ex');
+  assert.equal(r.koGap.alone, 270);
+  assert.equal(r.koGap.hp, 290);
+  assert.ok(r.already.some((a) => a.card.name === 'Gravity Mountain'));
+  assert.ok(r.suggestions.slice(0, 3).some((s) => /nocautear Dragapult ex todo turno/.test(s.relevance)));
+});
+
+test('Tera vem da API oficial: Dragapult ex é Tera e o Nighttime Mine (Tera +{C}) aparece como disrupção', () => {
+  const r = analyze(read('sharpedo.txt'), read('dragapult.txt'), db, { limit: 10, context: PULT });
+  const nm = r.suggestions.find((s) => s.card.name === 'Nighttime Mine');
+  assert.ok(nm, 'Nighttime Mine deveria aparecer');
+  assert.match(nm.reasons.find((x) => x.kind === 'COST_CHANGE').why, /Phantom Dive" do Dragapult ex passa de 2 para 3 energias/);
+});

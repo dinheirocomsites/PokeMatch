@@ -1,4 +1,5 @@
 // Base de cartas: normalização, campos derivados e índices (sem dependências de Node).
+import { setTraits } from './tags.js';
 export const BASIC_ENERGY = ['Grass', 'Fire', 'Water', 'Lightning', 'Psychic', 'Fighting', 'Darkness', 'Metal'].map((t) => `${t} Energy`);
 
 export function normName(s) {
@@ -39,6 +40,8 @@ function enrich(c) {
 
 // Monta a base a partir do JSON (funciona no Node e no navegador)
 export function buildDb(raw) {
+  // Subtipos Tera/Ancient/Future vindos da Pokémon TCG API (o TCGdex não informa)
+  if (raw.traits) setTraits(raw.traits);
   const cards = raw.cards.map(enrich);
   const byId = new Map();
   const bySetNum = new Map(); // "TWM-84" -> card

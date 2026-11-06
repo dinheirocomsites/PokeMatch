@@ -4,7 +4,17 @@
 | Rodada | Frases de efeito entendidas | Dano variável | Testes |
 |---|---|---|---|
 | Levantamento inicial | 36% | 65% | 42 |
-| Rodada 1 (simulador, texto, consistência, custos) | **56%** | 65% | **49** |
+| Rodada 1 (simulador, texto, consistência, custos) | 56% | 65% | 49 |
+| Rodada 2 (subtipos oficiais, custo de ataque, margem de nocaute) | 56%+ | 65% | **51** |
+
+### Coberto na rodada 2 (pedido: "matar o Pult todo turno e dificultar a vida dele")
+- **Dado que faltava:** Tera/Ancient/Future agora vêm da **Pokémon TCG API** (subtipos oficiais) — antes eram 6 nomes manuais;
+  o Dragapult ex não estava marcado como Tera. Agora: 36 Tera, 18 Ancient, 25 Future legais.
+- **Leitura nova:** custo de ataque (Nighttime Mine: Tera +{C}; Sparkling Crystal: −1) e HP reduzido (Gravity Mountain: Estágio 2 −30).
+- **Análise nova — margem de nocaute:** o seu atacante principal mata o atacante principal dele SOZINHO? Quantas peças do combo
+  precisam estar montadas todo turno? Techs que fecham a margem (dano extra contra o alvo, HP reduzido) e o custo "todo turno"
+  (Ferramenta/Estádio ficam em jogo; Supporter gasta o Supporter do turno; Item pode ser travado).
+- **Correção do poder de ataque:** degraus de evolução (Dreepy, Drakloak) contam só 30% — o Dragapult ex passa de 36% para 45%.
 
 ### Coberto na rodada 1
 - **Simulador:** prêmios pelo banco (dano espalhado e contadores, Risky Ruins), desvantagens de ataque dos dois lados,
@@ -106,7 +116,7 @@ Dano variável: **65%** dos 468 ataques com "+"/"×" são calculados com precis�
 - **Consistência:** trava de Itens e reset de mão do oponente dentro da simulação de mão; Rare Candy.
 - **Custos:** impacto do corte em outros matchups; comparação numérica da ACE SPEC atual × sugerida; recuo da tech.
 - **Diagnóstico:** velocidade, cura/stall, moinho, lock de paralisia, mecânicas de virada (Rosa's, Briar).
-- **Dados:** listas Tera/Ancient/Future manuais.
+- **Dados:** ~~listas Tera/Ancient/Future manuais~~ (resolvido na rodada 2 com a Pokémon TCG API).
 - **Produto:** IA na hora da consulta, dados da Limitless, botão "reportar erro", link de análise, análise contra o meta.
 
 ## Ordem sugerida
@@ -115,3 +125,19 @@ Dano variável: **65%** dos 468 ataques com "+"/"×" são calculados com precis�
 3. Consistência: habilidades de compra e buscas por Pokémon; custo de descarte.
 4. Custos: conflito de Estádio e Ferramenta; impacto do corte em outros matchups.
 5. Camada de IA + dados da Limitless para a cauda longa.
+
+
+## Tipos de pedido que a ferramenta entende (campo "qual é a sua dor?")
+| O jogador escreve… | A ferramenta entende | Análise que roda |
+|---|---|---|
+| "morro em um hit", "OHKO", "não aguento" | seu atacante cai rápido | quem te mata em 1 ataque; muralhas; HP extra que faz sobreviver |
+| "corrida de prêmios", "entrego 3, pego 2", "prize trade" | corrida de prêmios | simulador turno a turno; redutores de prêmio; atacantes de 1 prêmio |
+| "matar X todo turno", "consistência de matar", "não mato" | margem de nocaute / falta dano | dano sozinho × com combo contra o atacante dele; peças necessárias; dano extra e HP reduzido |
+| "carimbo", "martelo", "trava meus itens", "iono", "spread" | o oponente te atrapalha | eixos de disrupção (Itens, mão, energia, banco, prender, habilidades) e counters |
+| "dificultar a vida dele", "travar", "atrapalhar" | você quer atrapalhar | trava de Itens/habilidades, custo de ataque maior, remoção de energia/estádio |
+| "lento", "setup", "brick", "não monto" | consistência | (peso nas sugestões; simulação de mão por troca) |
+| "ACE SPEC", "Legacy" | troca de ACE SPEC | ACE SPECs que resolvem o diagnóstico |
+| nomes de cartas (inglês ou português) | ameaças citadas | prioriza counters que cobrem essas cartas |
+
+Ainda NÃO entende: sequência de jogadas ("depois que ele faz X eu faço Y"), comparações ("melhor que"), pedidos fora dessas categorias —
+casos para a camada de IA na hora da consulta.

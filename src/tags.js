@@ -7,7 +7,14 @@ const SYM = { G: 'Grass', R: 'Fire', W: 'Water', L: 'Lightning', P: 'Psychic', F
 // Listas curadas para traços que a API não informa.
 export const TERA = new Set(['Teal Mask Ogerpon ex', 'Hearthflame Mask Ogerpon ex', 'Wellspring Mask Ogerpon ex', 'Cornerstone Mask Ogerpon ex', 'Terapagos ex', 'Farigiraf ex']);
 export const ANCIENT = new Set(['Raging Bolt ex', 'Walking Wake ex', 'Gouging Fire ex', 'Roaring Moon', 'Roaring Moon ex', 'Great Tusk', 'Scream Tail', 'Scream Tail ex', 'Flutter Mane', 'Brute Bonnet', 'Slither Wing', 'Sandy Shocks', 'Koraidon', 'Koraidon ex']);
-export const isFuture = (name) => /^Iron /.test(name) || /^Miraidon/.test(name);
+export const FUTURE = new Set();
+export const isFuture = (name) => (FUTURE.size ? FUTURE.has(name) : /^Iron /.test(name) || /^Miraidon/.test(name));
+// Substitui as listas manuais pelos subtipos oficiais quando a base os traz
+export function setTraits(traits) {
+  if (traits.tera?.length) { TERA.clear(); traits.tera.forEach((n) => TERA.add(n)); }
+  if (traits.ancient?.length) { ANCIENT.clear(); traits.ancient.forEach((n) => ANCIENT.add(n)); }
+  if (traits.future?.length) { FUTURE.clear(); traits.future.forEach((n) => FUTURE.add(n)); }
+}
 
 const stripParens = (s) => s.replace(/\([^)]*\)/g, ' ');
 const sentences = (s) => stripParens(s ?? '').split(/(?<=[.!])\s+|\n+/).map((x) => x.trim()).filter(Boolean);
@@ -209,6 +216,16 @@ export function extractTags(card) {
       const pc = s.match(/put (\d+) damage counters? on (1 of )?your opponent.s (pok[eé]mon|benched pok[eé]mon|active pok[eé]mon)/i) || s.match(/place (\d+) damage counters? on (1 of )?your opponent.s (pok[eé]mon|benched pok[eé]mon|active pok[eé]mon)/i);
       if (pc && !/in any way you like/i.test(s)) tags.push({ ...base, kind: 'PLACE_COUNTERS', amount: +pc[1] * 10, where: pc[3].toLowerCase() });
       else if (pc) tags.push({ ...base, kind: 'PLACE_COUNTERS', amount: +pc[1] * 10, where: 'any', spread: true });
+      // 17) Custo de ataque: "ataques de Pokémon X custam {C} a mais/menos"
+      const cost = s.match(/attacks used by (?:each |your |your opponent.s )?(.+?) (?:in play )?(?:\([^)]*\) )?cost (\{[a-z]\}|\d+ energy|1 energy) (more|less)/i)
+        || s.match(/when the (.+?) this card is attached to uses an attack, that attack costs (\d+|1) energy (more|less)/i);
+      if (cost) {
+        const who = cost[1].replace(/\(both yours and your opponent.s\)/i, '');
+        tags.push({ ...base, kind: 'COST_CHANGE', sel: parseSelector(who), delta: cost[3].toLowerCase() === 'more' ? 1 : -1, both: /both yours and your opponent/i.test(s), mine: /this card is attached to|your pok/i.test(s) && !/opponent/i.test(s) });
+      }
+      // 18) HP reduzido: "cada Pokémon Estágio 2 em jogo recebe -30 HP"
+      const hpd = s.match(/each (.+?) in play[^.]*gets -(\d+) hp/i) || s.match(/your opponent.s (.+?) gets? -(\d+) hp/i);
+      if (hpd) tags.push({ ...base, kind: 'HP_DOWN', sel: parseSelector(hpd[1]), amount: +hpd[2], both: /both yours and your opponent/i.test(s) });
       // 16) HP extra (Ferramenta)
       const hpb = s.match(/gets \+(\d+) hp/i);
       if (hpb) tags.push({ ...base, kind: 'HP_BOOST', amount: +hpb[1] });

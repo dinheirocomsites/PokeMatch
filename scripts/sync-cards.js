@@ -49,6 +49,29 @@ async function fetchSetDetail(id) {
   return { id: d.id, name: d.name, code: d.abbreviation?.official ?? null, releaseDate: d.releaseDate, serie: d.serie?.id };
 }
 
+// Nomes de cartas por subtipo na Pokémon TCG API (Tera, Ancient, Future). Tenta de novo em erro 5xx.
+async function fetchTraits() {
+  const get = async (url) => {
+    for (let i = 1; i <= 5; i++) {
+      try { const r = await fetch(url); if (r.ok) return r.json(); if (r.status < 500) return null; } catch { /* rede */ }
+      await new Promise((res) => setTimeout(res, 1500 * i));
+    }
+    return null;
+  };
+  const out = {};
+  for (const [key, sub] of [['tera', 'Tera'], ['ancient', 'Ancient'], ['future', 'Future']]) {
+    const names = new Set();
+    for (let page = 1; page <= 10; page++) {
+      const d = await get(`https://api.pokemontcg.io/v2/cards?q=subtypes:${sub}&select=name&pageSize=250&page=${page}`);
+      if (!d) { if (page === 1) return null; break; }
+      for (const c of d.data ?? []) names.add(c.name);
+      if ((d.data ?? []).length < 250) break;
+    }
+    out[key] = [...names].sort();
+  }
+  return out;
+}
+
 async function main() {
   // Busca da marca mínima em diante; para quando duas marcas seguidas vierem vazias
   // (assim marcas futuras como K, L… entram automaticamente).
@@ -122,13 +145,17 @@ async function main() {
     console.log(`  nomes em português: ${n} cartas`);
   } catch (e) { console.log('  (sem nomes em português:', e.message, ')'); }
 
+  // Subtipos que o TCGdex não informa (Tera / Ancient / Future), lidos da Pokémon TCG API
+  const traits = await fetchTraits();
+  if (traits) console.log(`  subtipos (pokemontcg.io): Tera ${traits.tera.length}, Ancient ${traits.ancient.length}, Future ${traits.future.length}`);
+
   // Conferência: marca de regulamento × flag legal da API
   const mismatch = usable.filter((c) => c.regulationMark !== 'BASIC' && !c.legalOverride && c.legal?.standard === false);
   console.log(`Conferência: ${mismatch.length} cartas com marca legal mas flag da API = false`);
   if (mismatch.length) console.log('  exemplos:', mismatch.slice(0, 5).map((c) => c.id).join(', '));
 
   await mkdir('data', { recursive: true });
-  await writeFile('data/cards.json', JSON.stringify({ syncedAt: new Date().toISOString(), marks, sets, cards: usable }));
+  await writeFile('data/cards.json', JSON.stringify({ syncedAt: new Date().toISOString(), marks, sets, traits, cards: usable }));
   console.log(`OK: ${usable.length} cartas, ${Object.keys(sets).length} sets → data/cards.json`);
 }
 

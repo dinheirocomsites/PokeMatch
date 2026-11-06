@@ -45,6 +45,12 @@ export function profileDeck(parsed) {
     const feas = atks.length ? atks.map((a) => ({ a, ...attackFeasibility(a, eDeck) })).sort((x, y) => y.f - x.f)[0] : { f: 1, missing: [] };
     return { ...e, feas: feas.f, feasMissing: feas.missing, threat: e.count * threatOf(e.card) * (atks.length ? Math.max(feas.f, 0) : 1) };
   });
+  // Degraus de evolução (Dreepy → Drakloak → Dragapult): quem evolui para um atacante mais forte do mesmo deck
+  // passa a maior parte do jogo como degrau, não como atacante — conta só uma fração do poder de ataque
+  for (const e of threat) {
+    const evo = threat.find((x) => x.card.evolveFrom === e.card.name);
+    if (evo && maxDamage(evo.card) > maxDamage(e.card)) { e.threat *= 0.3; e.stepping = evo.card.name; }
+  }
   const totalThreat = threat.reduce((s, e) => s + e.threat, 0) || 1;
 
   const weakness = {};

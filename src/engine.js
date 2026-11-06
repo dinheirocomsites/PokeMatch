@@ -5,7 +5,7 @@ import { profileDeck } from './profile.js';
 import { parseDeck } from './parser.js';
 import { evaluateFit, deadInMatchup } from './fit.js';
 import { damageVs } from './damage.js';
-import { buildOptions } from './synergy.js';
+import { buildOptions, findCombos } from './synergy.js';
 import { simulateRace, planText, parseDenial } from './prizes.js';
 import { readContext, clusterOf, CLUSTERS } from './context.js';
 import { consistencyImpact } from './consistency.js';
@@ -142,6 +142,24 @@ function tagValue(t, opp, me, ctx) {
     case 'ENERGY_DISRUPT': {
       const avgCost = opp.threat.reduce((s, e) => s + e.count * Math.max(0, ...(e.card.attacks ?? []).map((a) => (a.cost ?? []).length)), 0) / Math.max(1, c.pokemon);
       return { value: 14 * clamp(avgCost / 3) * condFactor * nextTurn, why: `"${t.name}": remove energia do oponente (custo médio de ataque: ${avgCost.toFixed(1)}).` };
+    }
+    case 'COST_CHANGE': {
+      // Taxa de energia nos atacantes dele (ex.: Nighttime Mine: ataques de Tera custam {C} a mais)
+      if (t.delta < 0) return null;
+      const { cov, covered } = coverage(t.sel, opp, ctx);
+      if (cov < 0.25) return null;
+      const mineHit = t.both ? me.threat.filter((e) => maxDamage(e.card) > 0 && matches(t.sel, e.card)) : [];
+      const myShare = mineHit.reduce((s2, e) => s2 + e.threat, 0) / (me.totalThreat || 1);
+      // Quanto atrasa: o ataque principal de cada atacante atingido passa de N para N+1 energias
+      const hitAtk = opp.threat.filter((e) => covered.includes(e.card.name)).map((e) => { const a = (e.card.attacks ?? []).filter((x) => attackDamage(x) > 0).sort((x, y) => attackDamage(y) - attackDamage(x))[0]; return a && { who: e.card.name, atk: a.name, n: (a.cost ?? []).length }; }).filter(Boolean);
+      const avgN = hitAtk.length ? hitAtk.reduce((s2, x) => s2 + x.n, 0) / hitAtk.length : 3;
+      const slow = clamp(1 / avgN + 0.25);
+      return { value: 50 * cov * slow * clamp(1 - myShare * 1.5, 0.2, 1), why: `"${t.name}": ataques de ${selectorPt(t.sel)} custam +1 energia — ${hitAtk.slice(0, 2).map((x) => `"${x.atk}" do ${x.who} passa de ${x.n} para ${x.n + 1} energias`).join('; ')} (atinge ${pct(cov)} do poder de ataque dele).${mineHit.length ? ` Atenção: também taxa os seus ${names(mineHit.map((e) => e.card.name))}.` : ' Não afeta os seus atacantes.'}` };
+    }
+    case 'HP_DOWN': {
+      const { cov, covered } = coverage(t.sel, opp, ctx);
+      if (cov < 0.2) return null;
+      return { value: 18 * cov, why: `"${t.name}": ${selectorPt(t.sel)} ficam com −${t.amount} HP (${names(covered)}) — equivale a +${t.amount} de dano seu contra eles.` };
     }
     case 'STATUS': {
       // Sono/paralisia travam o Ativo dele (valem mais); confusão/queimadura/veneno dão dano e chance de erro
@@ -400,6 +418,64 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
   if (!killers.length && !disruption.axes.some((a) => a.severity >= 0.3)) diagnosis.push(`Não encontrei um ponto fraco claro do seu deck neste matchup pelas regras atuais — as sugestões abaixo são ideias, avalie com cuidado.`);
   if (me.board?.benchNeeded >= 5) diagnosis.push(`Seu banco já fica cheio no plano normal (${me.board.pieces.join(', ')} + ${me.board.backup} de reserva): techs que ocupam banco custam caro.`);
 
+  // ---------- Margem de nocaute: matar o atacante principal dele TODO turno ----------
+  // Compara o dano do seu atacante principal "sozinho" com o dano "com tudo montado" (combos do deck)
+  let koGap = null;
+  const oppMain = opp.mainAttacker;
+  if (main && oppMain && oppMain.category === 'Pokemon') {
+    const selfDamaged = me.entries.some((e) => /place \d+ damage counters on that pok[eé]mon|also does \d+ damage to itself/i.test(e.card.text));
+    const atk = (main.attacks ?? []).filter((a) => canPayCost(a.cost, me)).sort((a, b) => attackDamage(b) - attackDamage(a))[0];
+    if (atk) {
+      // HP efetivo do alvo: reduções de HP que você JÁ joga (ex.: Gravity Mountain em Estágio 2)
+      const myHpDown = me.tagsByCard.flatMap(({ entry, tags }) => tags.filter((t) => t.kind === 'HP_DOWN' && matches(t.sel, oppMain)).map((t) => ({ by: entry.card.name, amount: t.amount })));
+      const hpCut = Math.max(0, ...myHpDown.map((x) => x.amount));
+      const hp = oppMain.hp - hpCut;
+      const alone = damageVs(atk, main, oppMain, { deck: me, oppTaken: 2, selfDamaged }).dmg;
+      const combo = synergyCombos(main, me);
+      const pieces = [];
+      if (combo.boost) pieces.push({ name: combo.boostBy, amount: combo.boost });
+      if (combo.passive) pieces.push({ name: combo.passiveBy, amount: combo.passive });
+      const full = alone + pieces.reduce((s2, p) => s2 + p.amount, 0);
+      const need = Math.max(0, hp - alone);
+      // Menor conjunto de peças que fecha a conta
+      let minSet = null;
+      for (let mask = 0; mask < 1 << pieces.length; mask++) {
+        const set = pieces.filter((_, i) => mask & (1 << i));
+        if (set.reduce((s2, p) => s2 + p.amount, 0) >= need && (!minSet || set.length < minSet.length)) minSet = set;
+      }
+      koGap = { target: oppMain.name, hp, hpBase: oppMain.hp, hpCut, hpCutBy: myHpDown.map((x) => x.by), attack: atk.name, alone, full, need, pieces, minSet };
+      if (need > 0) {
+        const sev = full < hp ? 1 : clamp(0.35 + 0.25 * (minSet?.length ?? 2));
+        koGap.severity = sev;
+        disruption.axes.push({ key: 'ko_gap', severity: sev, evidence: '' });
+        // Se outro problema é mais urgente (quem mata o seu atacante em 1 hit), esta linha vem depois dele
+        diagnosis.splice(killers.length && !killerNames.includes(oppMain.name) ? Math.min(diagnosis.length, 2) : 0, 0, full < hp
+          ? `Margem de nocaute: o ${main.name} faz ${alone} no ${oppMain.name} (${hp} HP${hpCut ? `, já com −${hpCut} do ${koGap.hpCutBy.join('/')}` : ''}) e nem com tudo montado (${full}) nocauteia.`
+          : `Margem de nocaute: sozinho o ${main.name} faz ${alone} no ${oppMain.name} (${hp} HP${hpCut ? `, já com −${hpCut} do ${koGap.hpCutBy.join('/')}` : ''}); para nocautear todo turno precisa de +${need} vindo de ${minSet.map((p) => `${p.name} (+${p.amount})`).join(' + ')} montado(s) TODO turno.`);
+      }
+    }
+  }
+  // Techs que fecham a margem: dano extra contra o alvo ou HP reduzido do alvo
+  if (koGap?.need > 0) {
+    for (const c of candidates) {
+      if (!c || c.reasons.some((r) => r.kind === 'KO_GAP')) continue;
+      const bonus = extractTags(c.card).filter((t) => (t.kind === 'EXTRA_DMG' && matches(t.sel, oppMain) && (!t.onlyFor || t.onlyFor === main.name) && !(t.needsNoRuleBox && main.isRuleBox)) || (t.kind === 'HP_DOWN' && matches(t.sel, oppMain)));
+      if (!bonus.length) continue;
+      const amt = Math.max(...bonus.map((t) => t.amount));
+      const piecesSaved = koGap.minSet ? koGap.minSet.filter((p) => p.amount <= amt).length : 0;
+      const closes = koGap.alone + amt >= koGap.hp;
+      // "Todo turno": Ferramenta/Estádio/Habilidade ficam em jogo; Supporter gasta o Supporter do turno; Item pode ser travado
+      const persistent = ['Tool', 'Stadium'].includes(c.card.trainerType) || c.card.category === 'Pokemon';
+      const perTurn = c.card.trainerType === 'Supporter' ? 0.7 : c.card.trainerType === 'Item' ? 0.8 : 1;
+      // Se quem mata o seu atacante é outro Pokémon, nocautear este alvo é um problema secundário
+      const secondary = killers.length && !killerNames.includes(koGap.target) ? 0.6 : 1;
+      const value = (closes ? 40 : 18 + 10 * piecesSaved) * perTurn * secondary;
+      c.reasons.unshift({ kind: 'KO_GAP', value, why: `Ajuda a nocautear ${koGap.target} todo turno: +${amt} faz o ${main.name} chegar a ${koGap.alone + amt}${closes ? ` — fecha os ${koGap.hp} HP SEM depender de ${koGap.minSet.map((p) => p.name).join(' + ')}` : ` (precisa de ${koGap.hp})`}.${persistent ? ' Fica em jogo: vale todo turno sem gastar recurso.' : c.card.trainerType === 'Supporter' ? ' Mas é Supporter: para valer todo turno você gasta o Supporter do turno (sem Boss/Lillie\'s nesse turno).' : ' É Item: uma cópia por turno, e trava de Itens bloqueia.'}` });
+      c.impact = Math.round(clamp(c.reasons.reduce((s2, x, i) => s2 + x.value * (i ? 0.4 : 1), 0), 0, 100));
+      c.score = Math.round(c.impact * (c.fit / 100));
+    }
+  }
+
   // HP extra (Ferramenta): faz o seu atacante principal SOBREVIVER a quem hoje o nocauteia em 1 ataque?
   if (main && killers.length) {
     for (const card of db.unique) {
@@ -426,6 +502,8 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
   const relevanceOf = (c) => {
     for (const r of c.reasons) {
       if (r.kind === 'SURVIVE') return `faz o ${main.name} sobreviver a ${c.survives.join(' e ')}`;
+      if (r.kind === 'KO_GAP') return `ajuda o ${main.name} a nocautear ${koGap.target} todo turno`;
+      if (r.kind === 'COST_CHANGE' && ctxRead.weights.disrupcao) return 'dificulta os ataques dele (custo maior)';
       if (r.kind?.startsWith('ANTI_')) {
         const ax = disruption.axes.find((a) => a.key === r.axis);
         if (ax && ax.severity >= 0.3) return `responde a ${AXES[r.axis].label.toLowerCase()}`;
@@ -494,6 +572,7 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
     const rs = tags.map((t) => tagValue(t, opp, me, rawCtx)).filter((v) => v && v.value >= 8).sort((a, b) => b.value - a.value);
     if (rs.length && !tags.every((t) => t.kind === 'STADIUM_REPLACE' && rs.length === 1 && rs[0].value < 15)) already.push({ card: entry.card, count: entry.count, reasons: rs });
   }
+  if (koGap?.hpCut) for (const by of koGap.hpCutBy) { const e = me.entries.find((x) => x.card.name === by); if (e && !already.some((a) => a.card.name === by)) already.push({ card: e.card, count: e.count, reasons: [{ why: `Tira ${koGap.hpCut} HP do ${koGap.target} (${koGap.hpBase}→${koGap.hp}) — ajuda o ${main.name} a nocautear.` }] }); }
   for (const e of me.entries) {
     const rs = disruptionValue(e.card, disruption, me);
     if (rs.length && !already.some((a) => a.card.name === e.card.name)) already.push({ card: e.card, count: e.count, reasons: rs });
@@ -513,6 +592,7 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
 
   return {
     diagnosis,
+    koGap,
     tips: disruption.tips,
     axes: disruption.axes,
     killers,
@@ -580,6 +660,14 @@ function totalCosts(s, me, opp) {
     costs.push({ kind: 'consistency', text: `Consistência medida (6.000 partidas): ${parts.join(' · ')} — custo ${c.verdict}.` });
   }
   return costs;
+}
+
+// Combos do deck em volta do atacante principal (envenenado + Mochi, dano passivo), com quem fornece cada um
+function synergyCombos(main, me) {
+  const c = findCombos(main, me, me.energyTypes);
+  const boostBy = c.combos.find((x) => /bate \+/.test(x.text))?.with;
+  const passiveBy = c.combos.find((x) => /move \d+ de dano/.test(x.text))?.with;
+  return { boost: c.boost, boostBy: boostBy ? `${boostBy} (envenenado)` : 'combo', passive: c.passive, passiveBy: passiveBy ?? 'dano passivo' };
 }
 
 function summarize(p, parsed) {

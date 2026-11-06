@@ -12,6 +12,7 @@ export const AXES = {
   energy_removal: { label: 'Remoção de energia', counters: ['ENERGY_ACCEL', 'ENERGY_RECOVERY', 'ENERGY_MOVE'] },
   spread: { label: 'Dano no seu banco', counters: ['BENCH_WALL', 'BENCH_SHIELD', 'HEAL'] },
   trap: { label: 'Prender o seu Pokémon no Ativo', counters: ['SWITCH'] },
+  ko_gap: { label: 'Margem de nocaute', counters: [] }, // tratado no motor (dano extra / HP reduzido do alvo)
   ability_lock: { label: 'Trava das suas habilidades', counters: ['DRAW_ABILITY', 'SUPPORTER_SEARCH'] },
 };
 

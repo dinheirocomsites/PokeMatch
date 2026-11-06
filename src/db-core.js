@@ -11,7 +11,16 @@ export function normName(s) {
 }
 
 // Enriquece cada carta com campos derivados que o motor usa.
-function enrich(c) {
+// Texto limpo: a API às vezes manda HTML ("<span class=energy-symbol Lightning>" → {L}; "<em>(…)</em>" → "(…)")
+const ESYM = { Grass: 'G', Fire: 'R', Water: 'W', Lightning: 'L', Psychic: 'P', Fighting: 'F', Darkness: 'D', Metal: 'M', Dragon: 'N', Colorless: 'C', Fairy: 'Y' };
+export function cleanText(s) {
+  if (typeof s !== 'string') return s;
+  return s.replace(/<span class="energy-symbol (\w+)"[^>]*>[^<]*<\/span>/g, (_, t) => `{${ESYM[t] ?? t[0]}}`)
+    .replace(/<[^>]+>/g, '').replace(/[ \t]+/g, ' ').trim();
+}
+
+function enrich(c0) {
+  const c = { ...c0, effect: cleanText(c0.effect), abilities: c0.abilities?.map((a) => ({ ...a, effect: cleanText(a.effect) })), attacks: c0.attacks?.map((a) => ({ ...a, effect: cleanText(a.effect) })) };
   const isPokemon = c.category === 'Pokemon';
   const isEx = isPokemon && (/ ex$/i.test(c.name) || c.suffix === 'EX' || c.suffix === 'ex');
   const isMega = isPokemon && /^Mega /.test(c.name);

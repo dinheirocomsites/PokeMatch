@@ -188,7 +188,7 @@ export function extractTags(card) {
         continue;
       }
       // 2) Redução de dano
-      const red = s.match(/takes? (\d+) less damage from attacks(?: from (?:your |the )?opponent.s ([^(]+?))?(?:\s*\(|$|\.)/i);
+      const red = s.match(/takes? (\d+) less damage from attacks(?: from (?:your |the )?opponent.s ([^(]+?))?(?:\s*\(|\s*$|\s*\.)/i);
       if (red) {
         const sel = red[2] ? parseSelector(red[2]) : {};
         tags.push({ ...base, kind: 'REDUCE', sel, amount: +red[1] });
@@ -248,9 +248,9 @@ export function extractTags(card) {
       if (heal) tags.push({ ...base, kind: 'HEAL', amount: heal[1] === 'all' ? 999 : +heal[1], scope: /each of your|all of your/i.test(heal[2]) ? 'all' : 'one' });
       // 13) Troca/recuo dos seus Pokémon e prender o do oponente
       if (/switch (your active pok[eé]mon|this pok[eé]mon) with 1 of your benched/i.test(s) || /your (basic )?pok[eé]mon in play have no retreat cost|retreat cost is .*less/i.test(s)) tags.push({ ...base, kind: 'SWITCH' });
-      if (/the defending pok[eé]mon can.t retreat|your opponent.s active pok[eé]mon can.t retreat/i.test(s)) tags.push({ ...base, kind: 'TRAP' });
+      if (/the defending pok[eé]mon can.t retreat|your opponent.s active pok[eé]mon can.t retreat|during your opponent.s next turn, that pok[eé]mon can.t retreat/i.test(s)) tags.push({ ...base, kind: 'TRAP' });
       // 14) Mover energia entre os seus Pokémon
-      if (/move (a|an|up to \d+|any amount of|all) (basic )?(\{[a-z]\} )?energy from (1 of )?your/i.test(s)) tags.push({ ...base, kind: 'ENERGY_MOVE' });
+      if (/move (a|an|up to \d+|any amount of|all) (basic )?(\{[a-z]\} )?energy from (1 of )?(your|this pok[eé]mon)/i.test(s)) tags.push({ ...base, kind: 'ENERGY_MOVE' });
       // 15) Colocar contadores de dano no oponente (fora "mover")
       const pc = s.match(/put (\d+) damage counters? on (1 of )?your opponent.s (pok[eé]mon|benched pok[eé]mon|active pok[eé]mon)/i) || s.match(/place (\d+) damage counters? on (1 of )?your opponent.s (pok[eé]mon|benched pok[eé]mon|active pok[eé]mon)/i);
       if (pc && !/in any way you like/i.test(s)) tags.push({ ...base, kind: 'PLACE_COUNTERS', amount: +pc[1] * 10, where: pc[3].toLowerCase() });

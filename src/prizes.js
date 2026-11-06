@@ -136,15 +136,21 @@ function spreadOf(attack) {
   return null;
 }
 // Desvantagem do próprio ataque
-function drawbackOf(attack) {
+export function drawbackOf(attack) {
   const e = attack?.effect ?? '';
   const name = (attack?.name ?? '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return {
     noAttack: /during your next turn, this pok[eé]mon can.t (attack|use attacks)/i.test(e) || (!!name && new RegExp(`during your next turn, this pok[eé]mon can.t use ${name}`, 'i').test(e)),
     discardEnergy: /discard (all|\d+|an?) energy from this pok[eé]mon/i.test(e) && !/you may discard/i.test(e),
     takesMore: +(e.match(/this pok[eé]mon takes (\d+) more damage/i)?.[1] ?? 0),
+    // Proteção do próprio ataque no turno dele (sem moeda): "takes 30 less damage" / "prevent all damage done to this Pokémon"
+    shield: /flip a coin/i.test(e) ? 0 : /during your opponent.s next turn, prevent all damage (?:from and effects of attacks )?done to this pok[eé]mon/i.test(e) ? 999 : +(e.match(/during your opponent.s next turn, (?:this pok[eé]mon takes|attacks used by the defending pok[eé]mon do) (\d+) less damage/i)?.[1] ?? 0),
+    // Trava o Pokémon que recebeu o ataque: no turno dele, ele não ataca (tem que trocar)
+    lockDefender: !/flip a coin/i.test(e) && /during your opponent.s next turn, the defending pok[eé]mon can.t (attack|use attacks)/i.test(e),
   };
 }
+// Ataque que puxa do banco dele e bate no novo Ativo (Dipplin, Malamar…): nocauteia no banco sem gastar Boss
+const pullsIn = (a) => /switch in 1 of your opponent.s benched pok[eé]mon to the active spot/i.test(a?.effect ?? '');
 // Redução de dano do defensor (habilidade)
 const tagCache = new Map();
 const tagsOf = (c) => { if (!tagCache.has(c.id ?? c.name)) tagCache.set(c.id ?? c.name, extractTags(c)); return tagCache.get(c.id ?? c.name); };
@@ -192,7 +198,7 @@ function oppChoose(target, opp, oppLeft, hitsTaken, extraWalls = [], ctx = {}) {
   const hp = target.hp + (ctx.hpBonus ?? 0);
   const pool = opp.threat.filter((e) => oppLeft.get(e.card.name) && e.feas >= 0.3);
   for (const e of pool) {
-    if (ctx.cooldown === e.card.name) continue; // não pode atacar neste turno (desvantagem do ataque anterior)
+    if ([].concat(ctx.cooldown ?? []).includes(e.card.name)) continue; // não pode atacar neste turno (desvantagem do ataque anterior / trava do seu ataque)
     // Tempo do oponente: Estágio 2 só fica pronto a partir do 2º turno de resposta (Estágio 1 já no 1º)
     if (ctx.oppTurn && e.card.stage === 'Stage2' && ctx.oppTurn < 2) continue;
     if (walls.some((w) => matches(w.sel, e.card))) continue; // muralha: esse atacante não causa dano
@@ -200,7 +206,7 @@ function oppChoose(target, opp, oppLeft, hitsTaken, extraWalls = [], ctx = {}) {
     let best = null;
     for (const a of atks) {
       const r = damageVs(a, e.card, target, { deck: opp, oppTaken: 3, weaknessOverride: ctx.wo, reduction: reductionOn(target, e.card) });
-      const dmg = r.dmg + (r.dmg ? (ctx.takesMore ?? 0) : 0);
+      const dmg = Math.max(0, r.dmg + (r.dmg ? (ctx.takesMore ?? 0) : 0) - (r.counters ? 0 : (ctx.shield ?? 0)));
       if (dmg > 0 && (!best || dmg > best.dmg || (dmg + hitsTaken >= hp && best.dmg + hitsTaken >= hp && spreadOf(a) && !spreadOf(best.atk)))) best = { dmg, weak: r.notes.some((n) => n.startsWith('fraqueza')), atk: a };
     }
     if (best) opts.push({ card: e.card, ...best, ko: best.dmg + hitsTaken >= hp });
@@ -353,6 +359,18 @@ export function simulateRace(me, opp, { extraAttackers = [], denial = null, ener
       const act = targets.find((t) => t.name === state.oppActive && state.oppLeft.get(t.name));
       const kAct = act && ko(act);
       if (kAct) options.push({ t: act, ...kAct, gust: false });
+      // Ataque que puxa: escolhe um Pokémon do banco dele e bate nele, sem Boss
+      if (att.atks.some((a) => pullsIn(a) && payable(a))) {
+        let g = null;
+        for (const t of targets) {
+          if (!state.oppLeft.get(t.name) || t.name === state.oppActive || !(benchy.has(t.name) || state.shown.has(t.name))) continue;
+          for (const a of att.atks.filter((x) => pullsIn(x) && payable(x))) {
+            const x = myDamage(att.card, a, t, state, meX, eng, { weaknessOverride: myWO, reduction: reductionOn(t, att.card) });
+            if (x.dmg >= effHp(t, state) && (!g || t.prizeValue > g.t.prizeValue)) g = { t, a, r: x, gust: false, pulled: true };
+          }
+        }
+        if (g && (!kAct || g.t.prizeValue > act.prizeValue)) options.push(g);
+      }
       if (state.gusts > 0 && !state.stamped) { // depois do Unfair Stamp, sem Boss na mão
         let g = null;
         const alts = [];
@@ -403,7 +421,7 @@ export function simulateRace(me, opp, { extraAttackers = [], denial = null, ener
           delete oppDmg[pick.t.name];
           if (pick.gust) gustsLeft--;
           if (pick.t.name === capeOn && capeLeft) { capeLeft = false; step.capeBroken = oppCape.name; }
-          Object.assign(step, { alts: pick.alts, attack: pick.a.name, target: pick.t.name, gust: pick.gust, dmg: Math.round(pick.r.dmg), hp: effHp(pick.t, state), notes: pick.r.notes, prizes: pick.t.prizeValue, had: had ? Math.round(had) : 0, checkup: pick.chk?.dmg ? pick.chk : null });
+          Object.assign(step, { alts: pick.alts, attack: pick.a.name, target: pick.t.name, gust: pick.gust, pulled: !!pick.pulled, dmg: Math.round(pick.r.dmg), hp: effHp(pick.t, state), notes: pick.r.notes, prizes: pick.t.prizeValue, had: had ? Math.round(had) : 0, checkup: pick.chk?.dmg ? pick.chk : null });
         } else Object.assign(step, { attack: null, target: null, prizes: 0, vs: state.oppActive });
         step.myTotal = myTaken;
         const bankAfter = state.bank - spend;
@@ -417,7 +435,11 @@ export function simulateRace(me, opp, { extraAttackers = [], denial = null, ener
         const selfPoison = pick?.r?.poisoned ? 10 : 0;
         const prevHits = (state.active?.att === att ? state.active.dmgTaken : 0) + (state.active?.att === att ? 0 : selfHurt) + preCarry + selfPoison;
         const myHpBonus = myCape && state.myCapeLeft && att.card.name === me.mainAttacker?.name ? myCape.amount : 0;
-        const hit = oppChoose(att.card, opp, oppLeft, prevHits, used ? attackWalls(att.card, used.name) : [], { cooldown: state.oppCooldown, wo: oppWO, hpBonus: myHpBonus, takesMore: myDb.takesMore, oppTurn: depth + 1 + tempo });
+        // Seu ataque trava o Pokémon que sobreviveu a ele ("the Defending Pokémon can't attack"): ele não ataca agora
+        const locked = myDb.lockDefender && pick?.chip ? pick.t.name : null;
+        if (locked) step.locked = locked;
+        const hit = oppChoose(att.card, opp, oppLeft, prevHits, used ? attackWalls(att.card, used.name) : [], { cooldown: [state.oppCooldown, locked].filter(Boolean), wo: oppWO, hpBonus: myHpBonus, takesMore: myDb.takesMore, shield: myDb.shield, oppTurn: depth + 1 + tempo });
+        if (myDb.shield) step.shield = myDb.shield;
         let oppTaken = state.oppTaken + preTaken;
         let active = null;
         let denialLeft = state.denialLeft;
@@ -529,7 +551,8 @@ export function planText(plan) {
       const opts = (s.alts?.length ? s.alts : [s.target]).slice(0, 3).join(', ');
       const why = s.activeValue < s.prizes ? `o Ativo dele vale só ${pz(s.activeValue)}` : 'o Ativo dele não cai';
       mine = `Como ${why}: Boss's Orders num Pokémon de ${pz(s.prizes)} que você nocauteia (${opts}) e ataque com ${who} (~${s.dmg}). Você: ${s.myTotal}/6.`;
-    } else mine = `${who} nocauteia o Ativo dele, ${s.target} (${pz(s.prizes)}), sem gastar Boss (~${s.dmg}). Você: ${s.myTotal}/6.`;
+    } else if (s.pulled) mine = `${who} usa "${s.attack}": puxa ${s.target} do banco dele e nocauteia (${pz(s.prizes)}, ~${s.dmg}) sem gastar Boss. Você: ${s.myTotal}/6.`;
+    else mine = `${who} nocauteia o Ativo dele, ${s.target} (${pz(s.prizes)}), sem gastar Boss (~${s.dmg}). Você: ${s.myTotal}/6.`;
     if (s.target && s.had) mine += ` (Ele já tinha ${s.had} de dano.)`;
     if (s.target && s.checkup) mine += ` (Cai no Checkup: +${s.checkup.dmg} de ${s.checkup.why}.)`;
     if (s.stamped) mine = `(Depois do Unfair Stamp você está com 2 cartas: sem Boss neste turno.) ${mine}`;
@@ -541,6 +564,8 @@ export function planText(plan) {
     if (s.hammer) extras.push(`${s.hammer} tira 1 energia sua`);
     if (s.myCool) extras.push(`"${s.myCool}" não pode ser usado no seu próximo turno`);
     if (s.oppCheckup) extras.push(`o ${s.attacker} toma +${s.oppCheckup} no Checkup (veneno/queimadura)`);
+    if (s.locked) extras.push(`o ${s.locked} não pode atacar no turno dele ("${s.attack}")`);
+    if (s.shield && !s.ko) extras.push(`"${s.attack}" protege o ${s.attacker} (${s.shield >= 999 ? 'sem dano' : `−${s.shield}`}) no turno dele`);
     const tail = extras.length ? ` Além disso: ${extras.join('; ')}. Ele: ${s.oppTotal}/6.` : '';
     const theirs0 = s.myTotal >= 6 ? '🏆 Você pega o último prêmio.' : s.ko
       ? `Ele responde: ${s.oppAttacker} nocauteia ${s.attacker}${s.oppWeak ? ' (fraqueza)' : ''} → +${s.oppGain}${s.denial ? ` (${s.denial}: −1)` : ''}. Ele: ${s.oppTotal}/6.`

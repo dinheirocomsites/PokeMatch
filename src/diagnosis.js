@@ -337,6 +337,17 @@ export function requirements(card, me, opp = null) {
   const typedE = t.match(/basic \{([A-Z])\} energy cards? from your discard/i);
   if (typedE && !(me.energyByType?.[SYMT[typedE[1].toUpperCase()]] > 0)) return { ok: false, note: `recupera só energia ${SYMT[typedE[1].toUpperCase()]} — seu deck não tem` };
   if (/only when it is the last card in your hand/i.test(t)) { factor *= 0.55; notes.push('só quando for a última carta da mão'); }
+  // "Você precisa descartar X da mão para usar esta Habilidade" (Meowstic: Chill Teaser Toy; outros: energia, qualquer carta)
+  const must = t.replace(/[’]/g, "'").match(/you must discard (?:a|an) (.+?) (?:card )?from your hand in order to use/i);
+  if (must) {
+    const what = must[1].trim();
+    const typed = what.match(/basic \{([A-Z])\} energy/i);
+    if (typed) { if (!(me.energyByType?.[SYMT[typed[1].toUpperCase()]] > 0)) return { ok: false, note: `para usar, descarta energia ${SYMT[typed[1].toUpperCase()]} — seu deck não tem`, good: [] }; factor *= 0.9; notes.push(`custa descartar 1 energia ${SYMT[typed[1].toUpperCase()]}`); }
+    else if (/^[A-Z]/.test(what) && !/^(Basic|Energy|Item|Supporter|Pok)/.test(what)) {
+      if (!me.names.has(what)) return { ok: false, note: `só funciona descartando ${what} — seu deck não tem`, good: [] };
+      notes.push(`gasta 1 ${what} por uso`);
+    } else { factor *= 0.93; notes.push('custa descartar 1 carta da mão'); }
+  }
   // Custo de descarte ("só se descartar N cartas da mão")
   const disc = t.match(/only if you discard (\d+) (?:other )?cards? from your hand|discard (\d+) cards? from your hand/i);
   if (disc) { const n = +(disc[1] ?? disc[2]); factor *= n >= 3 ? 0.85 : 0.93; notes.push(`custa descartar ${n} carta${n > 1 ? 's' : ''} da mão`); }

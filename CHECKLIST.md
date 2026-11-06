@@ -116,6 +116,8 @@ Legenda: [x] feito · [~] em andamento · [ ] a fazer
 
 - [x] Rodada 4: nocaute em 2 ataques, tempo de evolução, veneno/queimadura no Checkup, Boss de verdade; eixos de pressão cedo, cura, moinho, paralisia, virada e trava do Arbok (72 testes ✅)
 
+- [x] Rodada 5: régua em 3 níveis (79% lido · 69% usado), leitor genérico de condições de dano (468/468), contadores, ataque que puxa, proteção/trava do próprio ataque (84 testes ✅)
+
 ## Próximos passos (ideias)
 - [ ] Interações mais finas: Boss's Orders do oponente contorna muralha; muralha precisa estar Ativa
 - [ ] Analisar contra o meta inteiro de uma vez (várias listas)

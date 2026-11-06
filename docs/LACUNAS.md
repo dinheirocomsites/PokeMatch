@@ -7,7 +7,28 @@
 | Rodada 1 (simulador, texto, consistência, custos) | 56% | 65% | 49 |
 | Rodada 2 (subtipos oficiais, custo de ataque, margem de nocaute) | 56%+ | 65% | 51 |
 | Rodada 3 (Pokémon de Treinador: N, Lupo/Hop, Equipe Rocket…) | 58% | 65% | 62 |
-| Rodada 4 (simulador realista + eixos novos de diagnóstico) | **58%** | **66%** | **72** |
+| Rodada 4 (simulador realista + eixos novos de diagnóstico) | 58% | 66% | 72 |
+| Rodada 5 (régua nova + leitor genérico de condições de dano) | **79% lido · 69% usado · 8% testado** | **100%** | **84** |
+
+### Rodada 5: a régua mudou (e ficou mais honesta)
+A cobertura agora é medida em **3 níveis** (`npm run audit:coverage`):
+- **lido** — alguma parte da ferramenta reconhece a frase;
+- **usado** — o que foi reconhecido muda a nota, o diagnóstico ou a simulação (ex.: "search your deck for…" genérico é só *lido*: nem toda busca entra na simulação de mão);
+- **testado** — a carta tem teste próprio (ainda baixo: 8%; os testes validam a REGRA com 1 carta real, não cada carta).
+
+Também passou a contar o efeito **inteiro**: frases de ligação ("Once during your turn, you may use this Ability.") e pedaços que dependem da frase anterior ("If heads, …", "prevent that damage.") contam junto com o efeito. O texto da API vinha com HTML (`<em>`, `<span class="energy-symbol">`), agora limpo ({L}, {R}…).
+
+**Coberto na rodada 5**
+- **Leitor genérico de condições de dano** ("If …, this attack does N more damage"): estima, pelo seu deck e pelo alvo, a chance de a condição valer — energia {X} ligada, energia extra, Ferramenta, Estádio em jogo, Pokémon citado no banco, Tera no banco, custo de recuo e Resistência do alvo, prêmios restantes, tamanho da mão, carta jogada no turno, carta no descarte… Condição desconhecida **não chuta** (vira lacuna). Resultado: **468 de 468** ataques de dano variável lidos (eram 310).
+- **Multiplicadores novos**: {C} no recuo do alvo, cartas na mão, Pokémon por nome/estágio/tipo em jogo ("for each of your Drifloon and Drifblim"), cartas descartadas pelo próprio ataque ("Discard up to 2 {M} Energy… 120 for each"), revelar o topo do deck.
+- **Bônus opcional** ("You may do 100 more damage. If you do, …") entra com a desvantagem anotada.
+- **Contadores não são dano**: ataque que coloca contadores ignora fraqueza, resistência e redução.
+- **Ataque que puxa do banco** (Dipplin, Malamar…): no simulador, nocauteia no banco **sem gastar Boss**.
+- **Proteção e trava do próprio ataque** no simulador: "no próximo turno dele, recebe 30 a menos / ataques do Defensor causam 30 a menos" e "o Pokémon Defensor não pode atacar" (sem moeda).
+- "Isn't affected by Weakness" × "…by Resistance" separados; redução fixa de habilidade com texto entre parênteses (Tangrowth, Mudsdale…) que antes escapava.
+- Requisito **"descarte X da mão para usar"** (Meowstic sem Chill Teaser Toy, Volcarona sem energia {R}); compra de 1 carta ("Draw a card") na consistência; mover energia do próprio Pokémon.
+
+**Maiores famílias que sobram (578 frases)**: outros/únicos (≈200), energia (mover/devolver), voltar à mão/deck, contadores (mover, no banco), recuo/troca, condições especiais (confusão/sono no próprio), evolução, mão do oponente. Ver `npm run audit:coverage`.
 
 ### Coberto na rodada 4
 **Simulador da corrida de prêmios**

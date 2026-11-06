@@ -35,8 +35,8 @@ function searcherOf(card) {
 }
 function drawOf(card) {
   if (card.trainerType !== 'Supporter') return 0;
-  const m = (card.text ?? '').match(/draws? (\d+) cards/i);
-  return m ? +m[1] : 0;
+  const m = (card.text ?? '').match(/draws? (\d+|a) cards?/i);
+  return m ? (m[1] === 'a' ? 1 : +m[1]) : 0;
 }
 // Habilidade de compra repetível (conta a partir do turno seguinte ao Pokémon aparecer)
 function abilityDrawOf(card) {
@@ -45,8 +45,8 @@ function abilityDrawOf(card) {
   for (const a of card.abilities ?? []) {
     const t = a.effect ?? '';
     if (!/once during your turn/i.test(t) || /only if|if any of your pok[eé]mon were knocked out/i.test(t)) continue;
-    const m = t.match(/draw (\d+) cards?/i);
-    let n = m ? +m[1] : /look at the top \d+ cards of your deck and put 1 of them into your hand/i.test(t) ? 1 : 0;
+    const m = t.match(/draw (\d+|a) cards?/i);
+    let n = m ? (m[1] === 'a' ? 1 : +m[1]) : /look at the top \d+ cards of your deck and put 1 of them into your hand/i.test(t) ? 1 : 0;
     if (/if this pok[eé]mon is in the active spot/i.test(t)) n = n / 2;
     best = Math.max(best, n);
   }

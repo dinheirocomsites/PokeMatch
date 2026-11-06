@@ -148,6 +148,10 @@
   .cmp .b { position: absolute; inset: 0 auto 0 0; background: #8f97b855; border-radius: 99px; }
   .cmp .a { position: absolute; inset: 2px auto 2px 0; background: linear-gradient(90deg, var(--accent2), var(--good)); border-radius: 99px; }
   .cons ul { margin: 8px 0 0; padding-left: 18px; color: #c9cfe6; }
+  .costs { margin-top: 12px; background: #1a1424; border: 1px solid #a855f755; border-radius: 14px; padding: 12px 14px; font-size: 13px; }
+  .costs h4 { margin: 0 0 6px; font-size: 13px; color: #d8b4fe; }
+  .costs li { margin: 4px 0; color: #e4dcf5; }
+  .costs li.dead { color: var(--muted); }
   .already .row { display: flex; gap: 12px; align-items: flex-start; padding: 8px 0; border-bottom: 1px dashed var(--line); font-size: 14px; }
   .already img { width: 60px; border-radius: 6px; }
   .disclaimer { color: var(--muted); font-size: 12px; text-align: center; margin-top: 40px; }
@@ -377,6 +381,7 @@ function render(d) {
         <div class="tabs">${Object.entries(CRIT).map(([k, label]) => s.notes[k]?.length ? `<div class="crit"><h4>${label}<span>${s.parts[k]}</span></h4>${s.notes[k].map((n) => `<div>${esc(n)}</div>`).join('')}</div>` : '').join('')}</div>
         ${s.race ? `<details class="cplan"><summary>🏁 Plano de jogo com ${esc(s.card.name)} (${esc(s.race.result)})</summary>${tl(s.race.plan)}</details>` : ''}
         ${swapHtml(s)}
+        ${s.costs?.length ? `<div class="costs"><h4>💸 Custo total da troca — o que você paga para rodar essa tech</h4><ul style="margin:0;padding-left:18px">${s.costs.map((c) => `<li class="${c.dead ? 'dead' : ''}">${esc(c.text)}</li>`).join('')}</ul></div>` : ''}
         ${consHtml(s)}
       </div>
     </article>`).join('') || '<div class="box">Nenhuma tech forte encontrada para esse matchup.</div>';

@@ -157,7 +157,7 @@ export function evaluateFit(card, used, reasons, meBase, opp, db, opt = null) {
   if (card.category === 'Pokemon' && meBase.board) {
     const b = meBase.board;
     const list = `${b.pieces.join(', ')}${b.backup ? ` + ${b.backup} de reserva` : ''}`;
-    if (b.benchNeeded >= 5) add('peso', 0.72, `✗ Seu banco já fica cheio (${list}) — ${card.name}${card.stage !== 'Basic' ? ` e a pré-evolução` : ''} disputam vaga.`);
+    if (b.benchNeeded >= 5) add('peso', 0.72, `✗ Seu banco já fica cheio (${list}) — ${card.name}${card.stage !== 'Basic' ? ' e a pré-evolução disputam' : ' disputa'} vaga.`);
     else if (b.benchNeeded >= 4) add('peso', 0.88, `⚠ Banco quase cheio (${list}).`);
   }
   // ---------- PESO ----------

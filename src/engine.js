@@ -432,6 +432,7 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
     s.swap = { out: plan, in: adds, alternatives };
     // Quanto de consistência a troca custa? (Monte Carlo antes × depois)
     s.consistency = consistencyImpact(me, s);
+    s.costs = totalCosts(s, me, opp);
     s.score = Math.round(s.score * s.consistency.factor);
   }
   top.sort((a, b) => b.score - a.score);
@@ -470,6 +471,59 @@ export function analyze(myText, oppText, db, { limit = 8, context = '' } = {}) {
     locked,
     suggestions: top,
   };
+}
+
+// Papel de uma carta no deck (para dizer o que você PERDE ao cortá-la)
+function roleOf(card, me) {
+  const t = card.text ?? '';
+  const roles = [];
+  if (/each player shuffles their hand into their deck and draws|shuffles their hand.*opponent|your opponent shuffles their hand/i.test(t)) roles.push('disrupção da mão do oponente');
+  if (/draws? \d+ cards/i.test(t) && card.trainerType === 'Supporter') roles.push('compra de cartas');
+  if (/switch in 1 of your opponent.s benched/i.test(t)) roles.push('puxar alvo (gust)');
+  if (/search your deck for/i.test(t)) roles.push('busca');
+  if (/attach/i.test(t) && /energy/i.test(t)) roles.push('energia');
+  if (card.trainerType === 'Stadium') roles.push('estádio (também tira o estádio dele)');
+  if (card.trainerType === 'Tool' && /more damage/i.test(t)) roles.push('dano extra');
+  if (/discard pile into your hand|from your discard pile/i.test(t)) roles.push('recuperação');
+  if (card.category === 'Energy') roles.push('energia');
+  if (!roles.length) roles.push(card.category === 'Pokemon' ? 'Pokémon de suporte' : 'utilidade');
+  return roles;
+}
+
+// Custo total da troca: entra, sai (com o papel de cada carta), tempo, banco, prêmios, consistência
+function totalCosts(s, me, opp) {
+  const costs = [];
+  const adds = s.pkg?.adds ?? [{ qty: 1, card: s.card }];
+  costs.push({ kind: 'slots', text: `Ocupa ${adds.reduce((n, a) => n + a.qty, 0)} vaga(s) na lista: ${adds.map((a) => `${a.qty}x ${a.card?.name}`).join(' + ')}.` });
+  for (const o of s.swap?.out ?? []) {
+    const entry = me.entries.find((e) => e.card.name === o.name);
+    if (!entry) continue;
+    const same = me.entries.filter((e) => e.card.name !== o.name && roleOf(e.card, me).some((r) => roleOf(entry.card, me).includes(r))).reduce((n, e) => n + e.count, 0);
+    const roles = roleOf(entry.card, me);
+    const left = entry.count - o.qty;
+    costs.push({
+      kind: 'cut', dead: !!o.dead,
+      text: o.dead
+        ? `Sai ${o.qty}x ${o.name} (${entry.count}→${left}): morta neste matchup — custo ~zero aqui, mas faz falta nos matchups em que é útil (${roles.join(', ')}).`
+        : `Sai ${o.qty}x ${o.name} (${entry.count}→${left}): você perde ${o.qty === 1 && entry.count > 1 ? `1 de ${entry.count} cópias de` : ''} ${roles.join(' / ')}${same ? `; ainda sobra${same > 1 ? 'm' : ''} ${same} outra${same > 1 ? 's' : ''} carta${same > 1 ? 's' : ''} com esse papel` : ' — e não sobra outra carta com esse papel'}.`,
+    });
+  }
+  const tempo = [...(s.notes?.peso ?? [])].find((n) => /Pronto para atacar/.test(n));
+  if (tempo) costs.push({ kind: 'tempo', text: tempo.replace(/^[✓⚠✗•]\s*/, '') });
+  const bench = [...(s.notes?.peso ?? [])].find((n) => /banco/.test(n));
+  if (bench) costs.push({ kind: 'bench', text: bench.replace(/^[✓⚠✗•]\s*/, '') });
+  const offType = (s.pkg?.adds ?? []).find((a) => a.role === 'energia habilitadora');
+  if (offType) costs.push({ kind: 'energy', text: `Energia de outro tipo (${offType.card?.name}): só ${offType.qty} cópia — precisa achar a tempo; não serve para os seus outros ataques${s.pkg?.unlocks?.length ? ` (exceto ${s.pkg.unlocks.map((u) => u.name).join(', ')})` : ''}.` });
+  if (s.card.category === 'Pokemon') costs.push({ kind: 'prize', text: s.card.isMega ? 'Se for nocauteado, entrega 3 prêmios.' : s.card.isEx ? 'Se for nocauteado, entrega 2 prêmios.' : 'Se for nocauteado, entrega só 1 prêmio.' });
+  if (s.card.aceSpec && me.aceSpec) costs.push({ kind: 'ace', text: `É ACE SPEC: o seu ${me.aceSpec.name} sai do deck.` });
+  const c = s.consistency;
+  if (c) {
+    const parts = [];
+    if (c.setup) parts.push(`setup ${c.setup.before}% → ${c.setup.after}%`);
+    parts.push(`Supporter na mão inicial ${c.supporter.before}% → ${c.supporter.after}%`);
+    costs.push({ kind: 'consistency', text: `Consistência medida (6.000 partidas): ${parts.join(' · ')} — custo ${c.verdict}.` });
+  }
+  return costs;
 }
 
 function summarize(p, parsed) {

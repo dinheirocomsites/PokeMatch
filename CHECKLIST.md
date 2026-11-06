@@ -81,6 +81,8 @@ Legenda: [x] feito · [~] em andamento · [ ] a fazer
 - [x] **Turno de evolução** no tempo: Estágio 1 = +1 turno, Estágio 2 = +2 (ou +1 com Rare Candy)
 - [x] Simulador: muralha por ataque (Covert Flight) + **oponente usa Boss para contornar muralhas**
 - [x] Corrida pesa mais na nota (10 pontos por prêmio de margem); tech que quase não muda a corrida perde impacto
+- [x] **Custo total da troca** (feedback): vagas, papel de cada carta que sai (ex.: Judge = disrupção + compra), tempo, banco, energia de outro tipo, prêmios, ACE SPEC e consistência medida
+- [ ] Validar contra Hydrapple — aguardando a lista do Felipe
 - [ ] Ensinar as frases restantes do relatório de lacunas (cauda longa)
 - [ ] Caminho "⭐ ACE SPEC de consistência" (ex.: Secret Box × Unfair Stamp) medido no simulador de consistência
 - [ ] Caminho "contra-disrupção" (quando o oponente te atrapalha: Iono, item lock…) — precisa de um deck de teste com disrupção

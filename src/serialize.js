@@ -17,7 +17,7 @@ export function toJson(r, db) {
         combos: s.pkg.combos.map((c) => c.text), unlocks: s.pkg.unlocks,
         damage: s.pkg.damage && { attack: s.pkg.damage.attack.name, base: s.pkg.damage.base, boost: s.pkg.damage.boost, passive: s.pkg.damage.passive, total: s.pkg.damage.total, kos: s.pkg.damage.kos },
       },
-      swap: s.swap, cluster: s.cluster, boosted: s.boosted, race: s.race, relevance: s.relevance, consistency: s.consistency,
+      swap: s.swap, cluster: s.cluster, boosted: s.boosted, race: s.race, relevance: s.relevance, consistency: s.consistency, costs: s.costs,
     })),
     db: { syncedAt: db.syncedAt, marks: db.marks },
   };

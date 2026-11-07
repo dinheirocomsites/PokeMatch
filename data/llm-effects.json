@@ -5331,6 +5331,392 @@
    "summary_pt": "Lugia precisa descartar uma Energia {R}, uma {W} e uma {L} de si mesmo ao atacar.",
    "model": "claude-opus-5-5",
    "at": "2026-11-06"
+  },
+  "idarxi": {
+   "card": "Flygon",
+   "block": "Sandy Flapping",
+   "sentence": "You may also use this Ability if this Pokémon is in the Active Spot and is Knocked Out by damage from an attack from your opponent's Pokémon.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Só uma condição extra para ativar a habilidade (quando é nocauteado no Ativo); o descarte do topo do deck dele não tem tipo próprio.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-07"
+  },
+  "1u83dt4": {
+   "card": "Oricorio ex",
+   "block": "Excited Turbo",
+   "sentence": "As often as you like during your turn, if you have any {R} Mega Evolution Pokémon ex in play, you may use this Ability.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": [
+      "if"
+     ]
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Só a condição de uso da habilidade de ligar energia (exige Mega {R} ex em jogo).",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-07"
+  },
+  "rw5txl": {
+   "card": "Meowscarada",
+   "block": "Showtime",
+   "sentence": "Once during your turn, if this Pokémon is on your Bench, you may switch it with your Active Pokémon.",
+   "effects": [
+    {
+     "kind": "SWITCH",
+     "cond": [
+      "bench"
+     ],
+     "scope": "bench"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Do banco, troca de lugar com o seu Ativo uma vez por turno.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-07"
+  },
+  "1hx5slo": {
+   "card": "Hydrapple",
+   "block": "Hydra Breath",
+   "sentence": "Discard 6 Basic {G} Energy cards from your hand, and Knock Out your opponent's Active Pokémon.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "EXTRA_DMG",
+     "why": "o texto não fala de dano extra"
+    },
+    {
+     "kind": "DRAWBACK",
+     "why": "o texto não fala de desvantagem do próprio ataque"
+    }
+   ],
+   "summary_pt": "Nocauteia direto o Ativo do oponente, mas exige descartar 6 Energias {G} Básicas da mão.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-07"
+  },
+  "utm3r6": {
+   "card": "Magmortar",
+   "block": "Magma Surge",
+   "sentence": "During Pokémon Checkup, put 3 more damage counters on your opponent's Burned Pokémon.",
+   "effects": [
+    {
+     "kind": "PLACE_COUNTERS",
+     "cond": [],
+     "amount": 30,
+     "target": "Burned Pokémon",
+     "scope": "active"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Na verificação entre turnos, põe mais 3 contadores no Pokémon Queimado do oponente.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-07"
+  },
+  "1mq2zor": {
+   "card": "Seismitoad",
+   "block": "Quaking Fist",
+   "sentence": "During your opponent's next turn, whenever they try to use a Trainer card from their hand, they flip a coin.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "ITEM_LOCK",
+     "why": "o texto não fala de trava Itens"
+    }
+   ],
+   "summary_pt": "No próximo turno do oponente, cada Treinador que ele tentar usar depende de moeda.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-07"
+  },
+  "10cirls": {
+   "card": "Seismitoad",
+   "block": "Quaking Fist",
+   "sentence": "If tails, your opponent discards that Trainer card instead of using it.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "ITEM_LOCK",
+     "why": "o texto não fala de trava Itens"
+    }
+   ],
+   "summary_pt": "Se der coroa, o Treinador do oponente é descartado sem efeito.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-07"
+  },
+  "1eqbstn": {
+   "card": "Arboliva ex",
+   "block": "Oil Salvo",
+   "sentence": "Choose 1 of your opponent's Pokémon 6 times.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Só define a escolha de alvos (6 vezes); o dano vem na frase seguinte.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-07"
+  },
+  "316vo3": {
+   "card": "Arboliva ex",
+   "block": "Oil Salvo",
+   "sentence": "For each time you chose a Pokémon, do 20 damage to it.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "EXTRA_DMG",
+     "why": "o texto não fala de dano extra"
+    }
+   ],
+   "summary_pt": "Causa 20 de dano por escolha, distribuídos entre os Pokémon do oponente (até 120 no total).",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-07"
+  },
+  "1f191z0": {
+   "card": "Ethan's Magcargo",
+   "block": "Lava Burst",
+   "sentence": "Discard up to 5 {R} Energy from this Pokémon.",
+   "effects": [
+    {
+     "kind": "DRAWBACK",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Descarta até 5 Energias {R} do próprio Pokémon para escalar o dano.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-07"
+  },
+  "1lnrcsa": {
+   "card": "Alomomola",
+   "block": "Gentle Fin",
+   "sentence": "Once during your turn, if this Pokémon is in the Active Spot, you may put a Basic Pokémon with 70 HP or less from your discard pile onto your Bench.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": [
+      "if"
+     ]
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Recupera Pokémon Básico pequeno do descarte para o banco; sem efeito tático na análise.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-07"
+  },
+  "u26zwc": {
+   "card": "Cinderace",
+   "block": "Explosiveness",
+   "sentence": "If this Pokémon is in your hand when you are setting up to play, you may put it face down in the Active Spot.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": [
+      "if"
+     ]
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Permite começar o jogo com ele no Ativo; sem efeito tático na análise.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-07"
+  },
+  "6shmz5": {
+   "card": "Celebratory Fanfare",
+   "block": "Celebratory Fanfare",
+   "sentence": "If a player healed any damage in this way, their turn ends.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "DRAWBACK",
+     "why": "o texto não fala de desvantagem do próprio ataque"
+    }
+   ],
+   "summary_pt": "Quem curar com o Estádio tem o turno encerrado.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-07"
+  },
+  "ftydhg": {
+   "card": "Rotom ex",
+   "block": "Multi Adapter",
+   "sentence": "Each of your Pokémon that has \"Rotom\" in its name may have up to 2 Pokémon Tool cards attached.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Permite 2 Ferramentas nos Rotom; sem efeito tático na análise.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-07"
+  },
+  "1yr1cqi": {
+   "card": "Rotom ex",
+   "block": "Multi Adapter",
+   "sentence": "If this Ability goes away, discard Pokémon Tools from those Pokémon until only 1 remains on each.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": [
+      "if"
+     ]
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Regra de limpeza de Ferramentas se a habilidade sumir; sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-07"
+  },
+  "jyu9ub": {
+   "card": "Team Rocket's Moltres ex",
+   "block": "Evil Incineration",
+   "sentence": "Discard a Team Rocket's Energy from this Pokémon.",
+   "effects": [
+    {
+     "kind": "DRAWBACK",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Exige descartar uma Team Rocket's Energy do próprio Pokémon.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-07"
+  },
+  "19p9i01": {
+   "card": "Team Rocket's Moltres ex",
+   "block": "Evil Incineration",
+   "sentence": "If you do, discard your opponent's Active Pokémon and all attached cards.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "BOUNCE_OPP",
+     "why": "o texto não fala de tira Pokémon dele de jogo"
+    }
+   ],
+   "summary_pt": "Descarta o Ativo do oponente com todas as cartas ligadas, tirando-o de jogo.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-07"
+  },
+  "411js2": {
+   "card": "Articuno",
+   "block": "Frosty Flapping",
+   "sentence": "Once during your turn, if you have Moltres and Zapdos in play, you may use this Ability.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": [
+      "if"
+     ]
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Só a condição da habilidade (ter Moltres e Zapdos em jogo).",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-07"
+  },
+  "b9pt9u": {
+   "card": "Octillery",
+   "block": "Jet of Ink",
+   "sentence": "During your opponent's next turn, if the Defending Pokémon tries to use an attack, your opponent flips 2 coins.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "WALL_SELF",
+     "why": "o texto não fala de proteção total"
+    }
+   ],
+   "summary_pt": "No próximo turno, o Pokémon Defensor precisa jogar 2 moedas para atacar.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-07"
+  },
+  "mrld1l": {
+   "card": "Octillery",
+   "block": "Jet of Ink",
+   "sentence": "If either of them is tails, that attack doesn't happen.",
+   "effects": [],
+   "rejected": [
+    {
+     "kind": "WALL_SELF",
+     "why": "o texto não fala de proteção total"
+    }
+   ],
+   "summary_pt": "Se sair alguma coroa, o ataque do oponente não acontece.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-07"
+  },
+  "15ebhtp": {
+   "card": "Mismagius ex",
+   "block": "Swirling Prose",
+   "sentence": "As long as this Pokémon is in the Active Spot, whenever your opponent's Active Pokémon moves to the Bench during their turn, their new Active Pokémon is now Confused.",
+   "effects": [
+    {
+     "kind": "STATUS",
+     "cond": [
+      "active"
+     ],
+     "status": "confused",
+     "scope": "active"
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Com este no Ativo, o novo Ativo do oponente fica Confuso sempre que ele trocar.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-07"
+  },
+  "1wybpdl": {
+   "card": "Swoobat",
+   "block": "Happy Return",
+   "sentence": "Put 1 of your Benched Pokémon and all attached cards into your hand.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Devolve um Pokémon próprio do banco para a mão; sem efeito tático na análise.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-07"
+  },
+  "57njix": {
+   "card": "Clawitzer",
+   "block": "Fall Back to Reload",
+   "sentence": "Once during your turn, when this Pokémon moves from the Active Spot to your Bench, you may use this Ability.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": []
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Só o gatilho da habilidade (recuar para o banco).",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-07"
+  },
+  "140402t": {
+   "card": "Misty's Psyduck",
+   "block": "Flustered Leap",
+   "sentence": "Once during your turn, if this Pokémon is on your Bench, you may discard the bottom card of your deck.",
+   "effects": [
+    {
+     "kind": "NONE",
+     "cond": [
+      "if"
+     ]
+    }
+   ],
+   "rejected": [],
+   "summary_pt": "Descarta a carta do fundo do próprio deck para ativar a habilidade; sem efeito tático.",
+   "model": "claude-opus-5-5",
+   "at": "2026-11-07"
   }
  }
 }
